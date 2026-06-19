@@ -98,7 +98,7 @@ jobs:
             rm -rf /var/lib/apt/lists/*
           "
 
-          # Now create all needed extensions
+          # Create extensions and dcos_app role (matches infra/postgres/init.sql)
           sudo apt-get install -y --no-install-recommends postgresql-client
           PGPASSWORD=dcos psql -h localhost -U dcos -d dcos_test -c "
             CREATE EXTENSION IF NOT EXISTS postgis;
@@ -106,8 +106,16 @@ jobs:
             CREATE EXTENSION IF NOT EXISTS pg_trgm;
             CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";
             CREATE EXTENSION IF NOT EXISTS btree_gin;
+            DO \$\$ BEGIN
+              IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'dcos_app') THEN
+                CREATE ROLE dcos_app WITH LOGIN PASSWORD 'dcos_app'
+                  NOSUPERUSER NOINHERIT NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+              END IF;
+            END \$\$;
+            GRANT CONNECT ON DATABASE dcos_test TO dcos_app;
+            GRANT USAGE ON SCHEMA public TO dcos_app;
           "
-          echo "Extensions installed"
+          echo "Extensions and roles ready"
 
       - name: Install Python dependencies
         run: pip install -e ".[dev]"
@@ -148,7 +156,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: ESLint
         run: pnpm --filter web lint
@@ -178,7 +186,7 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Build
         run: pnpm --filter web build
