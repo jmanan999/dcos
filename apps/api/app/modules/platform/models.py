@@ -49,6 +49,7 @@ class Ward(Base):
     Use centroid_lat/lng for Python-side distance estimates; use ST_DWithin(geometry,…)
     for precise spatial queries.
     """
+
     __tablename__ = "wards"
     __table_args__ = (
         Index("ix_wards_zone_id", "zone_id"),
@@ -76,6 +77,7 @@ class OutboxEvent(Base):
     DB transaction. The outbox worker relays it async. Rows are never updated — only
     processed_at is set on delivery.
     """
+
     __tablename__ = "outbox_events"
     __table_args__ = (Index("ix_outbox_unprocessed", "created_at"),)
 
@@ -92,6 +94,7 @@ class OutboxEvent(Base):
 
 class AuditLog(Base):
     """Append-only tamper-evident audit trail. Never UPDATE or DELETE rows."""
+
     __tablename__ = "audit_log"
     __table_args__ = (
         Index("ix_audit_actor", "actor_id"),
@@ -116,6 +119,7 @@ class AuditLog(Base):
 
 class IdempotencyKey(Base):
     """Guards external-event handlers (WhatsApp webhooks) against replays."""
+
     __tablename__ = "idempotency_keys"
 
     key: Mapped[str] = mapped_column(String(255), primary_key=True)

@@ -7,6 +7,7 @@ Dependency chain:
       → require_permission (permission matrix check)
         → get_rls_db (sets app.* session vars for RLS enforcement)
 """
+
 from __future__ import annotations
 
 from typing import Annotated
@@ -74,6 +75,7 @@ def require_permission(permission: str):
     Or inject the verified user:
         user: Annotated[TokenClaims, Depends(require_permission(P.GRIEVANCE_RESOLVE))]
     """
+
     async def _guard(
         user: Annotated[TokenClaims, Depends(get_current_user)],
     ) -> TokenClaims:
@@ -99,6 +101,7 @@ def require_department_match(permission: str):
     Officers/dept_admins can only operate on their own department.
     district_officer / cm_cell / super_admin bypass the dept check.
     """
+
     async def _guard(
         user: Annotated[TokenClaims, Depends(require_permission(permission))],
     ) -> TokenClaims:
@@ -143,7 +146,7 @@ async def get_rls_db(
 
 # ── Typed shorthand annotations ───────────────────────────────────────────────
 
-CurrentUser      = Annotated[TokenClaims, Depends(get_current_user)]
-OptionalUser     = Annotated[TokenClaims | None, Depends(get_optional_user)]
-DbSession        = Annotated[AsyncSession, Depends(get_db)]
-RlsDbSession     = Annotated[AsyncSession, Depends(get_rls_db)]
+CurrentUser = Annotated[TokenClaims, Depends(get_current_user)]
+OptionalUser = Annotated[TokenClaims | None, Depends(get_optional_user)]
+DbSession = Annotated[AsyncSession, Depends(get_db)]
+RlsDbSession = Annotated[AsyncSession, Depends(get_rls_db)]

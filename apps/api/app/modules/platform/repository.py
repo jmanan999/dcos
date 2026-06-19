@@ -1,4 +1,5 @@
 """Platform repositories — outbox relay, audit writes, ward/district lookups."""
+
 from __future__ import annotations
 
 import uuid

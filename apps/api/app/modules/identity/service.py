@@ -1,4 +1,5 @@
 """Identity service — user management, officer CRUD, phone-claim linking."""
+
 from __future__ import annotations
 
 import uuid
@@ -95,9 +96,7 @@ class IdentityService:
         # wide roles — optional dept_id filter
         if dept_id:
             return await self._officers.list_by_department(dept_id)
-        result = await self._s.execute(
-            select(Officer).order_by(Officer.department_id, Officer.id)
-        )
+        result = await self._s.execute(select(Officer).order_by(Officer.department_id, Officer.id))
         return list(result.scalars().all())
 
     async def get_officer(self, officer_id: uuid.UUID) -> Officer | None:

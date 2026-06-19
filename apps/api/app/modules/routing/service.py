@@ -9,6 +9,7 @@ Algorithm:
   5. Transition status CLASSIFIED → ASSIGNED
   6. Write assignment_history row + outbox event
 """
+
 from __future__ import annotations
 
 import uuid
@@ -97,23 +98,29 @@ class RoutingService:
         )
 
         # Status event
-        self._s.add(StatusEvent(
-            grievance_id=grievance_id,
-            from_status=grievance.status,
-            to_status=GrievanceStatus.ASSIGNED.value,
-            actor_id="routing_engine",
-            actor_role="system",
-            note=f"Auto-assigned to officer {officer_id}" if officer_id else "No officer available",
-        ))
+        self._s.add(
+            StatusEvent(
+                grievance_id=grievance_id,
+                from_status=grievance.status,
+                to_status=GrievanceStatus.ASSIGNED.value,
+                actor_id="routing_engine",
+                actor_role="system",
+                note=f"Auto-assigned to officer {officer_id}"
+                if officer_id
+                else "No officer available",
+            )
+        )
 
         # Assignment history
         if officer_id:
-            self._s.add(AssignmentHistory(
-                grievance_id=grievance_id,
-                officer_id=officer_id,
-                department_id=grievance.department_id,
-                assigned_by_id="routing_engine",
-            ))
+            self._s.add(
+                AssignmentHistory(
+                    grievance_id=grievance_id,
+                    officer_id=officer_id,
+                    department_id=grievance.department_id,
+                    assigned_by_id="routing_engine",
+                )
+            )
 
         # Outbox
         await self._outbox.emit(
@@ -141,7 +148,9 @@ class RoutingService:
             department_id=grievance.department_id,
             sla_due_at=sla_due_at,
             status="assigned",
-            message=f"Assigned to officer {officer_id}" if officer_id else "Queued — no officer available",
+            message=f"Assigned to officer {officer_id}"
+            if officer_id
+            else "Queued — no officer available",
         )
 
     async def reassign(
@@ -154,8 +163,11 @@ class RoutingService:
         grievance = await self._s.get(Grievance, grievance_id)
         if not grievance:
             return AssignmentResult(
-                grievance_id=grievance_id, assigned_officer_id=None,
-                department_id=None, sla_due_at=None, status="error",
+                grievance_id=grievance_id,
+                assigned_officer_id=None,
+                department_id=None,
+                sla_due_at=None,
+                status="error",
                 message="Not found",
             )
         # Unassign current officer
@@ -192,19 +204,28 @@ class RoutingService:
         """
         if grievance.ward_id:
             # Ward-scoped query — CAST(:ward_id AS uuid) avoids ::uuid parse issue
-            query = text(base + """
+            query = text(
+                base
+                + """
               AND (o.ward_ids IS NULL OR CAST(:ward_id AS uuid) = ANY(o.ward_ids))
             GROUP BY o.id
             HAVING COUNT(g.id) < o.max_active_cases
             ORDER BY open_cases ASC LIMIT 1
-            """)
-            params: dict = {"dept_id": str(grievance.department_id), "ward_id": str(grievance.ward_id)}
+            """
+            )
+            params: dict = {
+                "dept_id": str(grievance.department_id),
+                "ward_id": str(grievance.ward_id),
+            }
         else:
-            query = text(base + """
+            query = text(
+                base
+                + """
             GROUP BY o.id
             HAVING COUNT(g.id) < o.max_active_cases
             ORDER BY open_cases ASC LIMIT 1
-            """)
+            """
+            )
             params = {"dept_id": str(grievance.department_id)}
 
         row = (await self._s.execute(query, params)).fetchone()

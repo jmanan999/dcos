@@ -1,4 +1,5 @@
 """Identity repositories — users, departments, officers."""
+
 from __future__ import annotations
 
 import uuid
@@ -41,9 +42,7 @@ class DepartmentRepository:
         return result.scalar_one_or_none()
 
     async def get_by_code(self, code: str) -> Department | None:
-        result = await self._s.execute(
-            select(Department).where(Department.short_code == code)
-        )
+        result = await self._s.execute(select(Department).where(Department.short_code == code))
         return result.scalar_one_or_none()
 
     async def list_active(self) -> list[Department]:

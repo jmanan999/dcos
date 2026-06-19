@@ -29,6 +29,7 @@ async def sla_status(
     session: RlsDbSession,
 ) -> SLAStatus:
     from sqlalchemy import text
+
     await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
     svc = SLAService(session)
     data = await svc.get_sla_status(grievance_id)
@@ -53,6 +54,7 @@ async def check_breaches(
     session: RlsDbSession,
 ) -> dict:
     from sqlalchemy import text
+
     await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
     svc = SLAService(session)
     return await svc.check_and_escalate()

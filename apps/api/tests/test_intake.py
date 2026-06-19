@@ -9,6 +9,7 @@ Tests:
   - WhatsApp webhook verification endpoint
   - Public tracking endpoint
 """
+
 from __future__ import annotations
 
 import os
@@ -44,6 +45,7 @@ def _grievance_payload(**overrides) -> dict:
 
 # ── Happy path ────────────────────────────────────────────────────────────────
 
+
 async def test_create_grievance_anonymous(http: AsyncClient) -> None:
     r = await http.post("/api/v1/intake/grievances", json=_grievance_payload())
     assert r.status_code == 201, r.text
@@ -76,6 +78,7 @@ async def test_create_grievance_authenticated_citizen(http: AsyncClient) -> None
 
 # ── Emergency detection ───────────────────────────────────────────────────────
 
+
 async def test_emergency_keyword_flagged(http: AsyncClient) -> None:
     r = await http.post(
         "/api/v1/intake/grievances",
@@ -105,6 +108,7 @@ async def test_hindi_emergency_keyword(http: AsyncClient) -> None:
 
 # ── Idempotency ───────────────────────────────────────────────────────────────
 
+
 async def test_idempotent_duplicate_returns_same_grievance(http: AsyncClient) -> None:
     key = str(uuid.uuid4())
     r1 = await http.post("/api/v1/intake/grievances", json=_grievance_payload(idempotency_key=key))
@@ -116,6 +120,7 @@ async def test_idempotent_duplicate_returns_same_grievance(http: AsyncClient) ->
 
 
 # ── Validation ────────────────────────────────────────────────────────────────
+
 
 async def test_short_text_rejected(http: AsyncClient) -> None:
     r = await http.post(
@@ -144,6 +149,7 @@ async def test_invalid_channel_rejected(http: AsyncClient) -> None:
 
 # ── WhatsApp webhook ──────────────────────────────────────────────────────────
 
+
 async def test_whatsapp_verify_endpoint(http: AsyncClient) -> None:
     r = await http.get(
         "/api/v1/intake/webhooks/whatsapp",
@@ -171,9 +177,12 @@ async def test_whatsapp_wrong_token_rejected(http: AsyncClient) -> None:
 
 # ── Tracking ──────────────────────────────────────────────────────────────────
 
+
 async def test_track_existing_grievance(http: AsyncClient) -> None:
     key = str(uuid.uuid4())
-    create_r = await http.post("/api/v1/intake/grievances", json=_grievance_payload(idempotency_key=key))
+    create_r = await http.post(
+        "/api/v1/intake/grievances", json=_grievance_payload(idempotency_key=key)
+    )
     assert create_r.status_code == 201
     tracking_id = create_r.json()["tracking_id"]
 

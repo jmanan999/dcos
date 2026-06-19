@@ -85,6 +85,7 @@ class PhoneClaimResponse(BaseModel):
 
 class TokenRequest(BaseModel):
     """Local-dev / test only — issue a signed JWT directly."""
+
     user_id: str | None = None
     role: str = "citizen"
     department_id: str | None = None

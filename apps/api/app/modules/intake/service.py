@@ -5,6 +5,7 @@ Flow:
   validate → emergency check → idempotency → reverse-geocode
   → create grievance → status event → outbox emit
 """
+
 from __future__ import annotations
 
 import re
@@ -121,13 +122,15 @@ class IntakeService:
         await self._s.flush()
 
         # 7. First status event
-        self._s.add(StatusEvent(
-            grievance_id=grievance.id,
-            from_status=None,
-            to_status=GrievanceStatus.RECEIVED.value,
-            actor_id=str(citizen_id) if citizen_id else "anonymous",
-            actor_role=actor.role if actor else "citizen",
-        ))
+        self._s.add(
+            StatusEvent(
+                grievance_id=grievance.id,
+                from_status=None,
+                to_status=GrievanceStatus.RECEIVED.value,
+                actor_id=str(citizen_id) if citizen_id else "anonymous",
+                actor_role=actor.role if actor else "citizen",
+            )
+        )
 
         # 8. Idempotency key (24-hour window)
         await self._s.execute(
@@ -233,10 +236,14 @@ class IntakeService:
     # ── Internals ─────────────────────────────────────────────────────────────
 
     async def _check_idempotency(self, key: str) -> Grievance | None:
-        row = (await self._s.execute(
-            text("SELECT response_body FROM idempotency_keys WHERE key = :key AND (expires_at IS NULL OR expires_at > now())"),
-            {"key": key},
-        )).fetchone()
+        row = (
+            await self._s.execute(
+                text(
+                    "SELECT response_body FROM idempotency_keys WHERE key = :key AND (expires_at IS NULL OR expires_at > now())"
+                ),
+                {"key": key},
+            )
+        ).fetchone()
         if not row:
             return None
         return await self._repo.get_by_tracking_id(row[0])
@@ -244,27 +251,30 @@ class IntakeService:
     async def _reverse_geocode(self, lat: float, lng: float) -> uuid.UUID | None:
         """PostGIS containment check → nearest centroid fallback."""
         # Ward polygons (geometry column) — if populated
-        row = (await self._s.execute(
-            text("""
+        row = (
+            await self._s.execute(
+                text("""
                 SELECT id FROM wards
                 WHERE geometry IS NOT NULL
                   AND ST_Within(ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), geometry::geometry)
                 LIMIT 1
             """),
-            {"lat": lat, "lng": lng},
-        )).fetchone()
+                {"lat": lat, "lng": lng},
+            )
+        ).fetchone()
         if row:
             return uuid.UUID(str(row[0]))
 
         # Fallback: nearest ward by centroid distance (always populated)
-        row2 = (await self._s.execute(
-            text("""
+        row2 = (
+            await self._s.execute(
+                text("""
                 SELECT id FROM wards
                 WHERE centroid_lat IS NOT NULL
                 ORDER BY SQRT(POWER(centroid_lat - :lat, 2) + POWER(centroid_lng - :lng, 2))
                 LIMIT 1
             """),
-            {"lat": lat, "lng": lng},
-        )).fetchone()
+                {"lat": lat, "lng": lng},
+            )
+        ).fetchone()
         return uuid.UUID(str(row2[0])) if row2 else None
-

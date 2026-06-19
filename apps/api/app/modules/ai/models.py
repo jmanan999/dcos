@@ -10,13 +10,16 @@ from app.core.database import Base
 
 class AIResult(Base):
     """Stores the raw AI enrichment output for each grievance (for audit + retraining)."""
+
     __tablename__ = "ai_results"
     __table_args__ = (Index("ix_ai_results_grievance_id", "grievance_id"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     grievance_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("grievances.id", ondelete="CASCADE"),
-        nullable=False, unique=True,
+        UUID(as_uuid=True),
+        ForeignKey("grievances.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
     )
     model_version: Mapped[str] = mapped_column(String(80), nullable=False)
     raw_response: Mapped[dict] = mapped_column(JSONB, nullable=False)
@@ -34,6 +37,7 @@ class AIResult(Base):
 
 class FeedbackLabel(Base):
     """Officer corrections to AI classification — labeled dataset for fine-tuning."""
+
     __tablename__ = "feedback_labels"
     __table_args__ = (Index("ix_feedback_labels_grievance_id", "grievance_id"),)
 

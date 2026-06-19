@@ -13,7 +13,7 @@ concurrency:
 env:
   PYTHON_VERSION: "3.12"
   NODE_VERSION: "22"
-  PNPM_VERSION: "10"
+  PNPM_VERSION: "10.15.0"
 
 jobs:
   # ── API: lint ──────────────────────────────────────────────────────────────
@@ -111,6 +111,11 @@ jobs:
 
       - name: Install Python dependencies
         run: pip install -e ".[dev]"
+
+      - name: Run Alembic migrations
+        env:
+          DATABASE_URL: postgresql+asyncpg://dcos:dcos@localhost:5432/dcos_test
+        run: alembic upgrade head
 
       - name: Run tests
         env:

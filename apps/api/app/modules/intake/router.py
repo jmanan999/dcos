@@ -42,6 +42,7 @@ async def health() -> dict[str, str]:
 
 # ── File a grievance ──────────────────────────────────────────────────────────
 
+
 @router.post(
     "/grievances",
     response_model=GrievanceCreateResponse,
@@ -61,6 +62,7 @@ async def create_grievance(
 
 # ── Media upload ──────────────────────────────────────────────────────────────
 
+
 @router.post(
     "/grievances/{grievance_id}/attachments",
     response_model=AttachmentRead,
@@ -76,8 +78,11 @@ async def upload_attachment(
     proof_type: str | None = Form(None),
 ) -> AttachmentRead:
     ALLOWED = {
-        "image/jpeg", "image/png", "image/webp",
-        "audio/ogg", "audio/mpeg",
+        "image/jpeg",
+        "image/png",
+        "image/webp",
+        "audio/ogg",
+        "audio/mpeg",
         "video/mp4",
         "application/pdf",
     }
@@ -89,13 +94,18 @@ async def upload_attachment(
         raise HTTPException(status_code=413, detail="File too large (max 20 MB)")
 
     from app.core.storage import upload_bytes
+
     key = f"grievances/{grievance_id}/{uuid.uuid4()}/{file.filename}"
     url = await upload_bytes(key, contents, file.content_type or "application/octet-stream")
 
     type_map = {
-        "image/jpeg": "image", "image/png": "image", "image/webp": "image",
-        "audio/ogg": "audio", "audio/mpeg": "audio",
-        "video/mp4": "video", "application/pdf": "document",
+        "image/jpeg": "image",
+        "image/png": "image",
+        "image/webp": "image",
+        "audio/ogg": "audio",
+        "audio/mpeg": "audio",
+        "video/mp4": "video",
+        "application/pdf": "document",
     }
 
     # Extract EXIF GPS from images
@@ -120,6 +130,7 @@ async def upload_attachment(
 
 
 # ── Tracking (public — no auth required) ─────────────────────────────────────
+
 
 @router.get(
     "/track/{tracking_id}",
@@ -151,6 +162,7 @@ async def track_grievance(
 
 
 # ── WhatsApp Cloud API webhook ────────────────────────────────────────────────
+
 
 @router.get("/webhooks/whatsapp", include_in_schema=False)
 async def whatsapp_verify(
@@ -191,6 +203,7 @@ def _extract_exif_gps(data: bytes) -> tuple[float | None, float | None]:
         import io
 
         from PIL import ExifTags, Image
+
         img = Image.open(io.BytesIO(data))
         exif = img._getexif()  # type: ignore[attr-defined]
         if not exif:
@@ -199,10 +212,12 @@ def _extract_exif_gps(data: bytes) -> tuple[float | None, float | None]:
         if not gps_tag or gps_tag not in exif:
             return None, None
         gps = exif[gps_tag]
+
         # GPSInfo keys: 1=LatRef, 2=Lat, 3=LonRef, 4=Lon
         def _dms(vals):  # type: ignore[no-untyped-def]
             d, m, s = [float(v) for v in vals]
             return d + m / 60 + s / 3600
+
         lat = _dms(gps.get(2, [0, 0, 0]))
         lng = _dms(gps.get(4, [0, 0, 0]))
         if gps.get(1, "N") == "S":
@@ -220,9 +235,9 @@ def _verify_signature(request: Request, body: bytes) -> None:
     sig = request.headers.get("X-Hub-Signature-256", "")
     if not sig.startswith("sha256="):
         raise HTTPException(status_code=401, detail="Missing WhatsApp signature")
-    expected = "sha256=" + hmac.new(
-        settings.WHATSAPP_TOKEN.encode(), body, hashlib.sha256
-    ).hexdigest()
+    expected = (
+        "sha256=" + hmac.new(settings.WHATSAPP_TOKEN.encode(), body, hashlib.sha256).hexdigest()
+    )
     if not hmac.compare_digest(sig, expected):
         raise HTTPException(status_code=401, detail="Invalid WhatsApp signature")
 
@@ -263,6 +278,7 @@ async def _ingest_wa_message(msg: dict, svc: IntakeService) -> None:
     # Reply to citizen with tracking ID
     if settings.WHATSAPP_TOKEN and settings.WHATSAPP_PHONE_NUMBER_ID:
         import httpx
+
         reply = (
             f"Namaste! Aapki shikayat darj ho gayi hai.\n"
             f"Tracking ID: *{result.tracking_id}*\n\n"

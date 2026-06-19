@@ -11,6 +11,7 @@ In production the frontend sends Supabase-issued JWTs.  The Supabase JWT has:
 For local dev & tests we issue our own JWTs (same secret) so we don't need
 a live Supabase project to test authz.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -67,26 +68,14 @@ def decode_token(token: str) -> TokenClaims:
     # Supabase puts app-level claims inside user_metadata
     user_meta: dict = payload.get("user_metadata") or {}
 
-    role: str = (
-        user_meta.get("dcos_role")
-        or payload.get("role")
-        or "citizen"
-    )
+    role: str = user_meta.get("dcos_role") or payload.get("role") or "citizen"
     # Supabase's own "role" field is "authenticated" — treat that as citizen
     if role == "authenticated":
         role = user_meta.get("dcos_role", "citizen")
 
-    dept_id: str | None = (
-        user_meta.get("department_id")
-        or payload.get("department_id")
-        or None
-    )
+    dept_id: str | None = user_meta.get("department_id") or payload.get("department_id") or None
 
-    name: str | None = (
-        user_meta.get("name")
-        or payload.get("name")
-        or None
-    )
+    name: str | None = user_meta.get("name") or payload.get("name") or None
 
     return TokenClaims(user_id=sub, role=role, department_id=dept_id, name=name)
 

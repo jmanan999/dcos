@@ -14,6 +14,7 @@ Pipeline per grievance:
   7. Write results back to grievance row + ai_results table
   8. Emit grievance.enriched outbox event → routing worker
 """
+
 from __future__ import annotations
 
 import json
@@ -199,19 +200,24 @@ class AIService:
             )
 
         # Persist AI result for audit / retraining
-        self._s.add(AIResult(
-            grievance_id=grievance_id,
-            model_version=settings.GEMINI_MODEL_DEFAULT,
-            raw_response={"classification": classification.model_dump(), "severity": severity.model_dump()},
-            category=classification.category,
-            subcategory=classification.subcategory,
-            department_code=classification.department_code,
-            confidence=classification.confidence,
-            severity_score=severity.score,
-            spam_score=spam.score,
-            language=classification.language,
-            latency_ms=latency_ms,
-        ))
+        self._s.add(
+            AIResult(
+                grievance_id=grievance_id,
+                model_version=settings.GEMINI_MODEL_DEFAULT,
+                raw_response={
+                    "classification": classification.model_dump(),
+                    "severity": severity.model_dump(),
+                },
+                category=classification.category,
+                subcategory=classification.subcategory,
+                department_code=classification.department_code,
+                confidence=classification.confidence,
+                severity_score=severity.score,
+                spam_score=spam.score,
+                language=classification.language,
+                latency_ms=latency_ms,
+            )
+        )
 
         # Emit enriched event → routing worker
         await self._outbox.emit(
@@ -251,9 +257,7 @@ class AIService:
     # ── Gemini calls ──────────────────────────────────────────────────────────
 
     async def _classify(self, text: str, language: str) -> ClassificationResult:
-        raw = await self._gemini_json(
-            _CLASSIFY_PROMPT.format(text=text[:2000], language=language)
-        )
+        raw = await self._gemini_json(_CLASSIFY_PROMPT.format(text=text[:2000], language=language))
         return ClassificationResult(
             category=raw.get("category", "General"),
             subcategory=raw.get("subcategory"),
@@ -282,6 +286,7 @@ class AIService:
             import asyncio
 
             import google.generativeai as genai
+
             genai.configure(api_key=settings.GEMINI_API_KEY)
 
             def _call() -> list[float]:
@@ -301,6 +306,7 @@ class AIService:
         import asyncio
 
         import google.generativeai as genai
+
         genai.configure(api_key=settings.GEMINI_API_KEY)
         model = genai.GenerativeModel(settings.GEMINI_MODEL_DEFAULT)
 
@@ -349,15 +355,19 @@ class AIService:
         if similar:
             # Find or create cluster
             existing_cluster = await self._s.execute(
-                select(GrievanceCluster).where(
+                select(GrievanceCluster)
+                .where(
                     GrievanceCluster.master_grievance_id == similar[0],
                     GrievanceCluster.is_active.is_(True),
-                ).limit(1)
+                )
+                .limit(1)
             )
             cluster = existing_cluster.scalar_one_or_none()
             if cluster:
                 await self._s.execute(
-                    text("UPDATE grievance_clusters SET count = count + 1, updated_at = now() WHERE id = :id"),
+                    text(
+                        "UPDATE grievance_clusters SET count = count + 1, updated_at = now() WHERE id = :id"
+                    ),
                     {"id": str(cluster.id)},
                 )
                 return ClusterMatch(
@@ -384,7 +394,9 @@ class AIService:
                     similarity_score=0.9,
                 )
 
-        return ClusterMatch(cluster_id=None, is_new_cluster=False, similar_grievance_ids=[], similarity_score=0.0)
+        return ClusterMatch(
+            cluster_id=None, is_new_cluster=False, similar_grievance_ids=[], similarity_score=0.0
+        )
 
     # ── Feedback loop ─────────────────────────────────────────────────────────
 
@@ -427,20 +439,33 @@ class AIService:
                   spam_score = 0.02, status = 'CLASSIFIED', updated_at = now()
                 WHERE id = :id
             """),
-            {"cat": category, "dept_id": str(dept_id) if dept_id else None, "id": str(grievance.id)},
+            {
+                "cat": category,
+                "dept_id": str(dept_id) if dept_id else None,
+                "id": str(grievance.id),
+            },
         )
         return AIEnrichmentResult(
             grievance_id=grievance.id,
-            classification=ClassificationResult(category=category, department_code=dept_code, confidence=0.75),
+            classification=ClassificationResult(
+                category=category, department_code=dept_code, confidence=0.75
+            ),
             severity=SeverityScore(score=50, factors=["mock"], priority="MEDIUM"),
             spam=SpamScore(score=0.02, is_spam=False),
-            cluster=ClusterMatch(cluster_id=None, is_new_cluster=False, similar_grievance_ids=[], similarity_score=0.0),
+            cluster=ClusterMatch(
+                cluster_id=None,
+                is_new_cluster=False,
+                similar_grievance_ids=[],
+                similarity_score=0.0,
+            ),
             embedding_stored=False,
         )
 
     async def _dept_id_from_code(self, code: str) -> uuid.UUID | None:
-        row = (await self._s.execute(
-            text("SELECT id FROM departments WHERE short_code = :code LIMIT 1"),
-            {"code": code},
-        )).fetchone()
+        row = (
+            await self._s.execute(
+                text("SELECT id FROM departments WHERE short_code = :code LIMIT 1"),
+                {"code": code},
+            )
+        ).fetchone()
         return uuid.UUID(str(row[0])) if row else None

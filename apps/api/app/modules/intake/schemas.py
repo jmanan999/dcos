@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 
 # ── Inbound ───────────────────────────────────────────────────────────────────
 
+
 class LocationInput(BaseModel):
     lat: float = Field(..., ge=-90, le=90)
     lng: float = Field(..., ge=-180, le=180)
@@ -72,6 +73,7 @@ class WhatsAppLocationMessage(BaseModel):
 
 
 # ── Outbound ──────────────────────────────────────────────────────────────────
+
 
 class AttachmentRead(BaseModel):
     id: uuid.UUID

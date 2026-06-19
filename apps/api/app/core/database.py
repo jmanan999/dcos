@@ -23,11 +23,13 @@ def _register_asyncpg_codecs(dbapi_conn, _) -> None:
 
         async def _setup(conn) -> None:
             from pgvector.asyncpg import register_vector
+
             await register_vector(conn)
 
         asyncio.get_event_loop().run_until_complete(_setup(dbapi_conn))
     except Exception:
         pass  # codec registration is best-effort; fails gracefully outside asyncpg
+
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,

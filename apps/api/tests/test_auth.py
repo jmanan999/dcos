@@ -2,6 +2,7 @@
 Unit tests for JWT auth helpers and the permission matrix.
 These tests need no running database.
 """
+
 from __future__ import annotations
 
 import uuid
@@ -14,6 +15,7 @@ from app.core.auth import TokenClaims, create_local_token, decode_token
 from app.core.permissions import P, get_permissions, has_permission
 
 # ── Token creation + decode ────────────────────────────────────────────────────
+
 
 def test_local_token_round_trip() -> None:
     uid = str(uuid.uuid4())
@@ -56,10 +58,10 @@ def test_supabase_style_token_parsed() -> None:
     dept = str(uuid.uuid4())
     payload = {
         "sub": uid,
-        "role": "authenticated",          # Supabase's own field
+        "role": "authenticated",  # Supabase's own field
         "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
         "user_metadata": {
-            "dcos_role": "dept_admin",    # our custom claim
+            "dcos_role": "dept_admin",  # our custom claim
             "department_id": dept,
             "name": "Test Admin",
         },
@@ -73,6 +75,7 @@ def test_supabase_style_token_parsed() -> None:
 
 
 # ── TokenClaims helpers ────────────────────────────────────────────────────────
+
 
 def test_is_citizen() -> None:
     c = TokenClaims(user_id="x", role="citizen")
@@ -95,6 +98,7 @@ def test_is_admin() -> None:
 
 
 # ── Permission matrix ──────────────────────────────────────────────────────────
+
 
 def test_citizen_permissions() -> None:
     perms = get_permissions("citizen")

@@ -8,6 +8,7 @@ Workers process outbox events:
 Start:  arq app.worker.WorkerSettings
 Or:     python -m app.worker  (for local dev)
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -27,6 +28,7 @@ log = structlog.get_logger()
 
 
 # ── AI enrichment job ─────────────────────────────────────────────────────────
+
 
 async def enrich_grievance(ctx: dict, grievance_id: str) -> dict[str, Any]:
     """Classify, score, embed and cluster a single grievance."""
@@ -53,6 +55,7 @@ async def enrich_grievance(ctx: dict, grievance_id: str) -> dict[str, Any]:
 
 # ── Routing / assignment job ──────────────────────────────────────────────────
 
+
 async def assign_grievance(ctx: dict, grievance_id: str) -> dict[str, Any]:
     """Assign a classified grievance to the right officer + set SLA clock."""
     setup_logging()
@@ -70,6 +73,7 @@ async def assign_grievance(ctx: dict, grievance_id: str) -> dict[str, Any]:
 
 # ── SLA escalation job ────────────────────────────────────────────────────────
 
+
 async def check_sla_breaches(ctx: dict) -> dict[str, int]:
     """Detect SLA-breached grievances and escalate up the ladder."""
     setup_logging()
@@ -84,6 +88,7 @@ async def check_sla_breaches(ctx: dict) -> dict[str, int]:
 
 
 # ── Outbox relay job ──────────────────────────────────────────────────────────
+
 
 async def relay_outbox(ctx: dict) -> dict[str, int]:
     """
@@ -130,6 +135,7 @@ async def relay_outbox(ctx: dict) -> dict[str, int]:
 
 # ── Arq worker settings ───────────────────────────────────────────────────────
 
+
 class WorkerSettings:
     functions = [enrich_grievance, assign_grievance, check_sla_breaches, relay_outbox]
     max_jobs = 20
@@ -149,4 +155,5 @@ class WorkerSettings:
 
 if __name__ == "__main__":
     from arq import run_worker
+
     asyncio.run(run_worker(WorkerSettings))

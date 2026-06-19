@@ -34,6 +34,7 @@ async def health() -> dict[str, str]:
 
 # ── Dev-only token endpoint ───────────────────────────────────────────────────
 
+
 @router.post(
     "/token",
     response_model=TokenResponse,
@@ -58,6 +59,7 @@ async def issue_token(body: TokenRequest) -> TokenResponse:
 
 
 # ── Current user ──────────────────────────────────────────────────────────────
+
 
 @router.get("/me", response_model=UserRead)
 async def get_me(user: CurrentUser, session: RlsDbSession) -> UserRead:
@@ -89,6 +91,7 @@ async def my_permissions(user: CurrentUser) -> PermissionsResponse:
 
 # ── Phone claim (link anonymous grievances) ────────────────────────────────────
 
+
 @router.post("/me/claim-phone", response_model=PhoneClaimResponse)
 async def claim_phone(
     body: PhoneClaimRequest,
@@ -96,13 +99,12 @@ async def claim_phone(
     session: RlsDbSession,
 ) -> PhoneClaimResponse:
     svc = IdentityService(session)
-    linked = await svc.claim_anonymous_grievances(
-        user_id=uuid.UUID(user.user_id), phone=body.phone
-    )
+    linked = await svc.claim_anonymous_grievances(user_id=uuid.UUID(user.user_id), phone=body.phone)
     return PhoneClaimResponse(linked_grievances=linked)
 
 
 # ── Departments ───────────────────────────────────────────────────────────────
+
 
 @router.get("/departments", response_model=list[DepartmentRead])
 async def list_departments(
@@ -129,6 +131,7 @@ async def get_department(
 
 
 # ── Officers ──────────────────────────────────────────────────────────────────
+
 
 @router.get("/officers", response_model=list[OfficerRead])
 async def list_officers(

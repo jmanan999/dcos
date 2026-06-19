@@ -13,10 +13,9 @@ class SLAPolicy(Base):
     Tiered SLA per department × category × priority.
     NULL department_id / category / priority act as wildcards (matched last).
     """
+
     __tablename__ = "sla_policies"
-    __table_args__ = (
-        Index("ix_sla_policies_dept_category", "department_id", "category"),
-    )
+    __table_args__ = (Index("ix_sla_policies_dept_category", "department_id", "category"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     department_id: Mapped[uuid.UUID | None] = mapped_column(
@@ -36,6 +35,7 @@ class SLAPolicy(Base):
 
 class EscalationRecord(Base):
     """Log every automatic escalation step for accountability."""
+
     __tablename__ = "escalation_records"
     __table_args__ = (Index("ix_escalation_grievance_id", "grievance_id"),)
 

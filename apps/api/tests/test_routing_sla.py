@@ -9,6 +9,7 @@ Tests:
   - Reassignment preserves history
   - Status state machine enforced (invalid transitions rejected)
 """
+
 from __future__ import annotations
 
 import os
@@ -36,22 +37,27 @@ async def http() -> AsyncClient:
 async def _file_and_enrich(http: AsyncClient, text_: str | None = None) -> dict:
     """Helper: file a grievance, then enrich it so routing can proceed."""
     raw = text_ or "Pothole on the main road near my house causing accidents. Urgent repair needed."
-    r = await http.post("/api/v1/intake/grievances", json={
-        "raw_text": raw,
-        "channel": "web",
-        "language": "en",
-        "idempotency_key": str(uuid.uuid4()),
-    })
+    r = await http.post(
+        "/api/v1/intake/grievances",
+        json={
+            "raw_text": raw,
+            "channel": "web",
+            "language": "en",
+            "idempotency_key": str(uuid.uuid4()),
+        },
+    )
     assert r.status_code == 201
     g = r.json()
 
     token = create_local_token(role="field_officer", department_id=str(uuid.uuid4()))
-    await http.post(f"/api/v1/ai/enrich/{g['grievance_id']}",
-                    headers={"Authorization": f"Bearer {token}"})
+    await http.post(
+        f"/api/v1/ai/enrich/{g['grievance_id']}", headers={"Authorization": f"Bearer {token}"}
+    )
     return g
 
 
 # ── Assignment ────────────────────────────────────────────────────────────────
+
 
 async def test_assign_classified_grievance(http: AsyncClient) -> None:
     g = await _file_and_enrich(http)
@@ -108,6 +114,7 @@ async def test_citizen_cannot_assign(http: AsyncClient) -> None:
 
 # ── SLA ───────────────────────────────────────────────────────────────────────
 
+
 async def test_sla_status_endpoint(http: AsyncClient) -> None:
     g = await _file_and_enrich(http)
     token = create_local_token(role="dept_admin", department_id=str(uuid.uuid4()))
@@ -149,20 +156,25 @@ async def test_sla_breach_auto_escalates() -> None:
         await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
 
         # Get a dept for the grievance
-        dept_row = (await session.execute(
-            text("SELECT id FROM departments WHERE short_code = 'MCD' LIMIT 1")
-        )).fetchone()
+        dept_row = (
+            await session.execute(
+                text("SELECT id FROM departments WHERE short_code = 'MCD' LIMIT 1")
+            )
+        ).fetchone()
         dept_id = str(dept_row[0]) if dept_row else None
 
         # Insert a grievance that is already past its SLA
         gid = str(uuid.uuid4())
-        await session.execute(text("""
+        await session.execute(
+            text("""
             INSERT INTO grievances (id, tracking_id, channel, raw_text, language,
               status, priority, department_id, sla_due_at, escalation_level)
             VALUES (:id, :tid, 'api', 'SLA breach test grievance', 'en',
               'ASSIGNED', 'HIGH', :dept_id,
               now() - interval '2 hours', 0)
-        """), {"id": gid, "tid": f"DCOS-SLA-{gid[:8].upper()}", "dept_id": dept_id})
+        """),
+            {"id": gid, "tid": f"DCOS-SLA-{gid[:8].upper()}", "dept_id": dept_id},
+        )
         await session.commit()
 
         # Run breach check
@@ -172,10 +184,12 @@ async def test_sla_breach_auto_escalates() -> None:
         assert result["escalated"] >= 1
 
         # Verify escalation level incremented
-        row = (await session.execute(
-            text("SELECT escalation_level, status FROM grievances WHERE id = :id"),
-            {"id": gid},
-        )).fetchone()
+        row = (
+            await session.execute(
+                text("SELECT escalation_level, status FROM grievances WHERE id = :id"),
+                {"id": gid},
+            )
+        ).fetchone()
         assert row[0] == 1
         assert row[1] == "ESCALATED"
 
@@ -185,6 +199,7 @@ async def test_sla_breach_auto_escalates() -> None:
 
 
 # ── Status state machine ──────────────────────────────────────────────────────
+
 
 async def test_illegal_status_transition_rejected() -> None:
     """GrievanceRepository.transition_status() should reject invalid transitions."""
@@ -196,20 +211,25 @@ async def test_illegal_status_transition_rejected() -> None:
         await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
 
         # Get a real RECEIVED grievance from seed data
-        row = (await session.execute(
-            text("SELECT id FROM grievances WHERE status = 'RECEIVED' LIMIT 1")
-        )).fetchone()
+        row = (
+            await session.execute(
+                text("SELECT id FROM grievances WHERE status = 'RECEIVED' LIMIT 1")
+            )
+        ).fetchone()
 
         if not row:
             pytest.skip("No RECEIVED grievances in DB")
 
         repo = GrievanceRepository(session)
-        (await session.execute(
-            text("SELECT * FROM grievances WHERE id = :id"),
-            {"id": str(row[0])},
-        )).fetchone()
+        (
+            await session.execute(
+                text("SELECT * FROM grievances WHERE id = :id"),
+                {"id": str(row[0])},
+            )
+        ).fetchone()
 
         from app.modules.intake.models import Grievance
+
         g = await session.get(Grievance, uuid.UUID(str(row[0])))
 
         with pytest.raises(ValueError, match="Illegal transition"):

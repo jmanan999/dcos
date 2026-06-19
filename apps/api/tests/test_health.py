@@ -18,9 +18,17 @@ async def test_healthz(client: AsyncClient) -> None:
 
 async def test_module_health_endpoints(client: AsyncClient) -> None:
     modules = [
-        "identity", "intake", "ai", "routing", "sla",
-        "workforce", "citizen", "analytics", "reporting",
-        "integration", "platform",
+        "identity",
+        "intake",
+        "ai",
+        "routing",
+        "sla",
+        "workforce",
+        "citizen",
+        "analytics",
+        "reporting",
+        "integration",
+        "platform",
     ]
     for mod in modules:
         r = await client.get(f"/api/v1/{mod}/health")

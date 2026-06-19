@@ -66,7 +66,9 @@ class Officer(Base):
     )
     designation: Mapped[str | None] = mapped_column(String(200), nullable=True)
     employee_id: Mapped[str | None] = mapped_column(String(40), nullable=True, unique=True)
-    ward_ids: Mapped[list[uuid.UUID] | None] = mapped_column(ARRAY(UUID(as_uuid=True)), nullable=True)
+    ward_ids: Mapped[list[uuid.UUID] | None] = mapped_column(
+        ARRAY(UUID(as_uuid=True)), nullable=True
+    )
     max_active_cases: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
     is_available: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

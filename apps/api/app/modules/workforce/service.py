@@ -15,6 +15,7 @@ Proof enforcement (resolve is blocked unless):
   - After proof EXIF location must be within 500m of grievance location (geo check;
     skipped if no EXIF — not all officers have EXIF-capable devices)
 """
+
 from __future__ import annotations
 
 import math
@@ -62,7 +63,9 @@ class WorkforceService:
 
     async def get_queue(self, officer_id: uuid.UUID) -> list[GrievanceSummary]:
         """Officer's personal queue — sorted by SLA breach + severity."""
-        rows = (await self._s.execute(text("""
+        rows = (
+            await self._s.execute(
+                text("""
             SELECT id, tracking_id, raw_text, category, subcategory, severity,
               status, priority, ward_id, latitude, longitude, sla_due_at,
               escalation_level, is_emergency, created_at, updated_at,
@@ -72,12 +75,17 @@ class WorkforceService:
             WHERE assigned_officer_id = :oid
               AND status NOT IN ('CLOSED','REJECTED_SPAM','RESOLVED','VERIFIED')
             ORDER BY (sla_due_at < now()) DESC, sla_due_at ASC NULLS LAST, severity DESC
-        """), {"oid": str(officer_id)})).fetchall()
+        """),
+                {"oid": str(officer_id)},
+            )
+        ).fetchall()
         return [_row_to_summary(r) for r in rows]
 
     async def get_dept_queue(self, department_id: uuid.UUID) -> list[GrievanceSummary]:
         """All open grievances for a department (dept_admin view)."""
-        rows = (await self._s.execute(text("""
+        rows = (
+            await self._s.execute(
+                text("""
             SELECT id, tracking_id, raw_text, category, subcategory, severity,
               status, priority, ward_id, latitude, longitude, sla_due_at,
               escalation_level, is_emergency, created_at, updated_at,
@@ -87,7 +95,10 @@ class WorkforceService:
             WHERE department_id = :dept_id
               AND status NOT IN ('CLOSED','REJECTED_SPAM')
             ORDER BY (sla_due_at < now()) DESC, sla_due_at ASC NULLS LAST
-        """), {"dept_id": str(department_id)})).fetchall()
+        """),
+                {"dept_id": str(department_id)},
+            )
+        ).fetchall()
         return [_row_to_summary(r) for r in rows]
 
     # ── Officer actions ───────────────────────────────────────────────────────
@@ -100,12 +111,18 @@ class WorkforceService:
         if g.status not in allowed:
             raise ValueError(f"Cannot claim from status '{g.status}'")
         await self._repo.transition_status(
-            g, GrievanceStatus.IN_PROGRESS,
-            actor_id=actor.user_id, actor_role=actor.role,
+            g,
+            GrievanceStatus.IN_PROGRESS,
+            actor_id=actor.user_id,
+            actor_role=actor.role,
             note="Officer claimed the grievance",
         )
-        await self._outbox.emit("grievance.in_progress", "grievance", str(grievance_id),
-                                {"grievance_id": str(grievance_id), "officer_id": actor.user_id})
+        await self._outbox.emit(
+            "grievance.in_progress",
+            "grievance",
+            str(grievance_id),
+            {"grievance_id": str(grievance_id), "officer_id": actor.user_id},
+        )
         return {"status": "IN_PROGRESS"}
 
     async def mark_action_taken(
@@ -117,8 +134,10 @@ class WorkforceService:
         if g.status != GrievanceStatus.IN_PROGRESS.value:
             raise ValueError(f"Cannot mark action-taken from status '{g.status}'")
         await self._repo.transition_status(
-            g, GrievanceStatus.ACTION_TAKEN,
-            actor_id=actor.user_id, actor_role=actor.role,
+            g,
+            GrievanceStatus.ACTION_TAKEN,
+            actor_id=actor.user_id,
+            actor_role=actor.role,
             note=note or "Work completed on site",
         )
         return {"status": "ACTION_TAKEN"}
@@ -141,15 +160,24 @@ class WorkforceService:
             raise ValueError("Closure blocked: " + "; ".join(proof.reasons))
 
         await self._repo.transition_status(
-            g, GrievanceStatus.RESOLVED,
-            actor_id=actor.user_id, actor_role=actor.role,
+            g,
+            GrievanceStatus.RESOLVED,
+            actor_id=actor.user_id,
+            actor_role=actor.role,
             note=body.resolution_note,
         )
-        await self._outbox.emit("grievance.resolved", "grievance", str(grievance_id),
-                                {"grievance_id": str(grievance_id), "officer_id": actor.user_id})
+        await self._outbox.emit(
+            "grievance.resolved",
+            "grievance",
+            str(grievance_id),
+            {"grievance_id": str(grievance_id), "officer_id": actor.user_id},
+        )
         await self._audit.log(
-            action="grievance.resolved", resource_type="grievance",
-            resource_id=str(grievance_id), actor_id=actor.user_id, actor_role=actor.role,
+            action="grievance.resolved",
+            resource_type="grievance",
+            resource_id=str(grievance_id),
+            actor_id=actor.user_id,
+            actor_role=actor.role,
         )
         log.info("workforce.resolved", grievance_id=str(grievance_id), officer=actor.user_id)
         return {"status": "RESOLVED", "proof": proof.model_dump()}
@@ -172,39 +200,58 @@ class WorkforceService:
         await self._s.flush()
 
         if body.is_handoff and body.handoff_dept_id:
-            await self._s.execute(text("""
+            await self._s.execute(
+                text("""
                 UPDATE grievances SET
                   department_id = :dept_id, assigned_officer_id = NULL,
                   status = 'CLASSIFIED', updated_at = now()
                 WHERE id = :id
-            """), {"dept_id": str(body.handoff_dept_id), "id": str(grievance_id)})
-            self._s.add(StatusEvent(
-                grievance_id=grievance_id, from_status=g.status,
-                to_status=GrievanceStatus.CLASSIFIED.value,
-                actor_id=actor.user_id, actor_role=actor.role,
-                note=f"Handed off to dept {body.handoff_dept_id}: {body.note}",
-            ))
-            await self._outbox.emit("grievance.handoff", "grievance", str(grievance_id),
-                                    {"new_dept_id": str(body.handoff_dept_id)})
+            """),
+                {"dept_id": str(body.handoff_dept_id), "id": str(grievance_id)},
+            )
+            self._s.add(
+                StatusEvent(
+                    grievance_id=grievance_id,
+                    from_status=g.status,
+                    to_status=GrievanceStatus.CLASSIFIED.value,
+                    actor_id=actor.user_id,
+                    actor_role=actor.role,
+                    note=f"Handed off to dept {body.handoff_dept_id}: {body.note}",
+                )
+            )
+            await self._outbox.emit(
+                "grievance.handoff",
+                "grievance",
+                str(grievance_id),
+                {"new_dept_id": str(body.handoff_dept_id)},
+            )
 
         return OfficerNoteRead.model_validate(note)
 
-    async def request_info(
-        self, grievance_id: uuid.UUID, actor: TokenClaims, message: str
-    ) -> dict:
+    async def request_info(self, grievance_id: uuid.UUID, actor: TokenClaims, message: str) -> dict:
         g = await self._s.get(Grievance, grievance_id)
         if not g:
             raise ValueError("Grievance not found")
-        self._s.add(OfficerNote(grievance_id=grievance_id, officer_id=actor.user_id,
-                                note=f"[INFO REQUEST] {message}"))
-        await self._outbox.emit("grievance.info_requested", "grievance", str(grievance_id),
-                                {"message": message, "citizen_phone": g.citizen_phone})
+        self._s.add(
+            OfficerNote(
+                grievance_id=grievance_id,
+                officer_id=actor.user_id,
+                note=f"[INFO REQUEST] {message}",
+            )
+        )
+        await self._outbox.emit(
+            "grievance.info_requested",
+            "grievance",
+            str(grievance_id),
+            {"message": message, "citizen_phone": g.citizen_phone},
+        )
         await self._s.flush()
         return {"status": "info_requested"}
 
     async def get_notes(self, grievance_id: uuid.UUID) -> list[OfficerNoteRead]:
         res = await self._s.execute(
-            select(OfficerNote).where(OfficerNote.grievance_id == grievance_id)
+            select(OfficerNote)
+            .where(OfficerNote.grievance_id == grievance_id)
             .order_by(OfficerNote.created_at)
         )
         return [OfficerNoteRead.model_validate(n) for n in res.scalars().all()]
@@ -220,7 +267,7 @@ class WorkforceService:
         )
         proofs = list(res.scalars().all())
         before = [p for p in proofs if p.proof_type == "before"]
-        after  = [p for p in proofs if p.proof_type == "after"]
+        after = [p for p in proofs if p.proof_type == "after"]
 
         reasons: list[str] = []
         has_before, has_after = bool(before), bool(after)
@@ -240,28 +287,28 @@ class WorkforceService:
                 timestamp_ok = False
                 reasons.append("After-proof timestamp ≤ complaint creation time")
 
-            if (g and g.latitude and g.longitude
-                    and latest.exif_lat and latest.exif_lng):
-                geo_dist = _haversine_m(
-                    g.latitude, g.longitude, latest.exif_lat, latest.exif_lng
-                )
+            if g and g.latitude and g.longitude and latest.exif_lat and latest.exif_lng:
+                geo_dist = _haversine_m(g.latitude, g.longitude, latest.exif_lat, latest.exif_lng)
                 if geo_dist > GEO_TOLERANCE_M:
                     geo_ok = False
-                    reasons.append(
-                        f"Proof photo is {geo_dist:.0f}m away (max {GEO_TOLERANCE_M}m)"
-                    )
+                    reasons.append(f"Proof photo is {geo_dist:.0f}m away (max {GEO_TOLERANCE_M}m)")
 
         return ProofVerificationResult(
             is_valid=has_before and has_after and geo_ok and timestamp_ok,
-            has_before=has_before, has_after=has_after,
-            geo_distance_m=geo_dist, geo_ok=geo_ok, timestamp_ok=timestamp_ok,
+            has_before=has_before,
+            has_after=has_after,
+            geo_distance_m=geo_dist,
+            geo_ok=geo_ok,
+            timestamp_ok=timestamp_ok,
             reasons=reasons,
         )
 
     # ── Dept-admin workload ───────────────────────────────────────────────────
 
     async def get_workload(self, department_id: uuid.UUID) -> list[WorkloadSummary]:
-        rows = (await self._s.execute(text("""
+        rows = (
+            await self._s.execute(
+                text("""
             SELECT o.id, u.name, o.department_id, o.is_available,
               COUNT(g.id) FILTER (
                 WHERE g.status NOT IN ('CLOSED','REJECTED_SPAM','RESOLVED','VERIFIED')
@@ -280,12 +327,18 @@ class WorkforceService:
             WHERE o.department_id = :dept_id
             GROUP BY o.id, u.name, o.department_id, o.is_available
             ORDER BY sla_breached DESC, total_assigned DESC
-        """), {"dept_id": str(department_id)})).fetchall()
+        """),
+                {"dept_id": str(department_id)},
+            )
+        ).fetchall()
         return [
             WorkloadSummary(
-                officer_id=uuid.UUID(str(r[0])), officer_name=r[1],
-                department_id=uuid.UUID(str(r[2])), is_available=r[3],
-                total_assigned=int(r[4] or 0), in_progress=int(r[5] or 0),
+                officer_id=uuid.UUID(str(r[0])),
+                officer_name=r[1],
+                department_id=uuid.UUID(str(r[2])),
+                is_available=r[3],
+                total_assigned=int(r[4] or 0),
+                in_progress=int(r[5] or 0),
                 sla_breached=int(r[6] or 0),
                 avg_resolution_hours=float(r[7]) if r[7] else None,
             )
@@ -295,14 +348,22 @@ class WorkforceService:
 
 def _row_to_summary(r: tuple) -> GrievanceSummary:
     return GrievanceSummary(
-        id=uuid.UUID(str(r[0])), tracking_id=r[1],
+        id=uuid.UUID(str(r[0])),
+        tracking_id=r[1],
         raw_text=r[2][:120] + "…" if len(r[2]) > 120 else r[2],
-        category=r[3], subcategory=r[4], severity=r[5],
-        status=r[6], priority=r[7],
+        category=r[3],
+        subcategory=r[4],
+        severity=r[5],
+        status=r[6],
+        priority=r[7],
         ward_id=uuid.UUID(str(r[8])) if r[8] else None,
-        latitude=r[9], longitude=r[10], sla_due_at=r[11],
-        escalation_level=r[12], is_emergency=r[13],
-        created_at=r[14], updated_at=r[15],
+        latitude=r[9],
+        longitude=r[10],
+        sla_due_at=r[11],
+        escalation_level=r[12],
+        is_emergency=r[13],
+        created_at=r[14],
+        updated_at=r[15],
         hours_until_breach=round(float(r[16]), 1) if r[16] is not None else None,
         is_sla_breached=bool(r[17]),
     )

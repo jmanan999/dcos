@@ -10,6 +10,7 @@ from app.core.database import Base
 
 class OfficerNote(Base):
     """Internal notes an officer adds to a grievance — visible to dept team, not citizen."""
+
     __tablename__ = "officer_notes"
     __table_args__ = (Index("ix_officer_notes_grievance_id", "grievance_id"),)
 
@@ -31,6 +32,7 @@ class AssignmentHistory(Base):
     Every assignment + un-assignment of an officer to a grievance is recorded here.
     Enables workload analysis and anti-gaming detection.
     """
+
     __tablename__ = "assignment_history"
     __table_args__ = (
         Index("ix_assignment_grievance_id", "grievance_id"),

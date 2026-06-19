@@ -87,6 +87,7 @@ app = create_app()
 
 # ── Health + readiness ────────────────────────────────────────────────────────
 
+
 @app.get("/healthz", tags=["Health"], include_in_schema=False)
 async def healthz() -> dict[str, str]:
     return {"status": "ok"}
@@ -99,6 +100,7 @@ async def readyz() -> JSONResponse:
 
     try:
         from app.core.database import engine
+
         async with engine.connect() as conn:
             await conn.execute(__import__("sqlalchemy").text("SELECT 1"))
         checks["db"] = "ok"
@@ -108,6 +110,7 @@ async def readyz() -> JSONResponse:
 
     try:
         import redis.asyncio as aioredis
+
         r = aioredis.from_url(settings.REDIS_URL)
         await r.ping()
         await r.aclose()

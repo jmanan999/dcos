@@ -29,6 +29,7 @@ async def assign_grievance(
     session: RlsDbSession,
 ) -> AssignmentResult:
     from sqlalchemy import text
+
     await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
     svc = RoutingService(session)
     return await svc.assign(grievance_id)
@@ -48,6 +49,7 @@ async def reassign_grievance(
     from sqlalchemy import text
 
     from app.core.auth import TokenClaims
+
     await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
     assert isinstance(user, TokenClaims)
     svc = RoutingService(session)

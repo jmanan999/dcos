@@ -18,6 +18,7 @@ Roles reference:
   cm_cell / super_admin → unrestricted
   system / seed   → bypass flag via app.bypass_rls = 'true'
 """
+
 from alembic import op
 
 revision = "0002"

@@ -29,6 +29,7 @@ async def enrich_grievance(
     session: RlsDbSession,
 ) -> AIEnrichmentResult:
     from sqlalchemy import text
+
     await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
     svc = AIService(session)
     result = await svc.enrich(grievance_id)
@@ -47,6 +48,7 @@ async def record_feedback(
     session: RlsDbSession,
 ) -> dict[str, str]:
     from app.core.auth import TokenClaims
+
     assert isinstance(user, TokenClaims)
     svc = AIService(session)
     await svc.record_correction(body, officer_id=user.user_id)

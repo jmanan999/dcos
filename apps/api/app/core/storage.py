@@ -2,6 +2,7 @@
 Object storage helper — wraps boto3/S3 for MinIO (local) and S3/R2 (production).
 All media goes through here; the rest of the codebase only sees URLs.
 """
+
 from __future__ import annotations
 
 import structlog
@@ -13,6 +14,7 @@ log = structlog.get_logger()
 
 def _client():
     import boto3
+
     return boto3.client(
         "s3",
         endpoint_url=settings.STORAGE_ENDPOINT,
@@ -25,6 +27,7 @@ def _client():
 async def upload_bytes(key: str, data: bytes, content_type: str) -> str:
     """Upload bytes to the media bucket and return the public URL."""
     import asyncio
+
     loop = asyncio.get_event_loop()
 
     def _do_upload() -> None:
@@ -47,6 +50,7 @@ async def upload_bytes(key: str, data: bytes, content_type: str) -> str:
 async def generate_presigned_url(key: str, expires_seconds: int = 3600) -> str:
     """Generate a time-limited presigned URL for private media."""
     import asyncio
+
     loop = asyncio.get_event_loop()
 
     def _do_presign() -> str:

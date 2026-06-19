@@ -131,7 +131,9 @@ class Grievance(Base):
     )
 
     # ── State machine ─────────────────────────────────────────────────────────
-    status: Mapped[str] = mapped_column(String(20), nullable=False, default=GrievanceStatus.RECEIVED)
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default=GrievanceStatus.RECEIVED
+    )
     priority: Mapped[str] = mapped_column(String(10), nullable=False, default=Priority.MEDIUM)
 
     # ── Geography ─────────────────────────────────────────────────────────────
@@ -175,6 +177,7 @@ class GrievanceCluster(Base):
     A cluster groups related grievances (same category + geo proximity).
     master_grievance_id is the canonical / most-representative complaint.
     """
+
     __tablename__ = "grievance_clusters"
     __table_args__ = (Index("ix_clusters_dept_category", "department_id", "category"),)
 
@@ -203,6 +206,7 @@ class StatusEvent(Base):
     Append-only log of every status transition. Source of truth for the timeline
     view and accountability reporting. Never UPDATE or DELETE rows.
     """
+
     __tablename__ = "status_events"
     __table_args__ = (
         Index("ix_status_events_grievance_id", "grievance_id"),

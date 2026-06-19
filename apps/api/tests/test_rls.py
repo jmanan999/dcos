@@ -12,6 +12,7 @@ Run:
     pytest tests/test_rls.py -v
     (DATABASE_URL and REDIS_URL must be set in env)
 """
+
 from __future__ import annotations
 
 import os
@@ -34,16 +35,13 @@ pytestmark = pytest.mark.skipif(
 )
 
 # Main connection (superuser — for seed/setup only)
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", "postgresql+asyncpg://dcos:dcos@localhost:5432/dcos"
-)
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://dcos:dcos@localhost:5432/dcos")
 # Non-superuser role for RLS enforcement tests — bypasses nothing
-RLS_DATABASE_URL = DATABASE_URL.replace(
-    "dcos:dcos@", "dcos_app:dcos_app@"
-)
+RLS_DATABASE_URL = DATABASE_URL.replace("dcos:dcos@", "dcos_app:dcos_app@")
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
+
 
 @pytest.fixture
 async def http() -> AsyncGenerator[AsyncClient, None]:
@@ -77,15 +75,14 @@ async def _rls_query(sql: str, params: dict | None = None) -> list[dict]:
     single connection, so SET LOCAL vars apply to the SELECT in the same txn.
     """
     import asyncpg
+
     dsn = RLS_DATABASE_URL.replace("postgresql+asyncpg://", "postgresql://")
     conn = await asyncpg.connect(dsn)
     try:
         async with conn.transaction():
             if params:
                 for key, value in params.items():
-                    await conn.execute(
-                        f"SET LOCAL \"app.{key}\" = '{value}'"
-                    )
+                    await conn.execute(f"SET LOCAL \"app.{key}\" = '{value}'")
             return [dict(r) for r in await conn.fetch(sql)]
     finally:
         await conn.close()
@@ -106,45 +103,58 @@ async def seed_data(db_session: AsyncSession):
     mcd_grief_id = str(uuid.uuid4())
     citizen_grief_id = str(uuid.uuid4())
 
-    await db_session.execute(text("""
+    await db_session.execute(
+        text("""
         INSERT INTO departments (id, name, short_code)
         VALUES (:id, 'Test MCD', 'TEST-MCD'),
                (:djb_id, 'Test DJB', 'TEST-DJB')
         ON CONFLICT DO NOTHING
-    """), {"id": mcd_id, "djb_id": djb_id})
+    """),
+        {"id": mcd_id, "djb_id": djb_id},
+    )
 
-    await db_session.execute(text("""
+    await db_session.execute(
+        text("""
         INSERT INTO users (id, name, role, language_pref)
         VALUES (:id, 'Test Citizen', 'citizen', 'hi')
         ON CONFLICT DO NOTHING
-    """), {"id": citizen_id})
+    """),
+        {"id": citizen_id},
+    )
 
     # One MCD grievance (no citizen)
-    await db_session.execute(text("""
+    await db_session.execute(
+        text("""
         INSERT INTO grievances
           (id, tracking_id, channel, raw_text, language, category, department_id, status, priority)
         VALUES
           (:id, :tid, 'web', 'MCD pothole test', 'hi', 'Pothole', :dept_id, 'RECEIVED', 'MEDIUM')
         ON CONFLICT DO NOTHING
-    """), {"id": mcd_grief_id, "tid": f"TST-MCD-{mcd_grief_id[:8]}", "dept_id": mcd_id})
+    """),
+        {"id": mcd_grief_id, "tid": f"TST-MCD-{mcd_grief_id[:8]}", "dept_id": mcd_id},
+    )
 
     # One grievance owned by citizen
-    await db_session.execute(text("""
+    await db_session.execute(
+        text("""
         INSERT INTO grievances
           (id, tracking_id, channel, raw_text, language, category, department_id, citizen_id, status, priority)
         VALUES
           (:id, :tid, 'web', 'Citizen water test', 'hi', 'No Water Supply', :dept_id, :cid, 'RECEIVED', 'LOW')
         ON CONFLICT DO NOTHING
-    """), {
-        "id": citizen_grief_id,
-        "tid": f"TST-CIT-{citizen_grief_id[:8]}",
-        "dept_id": djb_id,
-        "cid": citizen_id,
-    })
+    """),
+        {
+            "id": citizen_grief_id,
+            "tid": f"TST-CIT-{citizen_grief_id[:8]}",
+            "dept_id": djb_id,
+            "cid": citizen_id,
+        },
+    )
 
     await db_session.commit()
     yield {
-        "mcd_id": mcd_id, "djb_id": djb_id,
+        "mcd_id": mcd_id,
+        "djb_id": djb_id,
         "citizen_id": citizen_id,
         "mcd_grief_id": mcd_grief_id,
         "citizen_grief_id": citizen_grief_id,
@@ -161,6 +171,7 @@ async def seed_data(db_session: AsyncSession):
 
 
 # ── Application-level authz tests ─────────────────────────────────────────────
+
 
 async def test_no_token_returns_401(http: AsyncClient) -> None:
     r = await http.get("/api/v1/identity/me")
@@ -230,12 +241,16 @@ async def test_dev_token_endpoint_issues_token(http: AsyncClient) -> None:
 
 # ── RLS / DB-level isolation tests ────────────────────────────────────────────
 
+
 async def test_rls_djb_officer_cannot_see_mcd_grievances(seed_data: dict) -> None:
     """DJB officer (raw asyncpg, single txn) must NOT see MCD grievances."""
     rows = await _rls_query(
         f"SELECT id FROM grievances WHERE id = '{seed_data['mcd_grief_id']}'",
-        {"user_role": "field_officer", "department_id": seed_data["djb_id"],
-         "user_id": str(uuid.uuid4())},
+        {
+            "user_role": "field_officer",
+            "department_id": seed_data["djb_id"],
+            "user_id": str(uuid.uuid4()),
+        },
     )
     assert len(rows) == 0, "DJB officer should NOT be able to read an MCD grievance via RLS"
 
@@ -244,8 +259,11 @@ async def test_rls_mcd_officer_can_see_mcd_grievances(seed_data: dict) -> None:
     """MCD officer CAN see their own department's grievances."""
     rows = await _rls_query(
         f"SELECT id FROM grievances WHERE id = '{seed_data['mcd_grief_id']}'",
-        {"user_role": "field_officer", "department_id": seed_data["mcd_id"],
-         "user_id": str(uuid.uuid4())},
+        {
+            "user_role": "field_officer",
+            "department_id": seed_data["mcd_id"],
+            "user_id": str(uuid.uuid4()),
+        },
     )
     assert len(rows) == 1, "MCD officer SHOULD be able to read their own department's grievance"
 

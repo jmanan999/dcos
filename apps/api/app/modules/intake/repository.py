@@ -1,4 +1,5 @@
 """Intake repository — grievance CRUD and state-machine transitions."""
+
 from __future__ import annotations
 
 import uuid
@@ -20,9 +21,7 @@ class GrievanceRepository:
         self._s = session
 
     async def get(self, grievance_id: uuid.UUID) -> Grievance | None:
-        result = await self._s.execute(
-            select(Grievance).where(Grievance.id == grievance_id)
-        )
+        result = await self._s.execute(select(Grievance).where(Grievance.id == grievance_id))
         return result.scalar_one_or_none()
 
     async def get_by_tracking_id(self, tracking_id: str) -> Grievance | None:
@@ -47,9 +46,7 @@ class GrievanceRepository:
     ) -> StatusEvent:
         allowed = GrievanceStatus.allowed_transitions()[GrievanceStatus(grievance.status)]
         if to_status not in allowed:
-            raise ValueError(
-                f"Illegal transition: {grievance.status} → {to_status.value}"
-            )
+            raise ValueError(f"Illegal transition: {grievance.status} → {to_status.value}")
         event = StatusEvent(
             grievance_id=grievance.id,
             from_status=grievance.status,
@@ -115,7 +112,9 @@ class ClusterRepository:
         )
         return result.scalar_one_or_none()
 
-    async def find_active(self, category: str, dept_id: uuid.UUID | None) -> GrievanceCluster | None:
+    async def find_active(
+        self, category: str, dept_id: uuid.UUID | None
+    ) -> GrievanceCluster | None:
         q = select(GrievanceCluster).where(
             GrievanceCluster.category == category,
             GrievanceCluster.is_active.is_(True),
