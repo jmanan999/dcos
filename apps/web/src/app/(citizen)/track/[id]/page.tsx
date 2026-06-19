@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Track Complaint" };
@@ -56,9 +57,9 @@ export default async function TrackPage({ params }: Props) {
         <p className="mt-1 text-xs text-slate-500">
           Tracking ID <span className="font-mono">{id}</span> does not exist. Check the ID and try again.
         </p>
-        <a href="/" className="mt-4 inline-block text-xs text-brand-500 underline">
+        <Link href="/" className="mt-4 inline-block text-xs text-brand-500 underline">
           ← File a new complaint
-        </a>
+        </Link>
       </div>
     );
   }
@@ -128,25 +129,25 @@ export default async function TrackPage({ params }: Props) {
         <div className="rounded-xl bg-amber-50 p-4 ring-1 ring-amber-200">
           <p className="text-sm font-medium text-amber-800">Is your complaint resolved?</p>
           <div className="mt-3 flex gap-3">
-            <a
+            <Link
               href={`/track/${id}/feedback`}
               className="rounded-lg bg-emerald-500 px-4 py-2 text-xs font-semibold text-white"
             >
               Yes, mark as closed
-            </a>
-            <a
+            </Link>
+            <Link
               href={`/track/${id}/reopen`}
               className="rounded-lg bg-red-100 px-4 py-2 text-xs font-semibold text-red-700"
             >
               No, reopen
-            </a>
+            </Link>
           </div>
         </div>
       )}
 
-      <a href="/" className="block text-center text-xs text-slate-400 underline">
+      <Link href="/" className="block text-center text-xs text-slate-400 underline">
         ← File another complaint
-      </a>
+      </Link>
     </div>
   );
 }

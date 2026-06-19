@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function CitizenLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-50">
@@ -13,12 +15,12 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
             </div>
           </div>
           <nav className="flex items-center gap-4 text-sm">
-            <a href="/" className="text-white/80 hover:text-white">
+            <Link href="/" className="text-white/80 hover:text-white">
               File Complaint
-            </a>
-            <a href="/track" className="text-white/80 hover:text-white">
+            </Link>
+            <Link href="/track" className="text-white/80 hover:text-white">
               Track
-            </a>
+            </Link>
           </nav>
         </div>
       </header>

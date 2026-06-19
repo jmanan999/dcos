@@ -54,6 +54,7 @@ export default function GrievanceDetailPage() {
     if (pRes.ok) setProof(await pRes.json());
   };
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { if (id) load(); }, [id]);
 
   const flash = (text: string, type: "ok" | "err") => {

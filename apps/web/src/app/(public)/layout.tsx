@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-50">
@@ -7,12 +9,9 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
             <span className="text-lg font-bold text-brand-500">DCOS Delhi</span>
             <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">Public</span>
           </div>
-          <a
-            href="/"
-            className="text-sm text-brand-500 hover:underline"
-          >
+          <Link href="/" className="text-sm text-brand-500 hover:underline">
             File a Complaint →
-          </a>
+          </Link>
         </div>
       </header>
       {children}

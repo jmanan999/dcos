@@ -125,6 +125,17 @@ jobs:
           DATABASE_URL: postgresql+asyncpg://dcos:dcos@localhost:5432/dcos_test
         run: alembic upgrade head
 
+      - name: Grant table permissions to dcos_app + seed reference data
+        run: |
+          # Grant dcos_app SELECT/INSERT/UPDATE/DELETE on all tables created by migrations
+          PGPASSWORD=dcos psql -h localhost -U dcos -d dcos_test -c "
+            GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO dcos_app;
+            GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO dcos_app;
+          "
+          # Seed reference data (departments, districts, wards) needed by integration tests
+          DATABASE_URL="postgresql://dcos:dcos@localhost:5432/dcos_test" \
+            python -m scripts.seed
+
       - name: Run tests
         env:
           DATABASE_URL: postgresql+asyncpg://dcos:dcos@localhost:5432/dcos_test
