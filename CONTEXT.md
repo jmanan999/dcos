@@ -28,10 +28,10 @@
 | **1** | Foundation & DX — monorepo, Docker, skeletons, CI | ✅ Done |
 | **2** | Data model, migrations, Delhi seed | ✅ Done |
 | **3** | Identity, RBAC, RLS | ✅ Done |
-| **4** | Intake & channels (web form, WhatsApp, IVR) | ⬜ Next |
-| **5** | AI complaint engine (classify, severity, dedup) | ⬜ |
-| **6** | Routing, assignment, SLA engine | ⬜ |
-| **7** | Officer console & field app | ⬜ |
+| **4** | Intake & channels (web form, WhatsApp, IVR) | ✅ Done |
+| **5** | AI complaint engine (classify, severity, dedup, worker) | ✅ Done |
+| **6** | Routing, assignment, SLA engine | ✅ Done |
+| **7** | Officer console & field app | ⬜ Next |
 | **8** | Citizen transparency & notifications | ⬜ |
 | **9** | GIS command center & analytics | ⬜ |
 | **10** | Hardening, compliance, observability, launch | ⬜ |
@@ -65,11 +65,26 @@ dcos/
 │   │   │       ├── intake/         Grievance intake, attachments, clusters, status events
 │   │   │       │   ├── models.py   Grievance, GrievanceCluster, StatusEvent, Attachment
 │   │   │       │   │               GrievanceStatus enum + allowed_transitions()
+│   │   │       │   ├── schemas.py  GrievanceCreate, GrievanceRead, TrackingResponse
+│   │   │       │   ├── service.py  IntakeService (create_grievance, get_tracking, add_attachment)
 │   │   │       │   ├── repository.py GrievanceRepository, ClusterRepository
-│   │   │       │   └── router.py   stub — Epic 4
-│   │   │       ├── ai/             Epic 5 — classify, severity, embed, dedup
-│   │   │       ├── routing/        Epic 6 — assignment, load balance, geo-routing
-│   │   │       ├── sla/            SLAPolicy, EscalationRecord; Epic 6
+│   │   │       │   └── router.py   POST /intake/grievances, GET /intake/track/{id},
+│   │   │       │                   POST /intake/grievances/{id}/attachments,
+│   │   │       │                   GET+POST /intake/webhooks/whatsapp
+│   │   │       ├── ai/             Gemini classify+severity+embed+spam; mock mode; feedback loop
+│   │   │       │   ├── models.py   AIResult (audit), FeedbackLabel (labeled data)
+│   │   │       │   ├── schemas.py  ClassificationResult, SeverityScore, AIEnrichmentResult
+│   │   │       │   ├── service.py  AIService.enrich() + _detect_cluster() + record_correction()
+│   │   │       │   └── router.py   POST /ai/enrich/{id}, POST /ai/feedback
+│   │   │       ├── routing/        dept/officer assignment with load balancing
+│   │   │       │   ├── schemas.py  AssignmentResult
+│   │   │       │   ├── service.py  RoutingService.assign() / reassign()
+│   │   │       │   └── router.py   POST /routing/assign/{id}, POST /routing/reassign/{id}
+│   │   │       ├── sla/            SLA clocks + escalation ladder
+│   │   │       │   ├── models.py   SLAPolicy, EscalationRecord
+│   │   │       │   ├── schemas.py  SLAStatus, EscalationEvent
+│   │   │       │   ├── service.py  SLAService.compute_sla() + check_and_escalate()
+│   │   │       │   └── router.py   GET /sla/status/{id}, POST /sla/check-breaches
 │   │   │       ├── workforce/      AssignmentHistory; Epic 7
 │   │   │       ├── citizen/        Feedback, Notification; Epic 8
 │   │   │       ├── analytics/      Epic 9 — materialized views, NL→SQL
@@ -79,12 +94,17 @@ dcos/
 │   │   │           ├── models.py   District, Zone, AssemblyConstituency, Ward, OutboxEvent,
 │   │   │           │               AuditLog, IdempotencyKey
 │   │   │           └── repository.py OutboxRepository, AuditRepository, GeoRepository
+│   │   ├── app/worker.py           Arq worker: enrich_grievance, assign_grievance,
+│   │   │                           check_sla_breaches, relay_outbox (cron every 5s)
+│   │   │   Start: arq app.worker.WorkerSettings
+│   │   ├── app/core/storage.py     Async boto3 upload helper (MinIO/S3/R2)
 │   │   ├── migrations/
 │   │   │   ├── env.py              Async Alembic env — imports ALL models for autogenerate
 │   │   │   └── versions/
 │   │   │       ├── 0001_initial_schema.py   All tables, enums, PostGIS/HNSW/GIN indexes,
 │   │   │       │                             sync_grievance_location trigger
-│   │   │       └── 0002_rls_policies.py     RLS ENABLE + FORCE + all policies
+│   │   │       ├── 0002_rls_policies.py     RLS ENABLE + FORCE + all policies
+│   │   │       └── 0003_ai_tables.py        ai_results + feedback_labels
 │   │   ├── scripts/
 │   │   │   └── seed.py             Async asyncpg seed: 11 districts, 12 zones, 272 wards,
 │   │   │                           12 departments, 540 grievances, 2680 status events
@@ -255,9 +275,70 @@ cd ../.. && pnpm --filter web dev   # http://localhost:3000
 
 ---
 
-## What to build next — Epic 4
+## What to build next — Epic 7
 
-**Goal:** Omnichannel intake → one pipeline.
+**Goal:** Officer console — resolve with un-fakeable geo-stamped before/after proof.
+
+**Files to create/modify:**
+- `app/modules/workforce/service.py` — WorkforceService: claim, start, add_note, resolve, upload_proof
+- `app/modules/workforce/schemas.py` — TaskRead, ProofUpload, ClosureRequest, OfficerNoteCreate
+- `app/modules/workforce/router.py` — GET/POST endpoints for officer queue and actions
+- `apps/web/src/app/(officer)/officer/queue/page.tsx` — real queue with SLA countdown
+- `apps/web/src/app/(officer)/officer/grievance/[id]/page.tsx` — detail + proof upload
+
+**Key things to implement:**
+1. `GET /workforce/queue` — officer's assigned grievances, sorted by sla_due_at
+2. `POST /workforce/{id}/claim` — officer takes ownership
+3. `POST /workforce/{id}/resolve` — requires before+after proof attachment
+4. Geo+timestamp validation on proof: compare EXIF location vs grievance location
+5. `POST /workforce/{id}/notes` — internal note with optional media
+6. `POST /workforce/{id}/request-info` — request more info from citizen
+7. Closure blocked unless `is_proof=True` attachment exists for both `before` and `after`
+
+---
+
+## Epic 4 reference (completed)
+
+Omnichannel intake was built in Epic 4:
+- `POST /api/v1/intake/grievances` — anonymous + authenticated, idempotency, emergency detect
+- `GET /api/v1/intake/track/{id}` — public status timeline
+- WhatsApp webhook: `GET+POST /api/v1/intake/webhooks/whatsapp`
+- Media: `POST /api/v1/intake/grievances/{id}/attachments`
+- `IntakeService.create_grievance()` — emergency detect (Hindi+English), reverse-geocode, outbox emit
+- `_make_tracking_id()` uses UUID suffix (not sequential count — avoids race conditions)
+- Intake uses `DbSession` + bypass, not `RlsDbSession` (INSERT is always allowed)
+
+## Epic 5 reference (completed)
+
+AI engine built in Epic 5:
+- `AIService.enrich(grievance_id)` — Gemini classify+severity+spam+embed; mock mode when no key
+- `_detect_cluster()` — pgvector cosine sim with CTE pattern (avoids ::vector parse issue)
+- `record_correction()` — FeedbackLabel table for officer corrections
+- Worker: `enrich_grievance` Arq job, `relay_outbox` cron dispatches events
+- `CAST(:emb AS vector)` — always use this instead of `:emb::vector` (SQLAlchemy text() issue)
+
+## Epic 6 reference (completed)
+
+Routing + SLA engine built in Epic 6:
+- `RoutingService.assign()` — dept+ward jurisdiction, load-balanced by open case count
+- `SLAService.compute_sla()` — policy lookup (dept×category×priority), default fallback
+- `SLAService.check_and_escalate()` — finds breached SLAs, escalates level 0→1→2→3
+- Worker: `assign_grievance` + `check_sla_breaches` jobs registered
+- Avoid NULL type ambiguity: build two query variants when ward_id is None (asyncpg limitation)
+- `CAST(:ward_id AS uuid)` — same ::uuid parse issue as vector
+
+---
+
+## SQL gotchas with SQLAlchemy text() + asyncpg (always check these)
+
+| Pattern | Problem | Fix |
+|---|---|---|
+| `:name::type` | SQLAlchemy parser doesn't replace `:name` before `::type` | Use `CAST(:name AS type)` |
+| `::vector` | Same — and asyncpg binary protocol needs codec | `CAST(:emb AS vector)` |
+| `::uuid` | Same | `CAST(:id AS uuid)` |
+| `NULL` param type | asyncpg can't infer type of `$N` when value is `None` | Split into two queries based on None/not-None |
+
+---
 
 **Files to create/modify:**
 - `app/modules/intake/router.py` — `POST /grievances` accepting text + media + geo + channel

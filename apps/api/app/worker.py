@@ -50,6 +50,38 @@ async def enrich_grievance(ctx: dict, grievance_id: str) -> dict[str, Any]:
     return {"error": "grievance not found"}
 
 
+# ── Routing / assignment job ──────────────────────────────────────────────────
+
+async def assign_grievance(ctx: dict, grievance_id: str) -> dict[str, Any]:
+    """Assign a classified grievance to the right officer + set SLA clock."""
+    setup_logging()
+    from app.modules.routing.service import RoutingService
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+        svc = RoutingService(session)
+        result = await svc.assign(uuid.UUID(grievance_id))
+        await session.commit()
+
+    log.info("worker.assign.done", grievance_id=grievance_id, status=result.status)
+    return result.model_dump(mode="json")
+
+
+# ── SLA escalation job ────────────────────────────────────────────────────────
+
+async def check_sla_breaches(ctx: dict) -> dict[str, int]:
+    """Detect SLA-breached grievances and escalate up the ladder."""
+    setup_logging()
+    from app.modules.sla.service import SLAService
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+        svc = SLAService(session)
+        result = await svc.check_and_escalate()
+
+    return result
+
+
 # ── Outbox relay job ──────────────────────────────────────────────────────────
 
 async def relay_outbox(ctx: dict) -> dict[str, int]:
@@ -82,7 +114,6 @@ async def relay_outbox(ctx: dict) -> dict[str, int]:
                 if event_type == "grievance.created" and queue:
                     await queue.enqueue_job("enrich_grievance", aggregate_id)
                 elif event_type == "grievance.enriched" and queue:
-                    # Epic 6 routing job
                     await queue.enqueue_job("assign_grievance", aggregate_id)
 
                 await session.execute(
@@ -101,7 +132,7 @@ async def relay_outbox(ctx: dict) -> dict[str, int]:
 # ── Arq worker settings ───────────────────────────────────────────────────────
 
 class WorkerSettings:
-    functions = [enrich_grievance, relay_outbox]
+    functions = [enrich_grievance, assign_grievance, check_sla_breaches, relay_outbox]
     redis_settings_str = settings.REDIS_URL
     max_jobs = 20
     job_timeout = 120
