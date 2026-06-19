@@ -15,6 +15,9 @@ import uuid
 from datetime import timedelta
 from typing import Any
 
+from arq import cron
+from arq.connections import RedisSettings
+
 import structlog
 from sqlalchemy import text
 
@@ -133,25 +136,21 @@ async def relay_outbox(ctx: dict) -> dict[str, int]:
 
 class WorkerSettings:
     functions = [enrich_grievance, assign_grievance, check_sla_breaches, relay_outbox]
-    redis_settings_str = settings.REDIS_URL
     max_jobs = 20
     job_timeout = 120
-    on_startup = None
-    on_shutdown = None
+
+    redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
 
     cron_jobs = [
-        # Relay outbox events every 5 seconds
-        type("CronJob", (), {
-            "name": "relay_outbox",
-            "coroutine": relay_outbox,
-            "minute": None,
-            "second": {0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55},
-        })(),
+        # Relay outbox events every 5 s — dispatches enrich + assign jobs
+        cron(relay_outbox, second={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
+        # SLA breach check every 5 minutes
+        cron(check_sla_breaches, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
     ]
 
 
 # ── Local dev runner ──────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    import arq
-    asyncio.run(arq.run_worker(WorkerSettings))
+    from arq import run_worker  # noqa: F811
+    asyncio.run(run_worker(WorkerSettings))

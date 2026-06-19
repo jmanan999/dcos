@@ -31,7 +31,7 @@
 | **4** | Intake & channels (web form, WhatsApp, IVR) | ✅ Done |
 | **5** | AI complaint engine (classify, severity, dedup, worker) | ✅ Done |
 | **6** | Routing, assignment, SLA engine | ✅ Done |
-| **7** | Officer console & field app | ⬜ Next |
+| **7** | Officer console & field app | ✅ Done |
 | **8** | Citizen transparency & notifications | ⬜ |
 | **9** | GIS command center & analytics | ⬜ |
 | **10** | Hardening, compliance, observability, launch | ⬜ |
@@ -85,7 +85,13 @@ dcos/
 │   │   │       │   ├── schemas.py  SLAStatus, EscalationEvent
 │   │   │       │   ├── service.py  SLAService.compute_sla() + check_and_escalate()
 │   │   │       │   └── router.py   GET /sla/status/{id}, POST /sla/check-breaches
-│   │   │       ├── workforce/      AssignmentHistory; Epic 7
+│   │   │       ├── workforce/      Officer queue, claim, resolve, proof gate, notes, handoff
+│   │   │       │   ├── models.py   AssignmentHistory, OfficerNote
+│   │   │       │   ├── schemas.py  GrievanceSummary, ProofVerificationResult, WorkloadSummary
+│   │   │       │   ├── service.py  WorkforceService (get_queue, claim, resolve, add_note,
+│   │   │       │   │               mark_action_taken, request_info, verify_proof, get_workload)
+│   │   │       │   └── router.py   GET /workforce/queue, /dept-queue, /workload
+│   │   │       │                   POST /workforce/grievances/{id}/claim|action-taken|resolve|notes
 │   │   │       ├── citizen/        Feedback, Notification; Epic 8
 │   │   │       ├── analytics/      Epic 9 — materialized views, NL→SQL
 │   │   │       ├── reporting/      Epic 9 — PDF/PPTX
@@ -104,7 +110,8 @@ dcos/
 │   │   │       ├── 0001_initial_schema.py   All tables, enums, PostGIS/HNSW/GIN indexes,
 │   │   │       │                             sync_grievance_location trigger
 │   │   │       ├── 0002_rls_policies.py     RLS ENABLE + FORCE + all policies
-│   │   │       └── 0003_ai_tables.py        ai_results + feedback_labels
+│   │   │       ├── 0003_ai_tables.py        ai_results + feedback_labels
+│   │   │       └── 0004_officer_notes.py    officer_notes table + dcos_app grant
 │   │   ├── scripts/
 │   │   │   └── seed.py             Async asyncpg seed: 11 districts, 12 zones, 272 wards,
 │   │   │                           12 departments, 540 grievances, 2680 status events
@@ -275,25 +282,43 @@ cd ../.. && pnpm --filter web dev   # http://localhost:3000
 
 ---
 
-## What to build next — Epic 7
+## What to build next — Epic 8
 
-**Goal:** Officer console — resolve with un-fakeable geo-stamped before/after proof.
+**Goal:** Citizen transparency — notifications (WhatsApp+SMS+push), CSAT, reopen, public dashboard.
 
 **Files to create/modify:**
-- `app/modules/workforce/service.py` — WorkforceService: claim, start, add_note, resolve, upload_proof
-- `app/modules/workforce/schemas.py` — TaskRead, ProofUpload, ClosureRequest, OfficerNoteCreate
-- `app/modules/workforce/router.py` — GET/POST endpoints for officer queue and actions
-- `apps/web/src/app/(officer)/officer/queue/page.tsx` — real queue with SLA countdown
-- `apps/web/src/app/(officer)/officer/grievance/[id]/page.tsx` — detail + proof upload
+- `app/modules/citizen/service.py` — NotificationService + CSATService + ReopenService
+- `app/modules/citizen/schemas.py` — NotificationRead, FeedbackCreate, ReopenRequest
+- `app/modules/citizen/router.py` — POST /citizen/feedback, POST /citizen/reopen/{id}
+- `app/core/notifications.py` — async WhatsApp/SMS/push dispatcher (idempotent + retry)
+- `apps/web/src/app/(citizen)/track/[id]/feedback/page.tsx` — CSAT form after closure
+- `apps/web/src/app/(public)/public/page.tsx` — live anonymized KPI dashboard
 
 **Key things to implement:**
-1. `GET /workforce/queue` — officer's assigned grievances, sorted by sla_due_at
-2. `POST /workforce/{id}/claim` — officer takes ownership
-3. `POST /workforce/{id}/resolve` — requires before+after proof attachment
-4. Geo+timestamp validation on proof: compare EXIF location vs grievance location
-5. `POST /workforce/{id}/notes` — internal note with optional media
-6. `POST /workforce/{id}/request-info` — request more info from citizen
-7. Closure blocked unless `is_proof=True` attachment exists for both `before` and `after`
+1. Notification worker — consumes `grievance.*` outbox events → WhatsApp + SMS + push
+2. CSAT flow — POST /citizen/feedback (rating 1-5 + comment)
+3. Reopen flow — citizen rejects closure → RESOLVED→REOPENED → outbox → re-route
+4. Public dashboard — anonymized totals by ward/dept/category (no auth needed)
+5. Notification preferences + opt-out + consent records (DPDP)
+
+---
+
+## Epic 7 reference (completed)
+
+Officer console built in Epic 7:
+- `WorkforceService.claim()` — ASSIGNED/ESCALATED → IN_PROGRESS
+- `WorkforceService.resolve()` — blocked unless before+after proof photos exist;
+  geo check: EXIF must be within 500m (`_haversine_m`); timestamp check: after > created_at
+- `WorkforceService.add_note()` — internal note; if `is_handoff=True` re-routes grievance to new dept
+- `WorkforceService.verify_proof()` — returns ProofVerificationResult with reasons list
+- `WorkforceService.get_workload()` — dept officer summary with SLA breach counts
+- API: queue (SLA-sorted), claim, action-taken, resolve, proof check, notes, request-info, workload
+- Migration 0004: officer_notes table
+- 12 tests: claim, illegal-transition, proof gate, handoff re-route, geo validation
+- Next.js: officer queue (SLA countdown badges, claim button), grievance detail (tabs: notes/proof/resolve),
+  dept-admin workload table
+
+---
 
 ---
 

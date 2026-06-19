@@ -91,12 +91,21 @@ async def upload_attachment(
         "audio/ogg": "audio", "audio/mpeg": "audio",
         "video/mp4": "video", "application/pdf": "document",
     }
+
+    # Extract EXIF GPS from images
+    exif_lat: float | None = None
+    exif_lng: float | None = None
+    if file.content_type in ("image/jpeg", "image/png", "image/webp"):
+        exif_lat, exif_lng = _extract_exif_gps(contents)
+
     svc = IntakeService(session)
     att = await svc.add_attachment(
         grievance_id=grievance_id,
         url=url,
         file_type=type_map.get(file.content_type or "", "document"),
         file_size=len(contents),
+        exif_lat=exif_lat,
+        exif_lng=exif_lng,
         uploaded_by_id=user.user_id if user else None,
         is_proof=is_proof,
         proof_type=proof_type,
@@ -170,6 +179,34 @@ async def whatsapp_webhook(
     return {"status": "ok"}
 
 
+def _extract_exif_gps(data: bytes) -> tuple[float | None, float | None]:
+    """Extract GPS lat/lng from JPEG/PNG EXIF data. Returns (None, None) if absent."""
+    try:
+        from PIL import Image, ExifTags
+        import io
+        img = Image.open(io.BytesIO(data))
+        exif = img._getexif()  # type: ignore[attr-defined]
+        if not exif:
+            return None, None
+        gps_tag = next((k for k, v in ExifTags.TAGS.items() if v == "GPSInfo"), None)
+        if not gps_tag or gps_tag not in exif:
+            return None, None
+        gps = exif[gps_tag]
+        # GPSInfo keys: 1=LatRef, 2=Lat, 3=LonRef, 4=Lon
+        def _dms(vals):  # type: ignore[no-untyped-def]
+            d, m, s = [float(v) for v in vals]
+            return d + m / 60 + s / 3600
+        lat = _dms(gps.get(2, [0, 0, 0]))
+        lng = _dms(gps.get(4, [0, 0, 0]))
+        if gps.get(1, "N") == "S":
+            lat = -lat
+        if gps.get(3, "E") == "W":
+            lng = -lng
+        return round(lat, 6), round(lng, 6)
+    except Exception:
+        return None, None
+
+
 def _verify_signature(request: Request, body: bytes) -> None:
     if not settings.WHATSAPP_TOKEN:
         return  # No-op in local dev without credentials
@@ -214,4 +251,30 @@ async def _ingest_wa_message(msg: dict, svc: IntakeService) -> None:
         channel_meta=meta,
         location=loc,
     )
-    await svc.create_grievance(body, actor=None)
+    result = await svc.create_grievance(body, actor=None)
+
+    # Reply to citizen with tracking ID
+    if settings.WHATSAPP_TOKEN and settings.WHATSAPP_PHONE_NUMBER_ID:
+        import httpx
+        reply = (
+            f"Namaste! Aapki shikayat darj ho gayi hai.\n"
+            f"Tracking ID: *{result.tracking_id}*\n\n"
+            f"Track: /track/{result.tracking_id}"
+        )
+        if result.is_emergency:
+            reply = "🚨 EMERGENCY: Please call 112 NOW.\n\n" + reply
+        try:
+            async with httpx.AsyncClient() as client:
+                await client.post(
+                    f"https://graph.facebook.com/{settings.WHATSAPP_API_VERSION}"
+                    f"/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages",
+                    headers={"Authorization": f"Bearer {settings.WHATSAPP_TOKEN}"},
+                    json={
+                        "messaging_product": "whatsapp",
+                        "to": from_num,
+                        "type": "text",
+                        "text": {"body": reply},
+                    },
+                )
+        except Exception as exc:
+            log.warning("whatsapp.reply.failed", error=str(exc), to=from_num)
