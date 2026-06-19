@@ -280,6 +280,7 @@ class AIService:
         """Generate 768-dim embedding via Gemini text-embedding-004."""
         try:
             import asyncio
+
             import google.generativeai as genai
             genai.configure(api_key=settings.GEMINI_API_KEY)
 
@@ -298,6 +299,7 @@ class AIService:
 
     async def _gemini_json(self, prompt: str) -> dict[str, Any]:
         import asyncio
+
         import google.generativeai as genai
         genai.configure(api_key=settings.GEMINI_API_KEY)
         model = genai.GenerativeModel(settings.GEMINI_MODEL_DEFAULT)

@@ -12,10 +12,9 @@ Algorithm:
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
 
 import structlog
-from sqlalchemy import func, select, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.modules.intake.models import Grievance, GrievanceStatus, StatusEvent

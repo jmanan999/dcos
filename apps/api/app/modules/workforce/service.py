@@ -28,7 +28,7 @@ from app.core.auth import TokenClaims
 from app.modules.intake.models import Attachment, Grievance, GrievanceStatus, StatusEvent
 from app.modules.intake.repository import GrievanceRepository
 from app.modules.platform.repository import AuditRepository, OutboxRepository
-from app.modules.workforce.models import AssignmentHistory, OfficerNote
+from app.modules.workforce.models import OfficerNote
 from app.modules.workforce.schemas import (
     ClosureRequest,
     GrievanceSummary,

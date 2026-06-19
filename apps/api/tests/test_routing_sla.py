@@ -204,7 +204,7 @@ async def test_illegal_status_transition_rejected() -> None:
             pytest.skip("No RECEIVED grievances in DB")
 
         repo = GrievanceRepository(session)
-        grievance = (await session.execute(
+        (await session.execute(
             text("SELECT * FROM grievances WHERE id = :id"),
             {"id": str(row[0])},
         )).fetchone()

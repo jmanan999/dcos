@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select, update
@@ -45,7 +45,7 @@ class OutboxRepository:
         await self._s.execute(
             update(OutboxEvent)
             .where(OutboxEvent.id == event_id)
-            .values(processed_at=datetime.now(timezone.utc))
+            .values(processed_at=datetime.now(UTC))
         )
 
 

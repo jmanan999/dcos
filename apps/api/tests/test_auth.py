@@ -5,14 +5,13 @@ These tests need no running database.
 from __future__ import annotations
 
 import uuid
-from datetime import timedelta
+from datetime import UTC, timedelta
 
 import pytest
 from jose import JWTError
 
 from app.core.auth import TokenClaims, create_local_token, decode_token
-from app.core.permissions import P, ROLE_PERMISSIONS, get_permissions, has_permission
-
+from app.core.permissions import P, get_permissions, has_permission
 
 # ── Token creation + decode ────────────────────────────────────────────────────
 
@@ -47,8 +46,10 @@ def test_tampered_token_raises() -> None:
 
 def test_supabase_style_token_parsed() -> None:
     """Tokens with dcos_role inside user_metadata (Supabase format) are parsed correctly."""
-    from datetime import datetime, timezone
+    from datetime import datetime
+
     from jose import jwt
+
     from app.core.config import settings
 
     uid = str(uuid.uuid4())
@@ -56,7 +57,7 @@ def test_supabase_style_token_parsed() -> None:
     payload = {
         "sub": uid,
         "role": "authenticated",          # Supabase's own field
-        "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()),
+        "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
         "user_metadata": {
             "dcos_role": "dept_admin",    # our custom claim
             "department_id": dept,
@@ -148,7 +149,7 @@ def test_super_admin_has_all_permissions() -> None:
 
 def test_no_role_escalation() -> None:
     """A role must never grant permissions that a higher role doesn't also have."""
-    citizen_perms = get_permissions("citizen")
+    get_permissions("citizen")
     officer_perms = get_permissions("field_officer")
     # Everything a citizen can do, an officer should also be able to (or more)
     # (citizen can file + read_own; officer can resolve — both can read dept or own)

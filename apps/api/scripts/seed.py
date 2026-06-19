@@ -17,7 +17,7 @@ import json
 import os
 import random
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import asyncpg
 
@@ -215,7 +215,7 @@ def rand_latng(district_code: str) -> tuple[float, float]:
 
 
 def make_tracking_id(n: int) -> str:
-    return f"DCOS-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{n:06d}"
+    return f"DCOS-{datetime.now(UTC).strftime('%Y%m%d')}-{n:06d}"
 
 
 def make_complaint_text(category: str, district_code: str) -> str:
@@ -265,7 +265,7 @@ async def seed() -> None:
             print("Seeding 272 wards…")
             ward_ids: list[tuple[str, str]] = []  # (ward_id, district_code)
             zone_list = list(zone_ids.values())
-            district_for_zone = {zid: ZONES[i][2] for i, zid in enumerate(zone_list)}
+            {zid: ZONES[i][2] for i, zid in enumerate(zone_list)}
 
             for ward_num in range(1, 273):
                 zone_code = ZONES[ward_num % len(ZONES)][1]
@@ -300,7 +300,7 @@ async def seed() -> None:
                 "MEDIUM":   (72, 24),
                 "LOW":      (168, 48),
             }
-            for dept_code, dept_id in dept_ids.items():
+            for _dept_code, dept_id in dept_ids.items():
                 for priority, (resolution_h, escalation_h) in sla_matrix.items():
                     await conn.execute(
                         """INSERT INTO sla_policies
@@ -346,7 +346,7 @@ async def seed() -> None:
 
             print("Seeding 520 grievances…")
             dept_codes = list(dept_ids.keys())
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
 
             for n in range(1, 521):
                 dept_code = random.choice(dept_codes)

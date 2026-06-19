@@ -17,7 +17,7 @@ Escalation ladder (configurable per SLAPolicy):
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import structlog
@@ -60,7 +60,7 @@ class SLAService:
     ) -> datetime:
         """Return `now() + resolution_hours` from the most-specific matching policy."""
         resolution_h = await self._resolve_hours(dept_id, category, priority)
-        return datetime.now(timezone.utc) + timedelta(hours=resolution_h)
+        return datetime.now(UTC) + timedelta(hours=resolution_h)
 
     async def _resolve_hours(
         self, dept_id: uuid.UUID, category: str | None, priority: str
@@ -92,7 +92,7 @@ class SLAService:
         Find SLA-breached grievances and escalate up the ladder.
         Returns counts of escalations performed.
         """
-        from app.modules.intake.models import Grievance, GrievanceStatus
+        from app.modules.intake.models import GrievanceStatus
 
         result = await self._s.execute(
             text("""
@@ -108,7 +108,7 @@ class SLAService:
         rows = result.fetchall()
         escalated = 0
         for row in rows:
-            gid, level, dept_id, sla_due, officer_id = (
+            gid, level, _dept_id, sla_due, _officer_id = (
                 str(row[0]), int(row[1]), str(row[2]), row[3], str(row[4]) if row[4] else None
             )
             next_level = level + 1

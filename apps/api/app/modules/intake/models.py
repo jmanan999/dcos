@@ -21,7 +21,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class GrievanceStatus(str, enum.Enum):
+class GrievanceStatus(enum.StrEnum):
     RECEIVED = "RECEIVED"
     CLASSIFIED = "CLASSIFIED"
     ASSIGNED = "ASSIGNED"
@@ -52,7 +52,7 @@ class GrievanceStatus(str, enum.Enum):
         }
 
 
-class Channel(str, enum.Enum):
+class Channel(enum.StrEnum):
     WEB = "web"
     WHATSAPP = "whatsapp"
     IVR = "ivr"
@@ -60,21 +60,21 @@ class Channel(str, enum.Enum):
     WALK_IN = "walk_in"
 
 
-class Priority(str, enum.Enum):
+class Priority(enum.StrEnum):
     CRITICAL = "CRITICAL"
     HIGH = "HIGH"
     MEDIUM = "MEDIUM"
     LOW = "LOW"
 
 
-class AttachmentType(str, enum.Enum):
+class AttachmentType(enum.StrEnum):
     IMAGE = "image"
     VIDEO = "video"
     AUDIO = "audio"
     DOCUMENT = "document"
 
 
-class ProofType(str, enum.Enum):
+class ProofType(enum.StrEnum):
     BEFORE = "before"
     AFTER = "after"
     DURING = "during"

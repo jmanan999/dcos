@@ -4,16 +4,22 @@ import hashlib
 import hmac
 import json
 import uuid
-from typing import Annotated
 
 import structlog
 from fastapi import (
-    APIRouter, File, Form, HTTPException, Query, Request, UploadFile, status,
+    APIRouter,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+    status,
 )
+from sqlalchemy import text
 
 from app.core.config import settings
 from app.core.dependencies import DbSession, OptionalUser, RlsDbSession
-from sqlalchemy import text
 from app.modules.intake.schemas import (
     AttachmentRead,
     GrievanceCreate,
@@ -22,7 +28,7 @@ from app.modules.intake.schemas import (
     StatusEventRead,
     TrackingResponse,
 )
-from app.modules.intake.service import EMERGENCY_GUIDANCE, IntakeService
+from app.modules.intake.service import IntakeService
 
 log = structlog.get_logger()
 
@@ -182,8 +188,9 @@ async def whatsapp_webhook(
 def _extract_exif_gps(data: bytes) -> tuple[float | None, float | None]:
     """Extract GPS lat/lng from JPEG/PNG EXIF data. Returns (None, None) if absent."""
     try:
-        from PIL import Image, ExifTags
         import io
+
+        from PIL import ExifTags, Image
         img = Image.open(io.BytesIO(data))
         exif = img._getexif()  # type: ignore[attr-defined]
         if not exif:

@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 
 from app.core.dependencies import RlsDbSession, require_permission
 from app.core.permissions import P
@@ -46,6 +46,7 @@ async def reassign_grievance(
     session: RlsDbSession,
 ) -> AssignmentResult:
     from sqlalchemy import text
+
     from app.core.auth import TokenClaims
     await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
     assert isinstance(user, TokenClaims)

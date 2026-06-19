@@ -13,9 +13,9 @@ Creates the full DCOS schema:
     outbox_events, audit_log, idempotency_keys
   - Indexes: btree composites, GiST spatial, HNSW vector, GIN trigram
 """
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import JSONB, UUID, ARRAY
+from alembic import op
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 
 revision = "0001"
 down_revision = None

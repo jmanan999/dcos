@@ -62,6 +62,7 @@ async def dept_queue(
 ) -> list[GrievanceSummary]:
     """All open grievances for a department (dept_admin + above)."""
     from sqlalchemy import text
+
     from app.core.auth import TokenClaims
     assert isinstance(user, TokenClaims)
     await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
@@ -120,6 +121,7 @@ async def resolve(
     after-proof geo is >500m from complaint location.
     """
     from sqlalchemy import text
+
     from app.core.auth import TokenClaims
     assert isinstance(user, TokenClaims)
     await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
@@ -198,6 +200,7 @@ async def dept_workload(
 ) -> list[WorkloadSummary]:
     """Officer workload summary for dept_admin / district_officer / cm_cell."""
     from sqlalchemy import text
+
     from app.core.auth import TokenClaims
     assert isinstance(user, TokenClaims)
     await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))

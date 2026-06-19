@@ -110,7 +110,6 @@ async def list_departments(
     session: RlsDbSession,
     active_only: bool = Query(True),
 ) -> list[DepartmentRead]:
-    from app.core.auth import TokenClaims
     svc = IdentityService(session)
     depts = await svc.list_departments(active_only=active_only)
     return [DepartmentRead.model_validate(d) for d in depts]
@@ -137,11 +136,9 @@ async def list_officers(
     session: RlsDbSession,
     dept_id: uuid.UUID | None = Query(None),
 ) -> list[OfficerRead]:
-    from app.core.auth import TokenClaims
     assert isinstance(user, object)
     svc = IdentityService(session)
     # Re-fetch the typed user from session
-    from app.core.dependencies import get_current_user
     officers = await svc.list_officers(claims=user, dept_id=dept_id)  # type: ignore[arg-type]
     return [OfficerRead.model_validate(o) for o in officers]
 
@@ -187,7 +184,6 @@ async def update_officer(
     user: Annotated[object, Depends(require_permission(P.OFFICER_MANAGE_DEPT))],
     session: RlsDbSession,
 ) -> OfficerRead:
-    from app.core.auth import TokenClaims
     svc = IdentityService(session)
     officer = await svc.update_officer(
         officer_id=officer_id,

@@ -16,12 +16,12 @@ engine = create_async_engine(
 
 
 @event.listens_for(engine.sync_engine, "connect")
-def _register_asyncpg_codecs(dbapi_conn, _):
+def _register_asyncpg_codecs(dbapi_conn, _) -> None:
     """Register pgvector type codec so asyncpg can round-trip vector columns."""
     try:
         import asyncio
 
-        async def _setup(conn):
+        async def _setup(conn) -> None:
             from pgvector.asyncpg import register_vector
             await register_vector(conn)
 

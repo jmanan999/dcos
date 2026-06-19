@@ -12,13 +12,11 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from datetime import timedelta
 from typing import Any
 
+import structlog
 from arq import cron
 from arq.connections import RedisSettings
-
-import structlog
 from sqlalchemy import text
 
 from app.core.config import settings
@@ -92,8 +90,6 @@ async def relay_outbox(ctx: dict) -> dict[str, int]:
     Pull unprocessed outbox events and dispatch to the right worker.
     Run on a short interval (every 5s) via the cron setting below.
     """
-    from app.modules.platform.models import OutboxEvent
-    from sqlalchemy import update
 
     dispatched = 0
     async with AsyncSessionLocal() as session:
@@ -152,5 +148,5 @@ class WorkerSettings:
 # ── Local dev runner ──────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    from arq import run_worker  # noqa: F811
+    from arq import run_worker
     asyncio.run(run_worker(WorkerSettings))

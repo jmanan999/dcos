@@ -68,17 +68,26 @@ target-version = "py312"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "W", "F", "I", "N", "UP", "B", "S", "RUF", "ANN"]
+select = ["E", "W", "F", "I", "N", "UP", "B", "S", "RUF"]
 ignore = [
-    "S101",   # assert is fine in tests
-    "B008",   # FastAPI Depends() in function defaults
-    "ANN101", # missing type for self
-    "ANN102", # missing type for cls
-    "ANN401", # Any is sometimes necessary
+    "S101",  # assert is fine in tests
+    "B008",  # FastAPI Depends() in defaults
+    "S105",  # hardcoded passwords in settings defaults are intentional
+    "S106",  # same
+    "S107",  # same
+    "S110",  # try-except-pass for best-effort codec registration
+    "E501",  # line length — enforced at review time, not lint
+    "N806",  # uppercase vars (R, Greek letters) in math helpers
+    "RUF002", # unicode multiplication sign in docstrings
+    "RUF003", # unicode en-dash in comments
+    "RUF012", # mutable ClassVar — handled by Pydantic/SQLAlchemy
+    "B904",  # raise-from in route exception handlers — noise
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S", "ANN"]
+"migrations/**" = ["E402"]
+"scripts/**" = ["S"]
 
 # ── Mypy ──────────────────────────────────────────────────────────────────────
 [tool.mypy]

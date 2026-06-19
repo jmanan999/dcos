@@ -14,7 +14,7 @@ a live Supabase project to test authz.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from jose import JWTError, jwt
 
@@ -103,7 +103,7 @@ def create_local_token(
     NEVER expose the /identity/token endpoint in production.
     """
     uid = user_id or str(uuid.uuid4())
-    exp = datetime.now(timezone.utc) + timedelta(
+    exp = datetime.now(UTC) + timedelta(
         minutes=expires_minutes or settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
     )
     payload: dict = {

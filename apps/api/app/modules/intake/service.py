@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy import select, text
@@ -43,7 +43,7 @@ def _is_emergency(raw_text: str) -> bool:
 
 
 def _make_tracking_id() -> str:
-    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    today = datetime.now(UTC).strftime("%Y%m%d")
     suffix = str(uuid.uuid4()).replace("-", "")[:8].upper()
     return f"DCOS-{today}-{suffix}"
 

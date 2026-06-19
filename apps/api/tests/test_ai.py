@@ -81,7 +81,6 @@ async def test_mock_enrich_water_complaint_goes_to_djb(http: AsyncClient) -> Non
 
 async def test_enrich_updates_grievance_status(http: AsyncClient) -> None:
     """After enrichment, status should be CLASSIFIED (not RECEIVED)."""
-    from sqlalchemy import select
     from app.core.database import AsyncSessionLocal
     from app.modules.intake.models import Grievance
 
@@ -157,7 +156,7 @@ async def test_cluster_detection_with_similar_embeddings() -> None:
     """
     from app.core.database import AsyncSessionLocal
     from app.modules.ai.service import AIService
-    from app.modules.intake.models import Grievance, GrievanceStatus
+    from app.modules.intake.models import Grievance
 
     # Base embedding (768-dim)
     base_emb = [round(random.gauss(0, 0.1), 6) for _ in range(768)]

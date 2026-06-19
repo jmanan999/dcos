@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,9 +59,9 @@ class GrievanceRepository:
             note=note,
         )
         grievance.status = to_status.value
-        grievance.updated_at = datetime.now(timezone.utc)
+        grievance.updated_at = datetime.now(UTC)
         if to_status in (GrievanceStatus.CLOSED, GrievanceStatus.REJECTED_SPAM):
-            grievance.closed_at = datetime.now(timezone.utc)
+            grievance.closed_at = datetime.now(UTC)
         self._s.add(event)
         await self._s.flush()
         return event
