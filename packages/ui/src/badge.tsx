@@ -1,6 +1,19 @@
 import * as React from "react";
 import { cn } from "./utils";
-import type { GrievanceStatus } from "@dcos/types";
+
+// Inline the GrievanceStatus type to avoid cross-package resolution issues in CI
+type GrievanceStatus =
+  | "RECEIVED"
+  | "CLASSIFIED"
+  | "ASSIGNED"
+  | "IN_PROGRESS"
+  | "ACTION_TAKEN"
+  | "RESOLVED"
+  | "VERIFIED"
+  | "REOPENED"
+  | "CLOSED"
+  | "REJECTED_SPAM"
+  | "ESCALATED";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: "default" | "success" | "warning" | "error" | "info";
@@ -32,7 +45,11 @@ export function SeverityBadge({ score }: { score: number }) {
     score >= 80 ? "error" : score >= 60 ? "warning" : score >= 40 ? "info" : "default";
   const label =
     score >= 80 ? "Critical" : score >= 60 ? "High" : score >= 40 ? "Medium" : "Low";
-  return <Badge variant={variant}>{label} ({score})</Badge>;
+  return (
+    <Badge variant={variant}>
+      {label} ({score})
+    </Badge>
+  );
 }
 
 const statusVariant: Record<GrievanceStatus, BadgeProps["variant"]> = {
