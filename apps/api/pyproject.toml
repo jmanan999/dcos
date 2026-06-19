@@ -1,0 +1,102 @@
+[project]
+name = "dcos-api"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    # Web framework
+    "fastapi[standard]>=0.115",
+    "uvicorn[standard]>=0.32",
+    # Database
+    "sqlalchemy[asyncio]>=2.0",
+    "asyncpg>=0.30",
+    "alembic>=1.14",
+    "pgvector>=0.3",
+    # Validation
+    "pydantic>=2.10",
+    "pydantic-settings>=2.7",
+    # Queue / workers
+    "redis[hiredis]>=5.2",
+    "arq>=0.26",
+    # Logging
+    "structlog>=24.4",
+    # HTTP / media
+    "httpx>=0.28",
+    "python-multipart>=0.0.18",
+    "pillow>=11.0",
+    # Auth
+    "python-jose[cryptography]>=3.3",
+    "passlib[bcrypt]>=1.7",
+    # AI
+    "google-generativeai>=0.8",
+    # Observability
+    "opentelemetry-api>=1.28",
+    "opentelemetry-sdk>=1.28",
+    "opentelemetry-instrumentation-fastapi>=0.49b0",
+    "opentelemetry-instrumentation-sqlalchemy>=0.49b0",
+    "opentelemetry-exporter-otlp>=1.28",
+    "sentry-sdk[fastapi]>=2.19",
+    # Object storage
+    "boto3>=1.35",
+    # Geo
+    "geoalchemy2>=0.15",
+    "shapely>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "httpx>=0.28",
+    "ruff>=0.9",
+    "mypy>=1.13",
+    "types-passlib>=1.7",
+    "types-boto3>=1.35",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+# ── Ruff ─────────────────────────────────────────────────────────────────────
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP", "B", "S", "RUF", "ANN"]
+ignore = [
+    "S101",   # assert is fine in tests
+    "B008",   # FastAPI Depends() in function defaults
+    "ANN101", # missing type for self
+    "ANN102", # missing type for cls
+    "ANN401", # Any is sometimes necessary
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S", "ANN"]
+
+# ── Mypy ──────────────────────────────────────────────────────────────────────
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+plugins = ["pydantic.mypy"]
+
+# ── Pytest ────────────────────────────────────────────────────────────────────
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+# Share one event loop for the whole session so asyncpg's connection pool
+# (which is tied to a specific event loop) doesn't stale across test functions.
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
+testpaths = ["tests"]
+addopts = "--cov=app --cov-report=term-missing --cov-report=xml"
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["tests/*", "migrations/*"]

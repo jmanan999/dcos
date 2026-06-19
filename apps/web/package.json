@@ -1,0 +1,47 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3000",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@supabase/supabase-js": "^2",
+    "@supabase/ssr": "^0",
+    "clsx": "^2",
+    "tailwind-merge": "^2",
+    "lucide-react": "^0.460.0",
+    "@radix-ui/react-dialog": "^1",
+    "@radix-ui/react-dropdown-menu": "^2",
+    "@radix-ui/react-toast": "^1",
+    "@radix-ui/react-tabs": "^1",
+    "@radix-ui/react-badge": "^1",
+    "@radix-ui/react-avatar": "^1",
+    "recharts": "^2",
+    "maplibre-gl": "^4",
+    "swr": "^2",
+    "date-fns": "^4"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/maplibre-gl": "^3",
+    "tailwindcss": "^3",
+    "autoprefixer": "^10",
+    "postcss": "^8",
+    "eslint": "^9",
+    "eslint-config-next": "^15.0.0",
+    "prettier": "^3",
+    "@typescript-eslint/eslint-plugin": "^8",
+    "@typescript-eslint/parser": "^8"
+  }
+}
