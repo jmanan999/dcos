@@ -9,10 +9,6 @@
     --brand: 221 71% 37%;
   }
 
-  * {
-    @apply border-border;
-  }
-
   body {
     @apply bg-white text-slate-900;
   }
