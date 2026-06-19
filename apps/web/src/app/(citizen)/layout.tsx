@@ -18,9 +18,6 @@ export default function CitizenLayout({ children }: { children: React.ReactNode 
             <Link href="/" className="text-white/80 hover:text-white">
               File Complaint
             </Link>
-            <Link href="/track" className="text-white/80 hover:text-white">
-              Track
-            </Link>
           </nav>
         </div>
       </header>

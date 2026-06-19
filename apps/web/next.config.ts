@@ -9,9 +9,6 @@ const config: NextConfig = {
       { protocol: "http", hostname: "localhost" },
     ],
   },
-  experimental: {
-    typedRoutes: true,
-  },
 };
 
 export default config;
