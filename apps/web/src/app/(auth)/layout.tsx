@@ -23,7 +23,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <div className="relative space-y-6">
           <h2 className="max-w-md text-3xl font-bold leading-tight text-balance">
-            JanSetu — People's Bridge to the Government of Delhi.
+            JanSetu &mdash; People&apos;s Bridge to the Government of Delhi.
           </h2>
           <ul className="space-y-3 text-sm text-sidebar-foreground">
             {[
