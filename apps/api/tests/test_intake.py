@@ -50,7 +50,7 @@ async def test_create_grievance_anonymous(http: AsyncClient) -> None:
     r = await http.post("/api/v1/intake/grievances", json=_grievance_payload())
     assert r.status_code == 201, r.text
     data = r.json()
-    assert data["tracking_id"].startswith("DCOS-")
+    assert data["tracking_id"].startswith("JS-")
     assert data["status"] == "RECEIVED"
     assert data["is_emergency"] is False
 
@@ -63,7 +63,7 @@ async def test_create_grievance_with_location(http: AsyncClient) -> None:
         ),
     )
     assert r.status_code == 201
-    assert r.json()["tracking_id"].startswith("DCOS-")
+    assert r.json()["tracking_id"].startswith("JS-")
 
 
 async def test_create_grievance_authenticated_citizen(http: AsyncClient) -> None:
@@ -195,5 +195,5 @@ async def test_track_existing_grievance(http: AsyncClient) -> None:
 
 
 async def test_track_nonexistent_returns_404(http: AsyncClient) -> None:
-    r = await http.get("/api/v1/intake/track/DCOS-99999999-999999")
+    r = await http.get("/api/v1/intake/track/JS-99999999-XXXXXXXX")
     assert r.status_code == 404
