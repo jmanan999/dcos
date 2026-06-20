@@ -1,180 +1,147 @@
 # DCOS — What's Left
 
-> Current state: Epics 1–10 complete + full GovTech frontend + Supabase auth live.
-> The backend and AI pipeline are production-ready. Items below are what remains
-> before this can go live for real Delhi citizens.
+> **Current state (as of 2026-06-21):**
+> Epics 1–10 complete · Modern GovTech frontend · Supabase auth live · Deployed on Vercel + Render
+>
+> **Live URLs:**
+> - Frontend: https://dcos-ecru.vercel.app (alias: https://dcos-delhi.vercel.app)
+> - API: https://dcos.onrender.com
+> - GitHub: https://github.com/jmanan999/dcos
+>
+> **Demo accounts (production Supabase):**
+> - `cm@delhi.gov.in` / `Dcos2026Admin!` → CM Cell (full command center)
+> - `admin@mcd.gov.in` / `Dcos2026Admin!` → MCD Admin
+> - `officer@mcd.gov.in` / `Dcos2026Field!` → MCD Field Officer
 
 ---
 
-## 🔴 Must-do before real users
+## ✅ Done
 
-### 1. Provision officers (Supabase admin API)
-Roles come from **`app_metadata`** (not user_metadata — that's user-editable). Create officers like this:
+- [x] All 10 backend epics (intake, AI, routing, SLA, officer, citizen, analytics, reporting, hardening)
+- [x] Modern GovTech design system (semantic tokens, 22-component kit, AppShell)
+- [x] Landing page, login/signup, citizen portal, transparency dashboard
+- [x] Officer console (queue, proof gate, team)
+- [x] CM command center (KPIs, trend chart, hotspots, leaderboard, NL copilot, reports)
+- [x] Supabase Auth (ES256 JWKS) + local-JWT dev fallback
+- [x] Role-based access control with anti-escalation (app_metadata)
+- [x] AI classification via Groq (Llama 3.3 70B, ~1.4s per complaint)
+- [x] Production DB (Supabase Postgres, 540 seed grievances, 12 depts, 272 wards)
+- [x] Redis (Upstash), VAPID web push keys generated
+- [x] Vercel deployment (frontend) + Render deployment (API)
+- [x] CI/CD via GitHub Actions (lint, typecheck, tests, build — all green)
+- [x] Open-source README with badges, live demo, architecture diagram
 
+---
+
+## 🔴 Must-do before real Delhi citizens
+
+### 1. Arq worker on Render (AI classification is disabled on free tier)
+Render free tier sleeps after 15 min — the background worker (AI classify, SLA, notifications)
+is not running. Upgrade to **Starter ($7/mo)** and add a second service:
+- Type: Background Worker
+- Root directory: `apps/api`
+- Start command: `arq app.worker.WorkerSettings`
+- Same env vars as the web service
+- **Without this:** complaints file but don't auto-classify, route, or notify.
+
+### 2. Enable phone OTP for citizen login
+Supabase Dashboard → Authentication → Providers → **Phone** → enable.
+Connect Twilio (recommended) or MSG91 as the SMS provider.
+Until then: citizens file anonymously (works fine) or use email signup.
+
+### 3. Add more officers to Supabase
+Currently only 3 demo accounts exist (cm/mcd-admin/mcd-officer).
+Create real officer accounts using the admin API (see README → "Provision officers"):
 ```bash
 curl -X POST "https://nggbydarhctzacxzivyw.supabase.co/auth/v1/admin/users" \
   -H "apikey: <SERVICE_KEY>" -H "Authorization: Bearer <SERVICE_KEY>" \
   -H "Content-Type: application/json" \
-  -d '{
-    "email": "officer@delhi.gov.in",
-    "password": "SecurePass123!",
-    "email_confirm": true,
-    "app_metadata": { "dcos_role": "field_officer", "department_id": "<dept-uuid>" },
-    "user_metadata": { "name": "Officer Name" }
-  }'
+  -d '{ "email": "officer@delhi.gov.in", "password": "...",
+        "email_confirm": true,
+        "app_metadata": { "dcos_role": "field_officer", "department_id": "<uuid>" },
+        "user_metadata": { "name": "Name" } }'
 ```
+Get department UUIDs: `GET https://dcos.onrender.com/api/v1/identity/departments`
 
-Available roles: `citizen` · `field_officer` · `dept_admin` · `district_officer` · `cm_cell` · `super_admin`
+### 4. CORS — add any new domains to Render env var
+Currently `CORS_ORIGINS=["https://dcos-delhi.vercel.app","https://dcos-ecru.vercel.app"]`.
+If you add a custom domain, add it here too or API calls will be blocked silently.
 
-Get department UUIDs from: `GET /api/v1/identity/departments`
-
-### 2. Enable phone OTP for citizen login
-In Supabase Dashboard → Authentication → Providers → **Phone** → enable.
-Then connect an SMS provider (Twilio recommended for India; MSG91 also works).
-Until this is done, citizens must file anonymously (still works) or use email.
-
-### 3. Real WhatsApp intake
-- Create a Meta App → WhatsApp Business product → get a phone number
-- Set `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` in production env
-- Register webhook: `POST /api/v1/intake/webhooks/whatsapp`
-  Verify token: `dcos-whatsapp-verify` (set `WHATSAPP_VERIFY_TOKEN` to match)
-- Set `FEATURE_WHATSAPP_INTAKE=true`
-
-### 4. MSG91 SMS notifications
-- Register at msg91.com → create a template for status updates
-- Set `MSG91_API_KEY` + `MSG91_TEMPLATE_ID_STATUS`
+### 5. Rotate all credentials shared in chat
+These were shared in this conversation and should be rotated before production traffic:
+- Supabase DB password → [Settings → Database → Reset password](https://supabase.com/dashboard/project/nggbydarhctzacxzivyw/settings/database)
+- Groq API key → [console.groq.com/keys](https://console.groq.com/keys)
+- OpenRouter key → [openrouter.ai/keys](https://openrouter.ai/keys)
+- Gemini key → [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
 
 ---
 
 ## 🟡 High-value features not yet built
 
-### 5. GIS interactive heatmap
-**What it is:** The `/cm/map` and `/transparency/map` pages show a placeholder. MapLibre GL
-is already installed; the ward GeoJSON and hotspot data are available from the API.
+### 6. GIS interactive heatmap
+The `/cm/map` and `/transparency/map` pages show a styled placeholder. MapLibre GL is installed
+and ward centroid data (`lat`, `lng`, `severity`) is already coming from the API.
 
-**To build:**
-- Wire MapLibre in `apps/web/src/components/GisMap.tsx` (client component)
-- Load ward boundaries from `GET /api/v1/analytics/hotspots?limit=500`
-- Color each ward by `severity` (red/amber/green) and show popup on click
-- Use dark basemap (`https://demotiles.maplibre.org/style.json`) for the CM surface,
-  light for transparency
+**To build:** `apps/web/src/components/GisMap.tsx` (client component) that:
+- Loads `GET /api/v1/analytics/hotspots?limit=500`
+- Colors each ward point by `severity` (red/amber/green)
+- Shows popup on click with ward name + open count
 
-**Data shape already ready:**
-```ts
-{ ward_id, ward_name, lat, lng, open, total, sla_breaches, severity: "high"|"medium"|"low" }
-```
+### 7. WhatsApp intake channel
+- Meta Developer Console → create App → WhatsApp product → get phone number
+- Set `WHATSAPP_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` on Render
+- Register webhook URL: `POST https://dcos.onrender.com/api/v1/intake/webhooks/whatsapp`
+  (verify token: `dcos-whatsapp-verify`)
+- Set `FEATURE_WHATSAPP_INTAKE=true` on Render
 
-### 6. Citizen sign-up with real phone (depends on #2 above)
-Currently the `/signup` page sends an OTP via Supabase. Works the moment phone auth is enabled.
+### 8. MSG91 SMS notifications
+Citizen status updates currently send but no-op (no key set).
+- Register at msg91.com → create a DLT-approved template
+- Set `MSG91_API_KEY` + `MSG91_TEMPLATE_ID_STATUS` on Render
 
-### 7. Before/after proof gallery on tracking page
-Show the proof photos an officer uploaded on the citizen's `/track/[id]` page once resolved.
-API: `GET /api/v1/intake/track/{id}` already returns `attachments[]` with `is_proof` flag.
+### 9. Before/after proof gallery on tracking page
+`/track/[id]` already receives `attachments[]` with `is_proof` flag from the API.
+Just render the proof photos when `status === 'RESOLVED'`.
 
-### 8. Real-time KPI updates (Supabase Realtime)
-The CM dashboard polls every 30s. Wire Supabase Realtime so state changes push instantly.
-The `notifications` and `outbox_events` tables can broadcast.
-
----
-
-## 🟢 Deploy checklist (when ready)
-
-### Frontend → Vercel
-1. `vercel --cwd apps/web` (or connect GitHub repo in Vercel dashboard)
-2. Set env vars in Vercel:
-   - `NEXT_PUBLIC_API_URL` = your deployed API URL
-   - `NEXT_PUBLIC_SUPABASE_URL` = `https://nggbydarhctzacxzivyw.supabase.co`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = (anon key from Supabase dashboard)
-3. Set `outputFileTracingRoot` in `next.config.js` to silence the monorepo lockfile warning
-
-### Backend API + Worker → Render / Cloud Run / Fly.io
-1. `ENVIRONMENT=production` → disables `/identity/token` and `/docs` endpoints
-2. Provision a managed Postgres with PostGIS + pgvector enabled
-   (Supabase Postgres works — enable extensions in SQL editor first)
-3. Run `alembic upgrade head` against production DB
-4. Run `python -m scripts.seed` (optional — for demo data)
-5. Deploy the Docker image (`apps/api/Dockerfile`)
-6. Start the worker separately: `arq app.worker.WorkerSettings`
-
-### Production env vars needed (API)
-```
-ENVIRONMENT=production
-DATABASE_URL=postgresql+asyncpg://...  (production DB)
-REDIS_URL=redis://...
-SUPABASE_URL=https://nggbydarhctzacxzivyw.supabase.co
-SUPABASE_ANON_KEY=...
-SUPABASE_SERVICE_KEY=...
-AI_PROVIDER=groq
-GROQ_API_KEY=...
-GROQ_MODEL=llama-3.3-70b-versatile
-CORS_ORIGINS=["https://your-vercel-domain.vercel.app"]
-FEATURE_AI_CLASSIFY=true
-FEATURE_ANALYTICS_NL_QUERY=true
-FEATURE_WHATSAPP_INTAKE=true  # once WhatsApp is set up
-WHATSAPP_TOKEN=...
-WHATSAPP_PHONE_NUMBER_ID=...
-MSG91_API_KEY=...
-VAPID_PUBLIC_KEY=BCvKr4yKyKp1eUnbUY9d-GM3zIBAOqdMHZGqHbB_dOewThvBRfQqXcAWi3KJYaIWihyMbHKhnWmZz8RNTz9GYls
-VAPID_PRIVATE_KEY=SibxQWmAkGI_9htoYRyrX_85JVfquyYeTpRKF45G4IA
-SENTRY_DSN=...  # from sentry.io
-```
-
-### CORS
-Add your production frontend domain to `CORS_ORIGINS`.
+### 10. Real-time dashboard updates (Supabase Realtime)
+CM dashboard currently polls every 30s via SWR. Wire Supabase Realtime for instant push.
 
 ---
 
-## 🔵 Polish / nice-to-have
+## 🟢 When upgrading to government deployment
 
-### 9. Accessibility (WCAG 2.1 AA)
-- Screen reader labels on icon-only buttons (topbar, sidebar)
-- Keyboard navigation for dropdowns
-- Focus ring visible on all interactive elements (already has `focus-visible` but needs audit)
-- Low-bandwidth / low-literacy mode for citizens
+- [ ] Upgrade Render to **Starter ($7/mo)** → enable worker service (#1 above)
+- [ ] Add custom domain (e.g. `dcos.delhi.gov.in`) → Vercel Settings → Domains
+- [ ] Move object storage from stub → Supabase Storage or Cloudflare R2
+- [ ] Set `SENTRY_DSN` (error tracking) → [sentry.io](https://sentry.io)
+- [ ] Run load test (k6 / Locust): target 50,000 grievances/day, 2,000 concurrent dashboard users
+- [ ] Third-party pen-test → fix findings before launch
+- [ ] DPDP Act 2023: consent capture on `/signup` + `/file`, data-erasure endpoint, privacy notice
+- [ ] Accessibility audit (WCAG 2.1 AA): screen reader, keyboard nav, contrast
+- [ ] IVR: wire Exotel/Twilio voice webhook to intake (stub already in router)
+- [ ] MCD department adapter: wire `IntegrationService.RestAdapter` to MCD's portal API
 
-### 10. DPDP Act 2023 compliance
-- Consent capture on `/signup` and `/file`
-- Data-subject erasure endpoint (delete all PII for a user)
-- Retention policy enforcement (auto-delete after N months)
-- Privacy notice page
+---
 
-### 11. Pen-test & hardening
-- SQL injection scan (all user inputs go through parameterized queries — should be clean)
-- Rate limiting in staging/production (currently skipped in `local` env)
-- Security headers audit (X-Frame-Options etc. already added)
-- Dependency scan (`pnpm audit` + `pip-audit`)
+## 🔵 Polish (nice-to-have)
 
-### 12. Load test
-- Target: 50,000 grievances/day, 2,000 concurrent dashboard users
-- Tool: k6 or Locust
-- Hot paths: `POST /intake/grievances`, `GET /analytics/kpis`
-- Tune: HNSW index, materialized view refresh interval, DB pool size
-
-### 13. IVR (phone filing)
-IVR stub exists in the intake router. Wire Exotel/Twilio voice webhook for citizens
-without smartphones.
-
-### 14. Department adapters (Epic 10 integration module)
-The `RestAdapter` and `IntegrationService` framework exists.
-Wire the first real department (MCD) via their portal API or email bridge.
+- Feedback / reopen email notification (currently only WhatsApp/SMS)
+- PWA install prompt for citizen portal (manifest.json exists, needs icons)
+- Dark mode for CM command center (design tokens already support it)
+- Pagination on officer queue (currently loads all, fine for demo)
+- Stale-while-revalidate on CM analytics (currently shows skeleton on refetch)
 
 ---
 
 ## Local dev quick-start
 
 ```bash
-# 1. Start Docker infra
-cd infra && docker compose up -d
-
-# 2. API
-cd apps/api && source .venv/bin/activate && python main.py
-
-# 3. Worker (AI + notifications)
-arq app.worker.WorkerSettings
-
-# 4. Frontend
-cd ../.. && pnpm --filter web dev
+cd infra && docker compose up -d          # Postgres + Redis + MinIO
+cd apps/api && source .venv/bin/activate
+python main.py &                           # API  → http://localhost:8000/docs
+arq app.worker.WorkerSettings &            # Worker
+cd ../.. && pnpm --filter web dev          # Web  → http://localhost:3000
 ```
 
-If dashboards are empty → Postgres is down. Check `docker compose ps` and restart.
-See CONTEXT.md for the full architecture reference.
+**Dashboards empty?** Docker stopped → `docker compose up -d` → restart API.
+See `CONTEXT.md` for the full file map and architecture reference.
