@@ -245,32 +245,154 @@ def _verify_signature(request: Request, body: bytes) -> None:
         raise HTTPException(status_code=401, detail="Invalid WhatsApp signature")
 
 
+_WELCOME_MSG = (
+    "🏛️ *JanSetu — Delhi Grievance Portal*\n\n"
+    "Namaste! 👋 Main aapki madad karne ke liye yahan hoon.\n\n"
+    "*Apni shikayat darj karne ke liye*, sirf apni samasya ka vivaran Hindi ya English mein type karein.\n\n"
+    "📍 Udaaharan:\n"
+    '_"Hamare ward mein sadak pe gadda hai 3 din se"_\n'
+    '_"Bijli nahi hai 6 ghante se"_\n'
+    '_"Paani nahi aa raha"_\n\n'
+    "📋 Tracking ID jaanne ke liye likhein: *TRACK JS-XXXXXXXX-XXXXXXXX*\n\n"
+    "_Helpline: 1031 | Emergency: 112_"
+)
+
+_INTENT_PROMPT = """You are a smart filter for JanSetu, a Delhi civic grievance WhatsApp bot.
+
+Classify the user's message into exactly ONE of these intents:
+- "complaint" — user is describing a civic problem (pothole, water, electricity, garbage, noise, etc.)
+- "status_check" — user is asking about a complaint they already filed (words like "status", "track", "shikayat", "JS-", complaint ID)
+- "greeting_or_test" — just hi/hello/namaste/test/name/random chatter, not a complaint
+
+Rules:
+- "Hello World", "Hi", "Test", just a name, random words → greeting_or_test
+- Actual civic problem description → complaint
+- Questions about filed complaints → status_check
+- When in doubt, classify as greeting_or_test (do NOT file junk as complaints)
+
+Respond with ONLY a JSON object: {"intent": "complaint"|"status_check"|"greeting_or_test", "language": "hi"|"en"}"""
+
+
+async def _classify_wa_intent(text: str) -> dict:
+    """Use Groq to classify WhatsApp message intent. Fast, cheap (1 call)."""
+    try:
+        import httpx as _httpx
+
+        if not settings.GROQ_API_KEY:
+            # Fallback: length heuristic
+            return {
+                "intent": "complaint" if len(text) > 30 else "greeting_or_test",
+                "language": "hi",
+            }
+
+        async with _httpx.AsyncClient(timeout=10) as client:
+            r = await client.post(
+                f"{settings.GROQ_BASE_URL}/chat/completions",
+                headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+                json={
+                    "model": settings.GROQ_MODEL,
+                    "messages": [
+                        {"role": "system", "content": _INTENT_PROMPT},
+                        {"role": "user", "content": f"Message: {text[:500]}"},
+                    ],
+                    "response_format": {"type": "json_object"},
+                    "temperature": 0.0,
+                    "max_tokens": 50,
+                },
+            )
+        body = r.json()
+        import json as _json
+
+        result = _json.loads(body["choices"][0]["message"]["content"])
+        return result
+    except Exception as exc:
+        log.warning("whatsapp.intent_classify.failed", error=str(exc))
+        # Safe fallback — don't file junk
+        return {"intent": "greeting_or_test", "language": "hi"}
+
+
+async def _send_wa_reply(to: str, text: str) -> None:
+    """Send a WhatsApp message. Swallows errors."""
+    if not (settings.WHATSAPP_TOKEN and settings.WHATSAPP_PHONE_NUMBER_ID):
+        return
+    try:
+        import httpx as _httpx
+
+        async with _httpx.AsyncClient(timeout=10) as client:
+            await client.post(
+                f"https://graph.facebook.com/{settings.WHATSAPP_API_VERSION}"
+                f"/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages",
+                headers={"Authorization": f"Bearer {settings.WHATSAPP_TOKEN}"},
+                json={
+                    "messaging_product": "whatsapp",
+                    "to": to,
+                    "type": "text",
+                    "text": {"body": text},
+                },
+            )
+    except Exception as exc:
+        log.warning("whatsapp.reply.failed", error=str(exc), to=to)
+
+
 async def _ingest_wa_message(msg: dict, svc: IntakeService) -> None:
     msg_id: str = msg.get("id", "")
     from_num: str = msg.get("from", "")
     msg_type: str = msg.get("type", "")
+
+    # Ignore non-user messages (templates, system messages, reactions, etc.)
+    if msg_type not in ("text", "image", "audio", "video", "document", "location"):
+        log.info("whatsapp.skipped_type", msg_type=msg_type, msg_id=msg_id)
+        return
+
     raw_text: str | None = None
     loc: LocationInput | None = None
     meta: dict = {"whatsapp_message_id": msg_id, "from": from_num, "type": msg_type}
 
     if msg_type == "text":
-        raw_text = msg.get("text", {}).get("body", "")
+        raw_text = msg.get("text", {}).get("body", "").strip()
     elif msg_type in ("image", "audio", "video", "document"):
-        raw_text = msg.get(msg_type, {}).get("caption") or f"[{msg_type.upper()}] via WhatsApp"
+        raw_text = msg.get(msg_type, {}).get("caption", "").strip() or f"[{msg_type.upper()}] media"
         meta["media_id"] = msg.get(msg_type, {}).get("id", "")
     elif msg_type == "location":
         coords = msg.get("location", {})
-        raw_text = "Complaint about this location (sent via WhatsApp)"
+        raw_text = (
+            f"Location complaint: {coords.get('name', '')} {coords.get('address', '')}".strip()
+        )
+        if not raw_text or raw_text == "Location complaint:":
+            raw_text = "Civic complaint at this location"
         loc = LocationInput(lat=coords.get("latitude", 0), lng=coords.get("longitude", 0))
 
-    if not raw_text or len(raw_text) < 5:
+    if not raw_text or len(raw_text) < 3:
         return
 
+    # ── Classify intent before doing anything ────────────────────────────────
+    classification = await _classify_wa_intent(raw_text)
+    intent = classification.get("intent", "greeting_or_test")
+    language = classification.get("language", "hi")
+
+    log.info("whatsapp.intent", intent=intent, lang=language, msg_id=msg_id, text=raw_text[:60])
+
+    if intent == "greeting_or_test":
+        await _send_wa_reply(from_num, _WELCOME_MSG)
+        return
+
+    if intent == "status_check":
+        reply = (
+            "🔍 *Shikayat ki status jaanch*\n\n"
+            "Apna Tracking ID neeche format mein likhein:\n\n"
+            "*TRACK JS-20260620-XXXXXXXX*\n\n"
+            "Ya seedha link kholen:\n"
+            "https://dcos-ecru.vercel.app/track"
+        )
+        await _send_wa_reply(from_num, reply)
+        return
+
+    # intent == "complaint" — file it
     phone = f"+{from_num}" if not from_num.startswith("+") else from_num
     body = GrievanceCreate(
         raw_text=raw_text,
         channel="whatsapp",
-        language="hi",
+        language=language,
         citizen_phone=phone,
         idempotency_key=f"wa-{msg_id}",
         channel_meta=meta,
@@ -278,34 +400,16 @@ async def _ingest_wa_message(msg: dict, svc: IntakeService) -> None:
     )
     result = await svc.create_grievance(body, actor=None)
 
-    # Reply to citizen with tracking ID
-    if settings.WHATSAPP_TOKEN and settings.WHATSAPP_PHONE_NUMBER_ID:
-        import httpx
+    # ── Reply with tracking ID ────────────────────────────────────────────────
+    reply = (
+        f"🏛️ *JanSetu — Delhi Grievance Portal*\n\n"
+        f"Namaste! Aapki shikayat darj ho gayi hai ✅\n\n"
+        f"📋 Tracking ID: *{result.tracking_id}*\n\n"
+        f"🔍 Status track karein:\n"
+        f"https://dcos-ecru.vercel.app/track/{result.tracking_id}\n\n"
+        f"_Har update par notification milegi._"
+    )
+    if result.is_emergency:
+        reply = "🚨 *EMERGENCY DETECTED*\nAbhi 112 call karein — Police/Fire/Ambulance.\n\n" + reply
 
-        reply = (
-            f"🏛️ *JanSetu — Delhi Grievance Portal*\n\n"
-            f"Namaste! Aapki shikayat darj ho gayi hai ✅\n\n"
-            f"📋 Tracking ID: *{result.tracking_id}*\n\n"
-            f"🔍 Status track karein:\n"
-            f"https://dcos-ecru.vercel.app/track/{result.tracking_id}\n\n"
-            f"_Har update par notification milegi._"
-        )
-        if result.is_emergency:
-            reply = (
-                "🚨 *EMERGENCY DETECTED*\nAbhi 112 call karein — Police/Fire/Ambulance.\n\n"
-            ) + reply
-        try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"https://graph.facebook.com/{settings.WHATSAPP_API_VERSION}"
-                    f"/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages",
-                    headers={"Authorization": f"Bearer {settings.WHATSAPP_TOKEN}"},
-                    json={
-                        "messaging_product": "whatsapp",
-                        "to": from_num,
-                        "type": "text",
-                        "text": {"body": reply},
-                    },
-                )
-        except Exception as exc:
-            log.warning("whatsapp.reply.failed", error=str(exc), to=from_num)
+    await _send_wa_reply(from_num, reply)
