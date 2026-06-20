@@ -12,6 +12,7 @@ from app.core.middleware import RateLimitMiddleware, RequestIDMiddleware, Securi
 from app.core.telemetry import setup_telemetry
 from app.modules.ai.router import router as ai_router
 from app.modules.analytics.router import router as analytics_router
+from app.modules.chatbot.router import router as chatbot_router
 from app.modules.citizen.router import router as citizen_router
 from app.modules.identity.router import router as identity_router
 from app.modules.intake.router import router as intake_router
@@ -38,6 +39,7 @@ _MODULE_ROUTERS = [
     reporting_router,
     integration_router,
     platform_router,
+    chatbot_router,
 ]
 
 

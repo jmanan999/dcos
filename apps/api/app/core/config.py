@@ -85,6 +85,7 @@ class Settings(BaseSettings):
     FEATURE_AI_CLASSIFY: bool = True
     FEATURE_WHATSAPP_INTAKE: bool = False
     FEATURE_ANALYTICS_NL_QUERY: bool = False
+    FEATURE_CHATBOT: bool = True
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
