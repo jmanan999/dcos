@@ -384,7 +384,7 @@ class AIService:
             for n in (1, 2, 3):
                 ngrams = [token[j:j+n] for j in range(len(token)-n+1)] or [token]
                 for gram in ngrams:
-                    h = int(hashlib.md5(gram.encode()).hexdigest(), 16)
+                    h = int(hashlib.md5(gram.encode()).hexdigest(), 16)  # noqa: S324
                     idx = h % dims
                     vec[idx] += 1.0 / (i + 1)
         # L2-normalise
@@ -394,6 +394,7 @@ class AIService:
     async def _gemini_embed(self, text: str) -> list[float] | None:
         try:
             import asyncio
+
             import google.generativeai as genai
 
             genai.configure(api_key=settings.GEMINI_API_KEY)
@@ -413,6 +414,7 @@ class AIService:
 
     async def _gemini_json(self, prompt: str) -> dict[str, Any]:
         import asyncio
+
         import google.generativeai as genai
 
         genai.configure(api_key=settings.GEMINI_API_KEY)

@@ -9,7 +9,7 @@ the external system for updates.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Protocol
 
 import httpx
@@ -50,7 +50,7 @@ class RestAdapter:
                         "grievance_id": grievance_id,
                         "tracking_id": tracking_id,
                         "status": status,
-                        "updated_at": datetime.now(timezone.utc).isoformat(),
+                        "updated_at": datetime.now(UTC).isoformat(),
                     },
                     headers=headers,
                 )

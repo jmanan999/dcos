@@ -20,18 +20,18 @@ from arq import cron
 from arq.connections import RedisSettings
 from sqlalchemy import text
 
-from app.core.config import settings
-from app.core.database import AsyncSessionLocal
-from app.core.logging import setup_logging
+import app.modules.citizen.models
 
 # Pre-import all models so SQLAlchemy can resolve cross-module FK references
 # before any job function runs (same pattern as Alembic env.py).
-import app.modules.identity.models  # noqa: F401, E402
-import app.modules.intake.models  # noqa: F401, E402
-import app.modules.sla.models  # noqa: F401, E402
-import app.modules.workforce.models  # noqa: F401, E402
-import app.modules.citizen.models  # noqa: F401, E402
-import app.modules.platform.models  # noqa: F401, E402
+import app.modules.identity.models
+import app.modules.intake.models
+import app.modules.platform.models
+import app.modules.sla.models
+import app.modules.workforce.models  # noqa: F401
+from app.core.config import settings
+from app.core.database import AsyncSessionLocal
+from app.core.logging import setup_logging
 
 log = structlog.get_logger()
 

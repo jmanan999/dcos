@@ -11,9 +11,7 @@ All external sends are no-ops when the relevant token/key is unset (local dev).
 
 from __future__ import annotations
 
-import json
 import uuid
-from datetime import datetime, timezone
 from typing import Literal
 
 import httpx
@@ -103,7 +101,7 @@ async def dispatch(
     # when :status appears in both SET and a CASE condition (varchar vs text).
     sent_at_expr = "now()" if status == "sent" else "NULL"
     await session.execute(
-        text(f"""
+        text(f"""  # noqa: S608
             UPDATE notifications
             SET status = :status,
                 external_id = :ext_id,

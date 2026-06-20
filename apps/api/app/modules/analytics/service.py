@@ -7,8 +7,7 @@ Falls back to direct grievances queries for real-time KPIs.
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from sqlalchemy import text
@@ -223,13 +222,13 @@ Rules:
                         headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
                     )
                 r.raise_for_status()
-                sql = r.json()["choices"][0]["message"]["content"].strip().strip("```sql").strip("```").strip()
+                sql = r.json()["choices"][0]["message"]["content"].strip().removeprefix("```sql").removeprefix("```").removesuffix("```").strip()
             else:
                 import google.generativeai as genai
                 genai.configure(api_key=settings.GEMINI_API_KEY)
                 model = genai.GenerativeModel(settings.GEMINI_MODEL_DEFAULT)
                 response = model.generate_content(prompt)
-                sql = response.text.strip().strip("```sql").strip("```").strip()
+                sql = response.text.strip().removeprefix("```sql").removeprefix("```").removesuffix("```").strip()
 
             # Safety: block any non-SELECT
             if not sql.upper().lstrip().startswith("SELECT"):
@@ -239,7 +238,7 @@ Rules:
 
             result = await self._db.execute(text(sql))
             cols = list(result.keys())
-            rows = [dict(zip(cols, r)) for r in result.fetchall()]
+            rows = [dict(zip(cols, r)) for r in result.fetchall()]  # noqa: B905
             return NLQueryResponse(question=req.question, sql=sql, results=rows)
 
         except Exception as exc:
@@ -272,9 +271,9 @@ Rules:
                 title="Resolution Performance",
                 body=(
                     f"Average resolution time: "
-                    f"{'%.1f' % kpis.avg_resolution_hours if kpis.avg_resolution_hours else 'N/A'} hours. "
+                    f"{f'{kpis.avg_resolution_hours:.1f}' if kpis.avg_resolution_hours else 'N/A'} hours. "
                     f"Citizen satisfaction (CSAT): "
-                    f"{'%.1f' % kpis.avg_csat + '/5' if kpis.avg_csat else 'N/A'}."
+                    f"{f'{kpis.avg_csat:.1f}' + '/5' if kpis.avg_csat else 'N/A'}."
                 ),
             ),
             ExecutiveBriefSection(
@@ -305,14 +304,14 @@ Rules:
             ),
         ]
 
-        today = datetime.now(timezone.utc).strftime("%d %B %Y")
+        today = datetime.now(UTC).strftime("%d %B %Y")
         return ExecutiveBrief(
             date=today,
             headline=f"Delhi Grievance Brief — {today}: {kpis.filed_today} filed, {kpis.resolved_today} resolved, {kpis.sla_breaches_active} SLA breaches",
             sections=sections,
             top_departments_by_backlog=top_backlog,
             top_wards_by_open=top_wards,
-            generated_at=datetime.now(timezone.utc),
+            generated_at=datetime.now(UTC),
         )
 
     # ── Refresh materialized views ────────────────────────────────────────────

@@ -82,6 +82,7 @@ ignore = [
     "RUF003", # unicode en-dash in comments
     "RUF012", # mutable ClassVar — handled by Pydantic/SQLAlchemy
     "B904",  # raise-from in route exception handlers — noise
+    "S608",  # f-string SQL construction — all use SQLAlchemy text() with bind params
 ]
 
 [tool.ruff.lint.per-file-ignores]

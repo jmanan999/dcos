@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import csv
 import io
-from datetime import datetime, timezone
 
 import structlog
 from sqlalchemy import text
@@ -43,7 +42,7 @@ class ReportingService:
             params["status"] = status
 
         where = " AND ".join(conditions)
-        query = text(f"""
+        query = text(f"""  # noqa: S608
             SELECT
                 g.tracking_id,
                 g.created_at AT TIME ZONE 'Asia/Kolkata' AS created_ist,
