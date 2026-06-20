@@ -230,13 +230,16 @@ def _extract_exif_gps(data: bytes) -> tuple[float | None, float | None]:
 
 
 def _verify_signature(request: Request, body: bytes) -> None:
-    if not settings.WHATSAPP_TOKEN:
-        return  # No-op in local dev without credentials
+    # Meta signs webhook payloads with the App Secret (not the access token).
+    # Skip verification in local dev when no secret is configured.
+    if not settings.WHATSAPP_APP_SECRET:
+        return
     sig = request.headers.get("X-Hub-Signature-256", "")
     if not sig.startswith("sha256="):
         raise HTTPException(status_code=401, detail="Missing WhatsApp signature")
     expected = (
-        "sha256=" + hmac.new(settings.WHATSAPP_TOKEN.encode(), body, hashlib.sha256).hexdigest()
+        "sha256="
+        + hmac.new(settings.WHATSAPP_APP_SECRET.encode(), body, hashlib.sha256).hexdigest()
     )
     if not hmac.compare_digest(sig, expected):
         raise HTTPException(status_code=401, detail="Invalid WhatsApp signature")
@@ -280,12 +283,17 @@ async def _ingest_wa_message(msg: dict, svc: IntakeService) -> None:
         import httpx
 
         reply = (
-            f"Namaste! Aapki shikayat darj ho gayi hai.\n"
-            f"Tracking ID: *{result.tracking_id}*\n\n"
-            f"Track: /track/{result.tracking_id}"
+            f"🏛️ *JanSetu — Delhi Grievance Portal*\n\n"
+            f"Namaste! Aapki shikayat darj ho gayi hai ✅\n\n"
+            f"📋 Tracking ID: *{result.tracking_id}*\n\n"
+            f"🔍 Status track karein:\n"
+            f"https://dcos-ecru.vercel.app/track/{result.tracking_id}\n\n"
+            f"_Har update par notification milegi._"
         )
         if result.is_emergency:
-            reply = "🚨 EMERGENCY: Please call 112 NOW.\n\n" + reply
+            reply = (
+                "🚨 *EMERGENCY DETECTED*\nAbhi 112 call karein — Police/Fire/Ambulance.\n\n"
+            ) + reply
         try:
             async with httpx.AsyncClient() as client:
                 await client.post(

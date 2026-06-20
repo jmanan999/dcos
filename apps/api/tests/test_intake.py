@@ -155,7 +155,7 @@ async def test_whatsapp_verify_endpoint(http: AsyncClient) -> None:
         "/api/v1/intake/webhooks/whatsapp",
         params={
             "hub.mode": "subscribe",
-            "hub.verify_token": "dcos-whatsapp-verify",
+            "hub.verify_token": "jansetu-whatsapp-verify",
             "hub.challenge": "1234567890",
         },
     )

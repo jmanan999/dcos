@@ -70,12 +70,38 @@ or API calls will be silently blocked.
 
 ## 🟡 High-value features not yet built
 
-### 6. WhatsApp intake channel
-Code is complete — just needs credentials:
-- Meta Developer Console → create App → WhatsApp product → get phone number
-- Set on Render: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `FEATURE_WHATSAPP_INTAKE=true`
-- Register webhook: `POST https://dcos.onrender.com/api/v1/intake/webhooks/whatsapp`
-  (verify token: `dcos-whatsapp-verify`)
+### 6. WhatsApp intake channel — 🚧 IN PROGRESS
+Code is complete + tested. Need to complete Meta setup:
+
+**Step 1 — Create Meta App:**
+1. Go to https://developers.facebook.com → My Apps → Create App
+2. Choose **Business** type → name it "JanSetu"
+3. Add **WhatsApp** product → click Set Up
+4. Under WhatsApp → API Setup, note your **Phone Number ID** and generate a **Permanent Token**
+5. Under App Settings → Basic, copy the **App Secret**
+
+**Step 2 — Set env vars on Render:**
+```
+WHATSAPP_APP_SECRET=<from Meta App Settings → Basic>
+WHATSAPP_TOKEN=<permanent access token>
+WHATSAPP_PHONE_NUMBER_ID=<from WhatsApp API Setup>
+WHATSAPP_VERIFY_TOKEN=jansetu-whatsapp-verify
+FEATURE_WHATSAPP_INTAKE=true
+```
+
+**Step 3 — Register webhook on Meta:**
+- Webhook URL: `https://dcos.onrender.com/api/v1/intake/webhooks/whatsapp`
+- Verify Token: `jansetu-whatsapp-verify`
+- Subscribe to: `messages` field
+
+**What already works once creds are set:**
+- Text messages → filed as grievances in Hindi
+- Images/audio/video → caption extracted
+- Location pin → lat/lng captured
+- Auto-reply with tracking ID (JanSetu branded)
+- Emergency keyword detection
+- Idempotency (duplicate messages ignored)
+- Signature verification (App Secret based, not token)
 
 ### 7. MSG91 SMS notifications
 Status updates currently no-op (code exists, no key):

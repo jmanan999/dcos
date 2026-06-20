@@ -56,10 +56,11 @@ class Settings(BaseSettings):
     OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
 
     # ── WhatsApp Cloud API ───────────────────────────────────────────────────
-    WHATSAPP_TOKEN: str = ""
-    WHATSAPP_PHONE_NUMBER_ID: str = ""
-    WHATSAPP_VERIFY_TOKEN: str = "dcos-whatsapp-verify"
-    WHATSAPP_API_VERSION: str = "v20.0"
+    WHATSAPP_TOKEN: str = ""  # Permanent access token (send messages)
+    WHATSAPP_APP_SECRET: str = ""  # App Secret (verify webhook signatures)
+    WHATSAPP_PHONE_NUMBER_ID: str = ""  # From API → Phone number ID
+    WHATSAPP_VERIFY_TOKEN: str = "jansetu-whatsapp-verify"  # set same in Meta dashboard
+    WHATSAPP_API_VERSION: str = "v21.0"
 
     # ── SMS (MSG91) ──────────────────────────────────────────────────────────
     MSG91_API_KEY: str = ""

@@ -53,6 +53,7 @@
 | **FE** | Modern GovTech design system + bilingual (EN/हिं) | ✅ Done |
 | **i18n** | Hindi/English auto-translation via Groq | ✅ Done |
 | **GIS** | MapLibre ward heatmap (CM + transparency) | ✅ Done |
+| **Chatbot** | JanSetu Assistant — FAQ + Groq AI fallback, bilingual | ✅ Done |
 
 ---
 
@@ -147,6 +148,7 @@ jansetu/ (git: dcos/)
 │           │   └── shell/              AppShell, Sidebar, Topbar, MobileNav,
 │           │                           MarketingHeader ("use client"), Footer ("use client")
 │           ├── scripts/translate.mjs   Auto-translate via Groq: run to regenerate Hindi strings
+│           └── components/chatbot/  chat-bot.tsx — floating widget, client FAQ + API fallback
 │           └── lib/
 │               ├── api.ts              apiFetch + swrFetcher (auto-attaches dcos_token)
 │               ├── hooks.ts            useKpis, useHotspots, useLeaderboard, useTrend,
@@ -176,6 +178,7 @@ jansetu/ (git: dcos/)
 5. **Feature flags** in `config.py`: `FEATURE_AI_CLASSIFY`, `FEATURE_WHATSAPP_INTAKE`, `FEATURE_ANALYTICS_NL_QUERY`.
 6. **RLS**: use `RlsDbSession` for scoped reads. Workers bypass via `set_config('app.bypass_rls','true',true)`.
 7. **Tracking IDs**: `JS-YYYYMMDD-XXXXXXXX` (8-char hex suffix). Changed from `DCOS-` in Jun 2026.
+9. **Chatbot**: `FEATURE_CHATBOT=true` (default). FAQ matching is client-side (instant). Non-FAQ → Groq. Feature flag disables the `/chatbot/ask` endpoint.
 8. **AI provider**: Groq (`llama-3.3-70b-versatile`) primary; OpenRouter + Gemini as fallbacks.
    Set via `AI_PROVIDER` env var. `_make_tracking_id()` in `intake/service.py`.
 
