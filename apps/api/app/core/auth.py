@@ -14,12 +14,52 @@ a live Supabase project to test authz.
 
 from __future__ import annotations
 
+import time
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import httpx
+import structlog
 from jose import JWTError, jwt
 
 from app.core.config import settings
+
+log = structlog.get_logger()
+
+# ── Supabase JWKS cache (for verifying ES256/RS256 access tokens) ──────────────
+_jwks_cache: dict[str, dict] = {}
+_jwks_fetched_at: float = 0.0
+_JWKS_TTL = 3600  # 1 hour
+
+
+def _supabase_jwks_url() -> str | None:
+    if not settings.SUPABASE_URL or "your-project" in settings.SUPABASE_URL:
+        return None
+    return f"{settings.SUPABASE_URL.rstrip('/')}/auth/v1/.well-known/jwks.json"
+
+
+def _get_supabase_jwk(kid: str) -> dict | None:
+    """Return the JWK matching `kid`, refreshing the cache if needed."""
+    global _jwks_fetched_at
+    now = time.time()
+    if kid in _jwks_cache and now - _jwks_fetched_at < _JWKS_TTL:
+        return _jwks_cache[kid]
+
+    url = _supabase_jwks_url()
+    if not url:
+        return None
+    try:
+        resp = httpx.get(url, timeout=5)
+        resp.raise_for_status()
+        keys = resp.json().get("keys", [])
+        _jwks_cache.clear()
+        for k in keys:
+            _jwks_cache[k["kid"]] = k
+        _jwks_fetched_at = now
+    except Exception as exc:
+        log.warning("auth.jwks.fetch_failed", error=str(exc))
+        return _jwks_cache.get(kid)  # serve stale on failure
+    return _jwks_cache.get(kid)
 
 
 class TokenClaims:
@@ -53,29 +93,62 @@ class TokenClaims:
 def decode_token(token: str) -> TokenClaims:
     """
     Decode and validate a JWT, returning normalised claims.
-    Handles both our local JWTs and Supabase-issued JWTs.
+
+    Supports two token families:
+      - Local dev JWTs   → HS256 signed with JWT_SECRET (from /identity/token).
+      - Supabase JWTs    → ES256/RS256 verified against the project's JWKS.
+
+    The signing algorithm in the token header decides the path.
     Raises jose.JWTError on any validation failure.
     """
-    payload = jwt.decode(
-        token,
-        settings.JWT_SECRET,
-        algorithms=[settings.JWT_ALGORITHM],
-        options={"require": ["sub", "exp"]},
-    )
+    try:
+        header = jwt.get_unverified_header(token)
+    except JWTError:
+        raise
+    alg = header.get("alg", settings.JWT_ALGORITHM)
+
+    if alg == "HS256":
+        # Local dev / test token
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET,
+            algorithms=["HS256"],
+            options={"require": ["sub", "exp"]},
+        )
+    else:
+        # Supabase-issued asymmetric token — verify against JWKS
+        kid = header.get("kid")
+        jwk_key = _get_supabase_jwk(kid) if kid else None
+        if not jwk_key:
+            raise JWTError(f"No JWKS key found for kid={kid}")
+        payload = jwt.decode(
+            token,
+            jwk_key,
+            algorithms=[alg],
+            audience="authenticated",
+            options={"require": ["sub", "exp"]},
+        )
 
     sub: str = payload["sub"]
 
-    # Supabase puts app-level claims inside user_metadata
+    # SECURITY: the app role MUST come from app_metadata (admin/service-key only).
+    # user_metadata is user-editable, so trusting it for roles would allow a
+    # citizen to self-escalate to cm_cell. app_metadata first; user_metadata is
+    # only consulted as a legacy fallback for display-ish fields.
+    app_meta: dict = payload.get("app_metadata") or {}
     user_meta: dict = payload.get("user_metadata") or {}
 
-    role: str = user_meta.get("dcos_role") or payload.get("role") or "citizen"
-    # Supabase's own "role" field is "authenticated" — treat that as citizen
+    role: str = app_meta.get("dcos_role") or payload.get("role") or "citizen"
+    # Supabase's own "role" field is "authenticated" — never an app role
     if role == "authenticated":
-        role = user_meta.get("dcos_role", "citizen")
+        role = app_meta.get("dcos_role", "citizen")
 
-    dept_id: str | None = user_meta.get("department_id") or payload.get("department_id") or None
+    dept_id: str | None = app_meta.get("department_id") or payload.get("department_id") or None
 
-    name: str | None = user_meta.get("name") or payload.get("name") or None
+    # Display name is non-sensitive, so user_metadata is acceptable here.
+    name: str | None = (
+        app_meta.get("name") or user_meta.get("name") or payload.get("name") or None
+    )
 
     return TokenClaims(user_id=sub, role=role, department_id=dept_id, name=name)
 

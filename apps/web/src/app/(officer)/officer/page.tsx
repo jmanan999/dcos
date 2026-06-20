@@ -1,79 +1,96 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-
-type Stats = { assigned: number; in_progress: number; sla_breached: number; resolved_today: number };
+import { ListChecks, Clock, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
+import {
+  PageHeader,
+  StatCard,
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  Button,
+  StatusBadge,
+  SeverityBadge,
+  Skeleton,
+  EmptyState,
+} from "@dcos/ui";
+import { useQueue } from "@/lib/hooks";
+import { useAuth } from "@/lib/auth/provider";
 
 export default function OfficerDashboard() {
-  const [stats, setStats] = useState<Stats>({ assigned: 0, in_progress: 0, sla_breached: 0, resolved_today: 0 });
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { data: queue, isLoading } = useQueue();
 
-  useEffect(() => {
-    const API = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-    const token = localStorage.getItem("dcos_token");
-    fetch(`${API}/api/v1/workforce/queue`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then((r) => r.json())
-      .then((queue: { status: string; is_sla_breached: boolean }[]) => {
-        setStats({
-          assigned: queue.filter((g) => g.status === "ASSIGNED").length,
-          in_progress: queue.filter((g) => g.status === "IN_PROGRESS").length,
-          sla_breached: queue.filter((g) => g.is_sla_breached).length,
-          resolved_today: 0,
-        });
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  const tiles = [
-    { label: "Assigned to me", value: stats.assigned, color: "text-blue-600", href: "/officer/queue" },
-    { label: "In Progress", value: stats.in_progress, color: "text-amber-600", href: "/officer/queue" },
-    { label: "SLA Breached", value: stats.sla_breached, color: "text-red-600", href: "/officer/queue" },
-  ];
+  const assigned = queue?.filter((g) => g.status === "ASSIGNED").length ?? 0;
+  const inProgress = queue?.filter((g) => g.status === "IN_PROGRESS").length ?? 0;
+  const breached = queue?.filter((g) => g.is_sla_breached).length ?? 0;
+  const recent = queue?.slice(0, 5) ?? [];
 
   return (
-    <div className="space-y-5">
-      <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
-
-      {/* KPI tiles */}
-      <div className="grid grid-cols-3 gap-4">
-        {tiles.map(({ label, value, color, href }) => (
-          <Link key={label} href={href}
-            className="rounded-xl bg-white p-5 shadow-sm ring-1 ring-slate-200 hover:shadow-md transition-shadow">
-            <p className="text-xs text-slate-500">{label}</p>
-            <p className={`mt-1 text-3xl font-bold ${loading ? "text-slate-300" : color}`}>
-              {loading ? "—" : value}
-            </p>
+    <div className="space-y-6">
+      <PageHeader
+        title={`Welcome${user?.name ? `, ${user.name.split(" ")[0]}` : ""}`}
+        description="Your assigned grievances and SLA health at a glance."
+        actions={
+          <Link href="/officer/queue">
+            <Button>
+              <ListChecks className="h-4 w-4" /> Open queue
+            </Button>
           </Link>
-        ))}
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <StatCard label="Assigned to me" value={assigned} icon={<ListChecks className="h-4 w-4" />} accent="primary" />
+        <StatCard label="In progress" value={inProgress} icon={<Clock className="h-4 w-4" />} accent="warning" />
+        <StatCard label="SLA breached" value={breached} icon={<AlertTriangle className="h-4 w-4" />} accent="danger" />
+        <StatCard label="Total open" value={queue?.length ?? 0} icon={<CheckCircle2 className="h-4 w-4" />} accent="info" />
       </div>
 
-      {/* Quick links */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/officer/queue"
-          className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 hover:shadow-md">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-100 text-xl">📋</div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">My Queue</p>
-            <p className="text-xs text-slate-500">View & claim complaints</p>
-          </div>
-        </Link>
-        <Link href="/officer/admin"
-          className="flex items-center gap-3 rounded-xl bg-white p-4 shadow-sm ring-1 ring-slate-200 hover:shadow-md">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-slate-100 text-xl">👥</div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Team Workload</p>
-            <p className="text-xs text-slate-500">Dept overview & reassign</p>
-          </div>
-        </Link>
-      </div>
-
-      <p className="text-xs text-slate-400 text-center">
-        Token: <code className="font-mono">{typeof window !== "undefined" ? localStorage.getItem("dcos_token")?.slice(0, 20) + "…" : "—"}</code>
-      </p>
+      <Card>
+        <CardHeader className="flex-row items-center justify-between">
+          <CardTitle>Recent in your queue</CardTitle>
+          <Link href="/officer/queue" className="text-sm font-medium text-primary hover:underline">
+            View all
+          </Link>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => (
+                <Skeleton key={i} className="h-16 rounded-lg" />
+              ))}
+            </div>
+          ) : recent.length === 0 ? (
+            <EmptyState
+              icon={<CheckCircle2 className="h-6 w-6" />}
+              title="Queue is clear"
+              description="No grievances assigned to you right now."
+            />
+          ) : (
+            <div className="space-y-2">
+              {recent.map((g) => (
+                <Link key={g.id} href={`/officer/grievance/${g.id}`}>
+                  <div className="flex items-center justify-between rounded-lg border border-border px-4 py-3 transition-colors hover:bg-muted/50">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-semibold text-foreground">{g.tracking_id}</span>
+                        {g.severity != null && <SeverityBadge score={g.severity} />}
+                      </div>
+                      <p className="mt-0.5 truncate text-sm text-muted-foreground">{g.raw_text}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <StatusBadge status={g.status as never} />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

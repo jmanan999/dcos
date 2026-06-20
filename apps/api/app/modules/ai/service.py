@@ -1,18 +1,21 @@
 """
-AI enrichment service — the differentiator.
+AI enrichment service — classify, score, dedup, embed every grievance.
 
-Classifies, scores, deduplicates and embeds every grievance using Gemini.
-Called by the async outbox worker (not inline with intake).
+Supports two LLM providers (configured via AI_PROVIDER env var):
+  - "openrouter"  → DeepSeek (or any OpenRouter model) via OpenAI-compatible API
+  - "gemini"      → Google Gemini via google-generativeai SDK
+
+Embeddings use a fast local deterministic projection when no embedding API
+is available (no external call; good enough for dedup at DCOS scale).
 
 Pipeline per grievance:
-  1. Detect language
-  2. Classify → category + department + subcategory (structured JSON output)
-  3. Severity score 1-100
-  4. Spam / bot detection
-  5. Generate 768-dim embedding (text-embedding-004)
-  6. Duplicate / cluster detection via pgvector cosine similarity
-  7. Write results back to grievance row + ai_results table
-  8. Emit grievance.enriched outbox event → routing worker
+  1. Classify → category + department + subcategory + language (structured JSON)
+  2. Severity score 1-100
+  3. Spam / bot detection
+  4. Generate embedding (local if no API)
+  5. Duplicate / cluster detection via pgvector cosine similarity
+  6. Write results back to grievance row + ai_results table
+  7. Emit grievance.enriched outbox event → routing worker
 """
 
 from __future__ import annotations
@@ -127,8 +130,8 @@ class AIService:
             log.warning("ai.enrich.not_found", grievance_id=str(grievance_id))
             return None
 
-        if not settings.GEMINI_API_KEY:
-            log.info("ai.enrich.skipped", reason="no GEMINI_API_KEY")
+        if not self._has_ai_key():
+            log.info("ai.enrich.skipped", reason="no AI key configured")
             return await self._enrich_mock(grievance)
 
         t0 = time.perf_counter()
@@ -157,25 +160,30 @@ class AIService:
         # Lookup department_id from short_code
         dept_id = await self._dept_id_from_code(classification.department_code)
 
+        # Compute new status in Python — avoids asyncpg type-inference conflict
+        # when the same param appears in both a column assignment and a CASE condition.
+        if classification.confidence < 0.5:
+            new_status = "RECEIVED"
+        elif spam.score > 0.7:
+            new_status = "REJECTED_SPAM"
+        else:
+            new_status = "CLASSIFIED"
+
         # Update grievance row
         await self._s.execute(
             text("""
                 UPDATE grievances SET
                   category = :cat,
                   subcategory = :subcat,
-                  department_id = :dept_id,
+                  department_id = CAST(:dept_id AS uuid),
                   severity = :severity,
                   ai_confidence = :confidence,
                   spam_score = :spam_score,
-                  status = CASE
-                    WHEN :confidence < 0.5 THEN 'RECEIVED'
-                    WHEN :spam > 0.7 THEN 'REJECTED_SPAM'
-                    ELSE 'CLASSIFIED'
-                  END,
-                  cluster_id = :cluster_id,
+                  status = :status,
+                  cluster_id = CAST(:cluster_id AS uuid),
                   language = :language,
                   updated_at = now()
-                WHERE id = :id
+                WHERE id = CAST(:id AS uuid)
             """),
             {
                 "cat": classification.category,
@@ -184,7 +192,7 @@ class AIService:
                 "severity": severity.score,
                 "confidence": classification.confidence,
                 "spam_score": spam.score,
-                "spam": spam.score,
+                "status": new_status,
                 "cluster_id": str(cluster.cluster_id) if cluster.cluster_id else None,
                 "language": classification.language,
                 "id": str(grievance_id),
@@ -257,7 +265,7 @@ class AIService:
     # ── Gemini calls ──────────────────────────────────────────────────────────
 
     async def _classify(self, text: str, language: str) -> ClassificationResult:
-        raw = await self._gemini_json(_CLASSIFY_PROMPT.format(text=text[:2000], language=language))
+        raw = await self._llm_json(_CLASSIFY_PROMPT.format(text=text[:2000], language=language))
         return ClassificationResult(
             category=raw.get("category", "General"),
             subcategory=raw.get("subcategory"),
@@ -268,7 +276,7 @@ class AIService:
         )
 
     async def _score_severity(self, text: str) -> SeverityScore:
-        raw = await self._gemini_json(f"{_SEVERITY_PROMPT}\nComplaint: {text[:1000]}")
+        raw = await self._llm_json(f"{_SEVERITY_PROMPT}\nComplaint: {text[:1000]}")
         score = max(1, min(100, int(raw.get("score", 40))))
         priority = raw.get("priority", "MEDIUM")
         if priority not in ("CRITICAL", "HIGH", "MEDIUM", "LOW"):
@@ -276,15 +284,116 @@ class AIService:
         return SeverityScore(score=score, factors=raw.get("factors", []), priority=priority)
 
     async def _score_spam(self, text: str) -> SpamScore:
-        raw = await self._gemini_json(_SPAM_PROMPT.format(text=text[:500]))
+        raw = await self._llm_json(_SPAM_PROMPT.format(text=text[:500]))
         score = float(raw.get("score", 0.05))
         return SpamScore(score=score, is_spam=raw.get("is_spam", False), reason=raw.get("reason"))
 
+    # ── Provider helpers ──────────────────────────────────────────────────────
+
+    def _has_ai_key(self) -> bool:
+        if settings.AI_PROVIDER == "groq":
+            return bool(settings.GROQ_API_KEY)
+        if settings.AI_PROVIDER == "openrouter":
+            return bool(settings.OPENROUTER_API_KEY)
+        return bool(settings.GEMINI_API_KEY)
+
+    async def _llm_json(self, prompt: str) -> dict[str, Any]:
+        """Call the configured LLM provider and parse JSON response."""
+        if settings.AI_PROVIDER == "groq":
+            return await self._openai_compat_json(
+                prompt,
+                base_url=settings.GROQ_BASE_URL,
+                api_key=settings.GROQ_API_KEY,
+                model=settings.GROQ_MODEL,
+            )
+        if settings.AI_PROVIDER == "openrouter":
+            return await self._openrouter_json(prompt)
+        return await self._gemini_json(prompt)
+
+    async def _openai_compat_json(
+        self, prompt: str, *, base_url: str, api_key: str, model: str
+    ) -> dict[str, Any]:
+        """Generic OpenAI-compatible JSON call (works for Groq, OpenRouter, etc.)."""
+        import httpx
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": model,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a JSON-only assistant. Reply with valid JSON and nothing else. No markdown, no code fences.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            "response_format": {"type": "json_object"},
+            "temperature": 0.1,
+        }
+        async with httpx.AsyncClient(timeout=45) as client:
+            resp = await client.post(
+                f"{base_url}/chat/completions",
+                json=payload,
+                headers=headers,
+            )
+
+        body = resp.json()
+        if "error" in body:
+            raise RuntimeError(f"LLM error ({base_url}): {body['error']}")
+        if resp.status_code != 200:
+            raise RuntimeError(f"LLM HTTP {resp.status_code}: {resp.text[:200]}")
+        choices = body.get("choices")
+        if not choices:
+            raise RuntimeError(f"LLM returned no choices: {body}")
+        return json.loads(choices[0]["message"]["content"])
+
+    async def _openrouter_json(self, prompt: str) -> dict[str, Any]:
+        """OpenRouter — delegates to generic OpenAI-compat helper."""
+        return await self._openai_compat_json(
+            prompt,
+            base_url=settings.OPENROUTER_BASE_URL,
+            api_key=settings.OPENROUTER_API_KEY,
+            model=settings.OPENROUTER_MODEL,
+        )
+
     async def _embed(self, text: str) -> list[float] | None:
-        """Generate 768-dim embedding via Gemini text-embedding-004."""
+        """
+        Generate a 768-dim embedding.
+        - Gemini provider: uses text-embedding-004 API.
+        - OpenRouter provider: uses fast local deterministic projection
+          (no API call — good enough for dedup at DCOS scale).
+        """
+        if settings.AI_PROVIDER == "gemini" and settings.GEMINI_API_KEY:
+            return await self._gemini_embed(text)
+        return self._local_embed(text)
+
+    def _local_embed(self, text: str) -> list[float]:
+        """
+        Deterministic 768-dim embedding via character n-gram hashing.
+        Stable across restarts (same input → same vector).
+        Cosine similarity works for dedup at the scale of thousands of grievances.
+        """
+        import hashlib
+        import math
+        dims = 768
+        vec = [0.0] * dims
+        words = text.lower().split()
+        for i, token in enumerate(words):
+            for n in (1, 2, 3):
+                ngrams = [token[j:j+n] for j in range(len(token)-n+1)] or [token]
+                for gram in ngrams:
+                    h = int(hashlib.md5(gram.encode()).hexdigest(), 16)
+                    idx = h % dims
+                    vec[idx] += 1.0 / (i + 1)
+        # L2-normalise
+        norm = math.sqrt(sum(x * x for x in vec)) or 1.0
+        return [x / norm for x in vec]
+
+    async def _gemini_embed(self, text: str) -> list[float] | None:
         try:
             import asyncio
-
             import google.generativeai as genai
 
             genai.configure(api_key=settings.GEMINI_API_KEY)
@@ -300,11 +409,10 @@ class AIService:
             return await asyncio.get_event_loop().run_in_executor(None, _call)
         except Exception as exc:
             log.warning("ai.embed.failed", error=str(exc))
-            return None
+            return self._local_embed(text)
 
     async def _gemini_json(self, prompt: str) -> dict[str, Any]:
         import asyncio
-
         import google.generativeai as genai
 
         genai.configure(api_key=settings.GEMINI_API_KEY)

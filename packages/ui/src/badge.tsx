@@ -16,44 +16,58 @@ type GrievanceStatus =
   | "ESCALATED";
 
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: "default" | "success" | "warning" | "error" | "info";
+  variant?: "default" | "success" | "warning" | "error" | "info" | "outline";
+  dot?: boolean;
 }
 
 const variantClasses = {
-  default: "bg-slate-100 text-slate-700",
-  success: "bg-emerald-100 text-emerald-700",
-  warning: "bg-amber-100 text-amber-700",
-  error: "bg-red-100 text-red-700",
-  info: "bg-blue-100 text-blue-700",
+  default: "bg-muted text-muted-foreground",
+  success: "bg-success/10 text-success",
+  warning: "bg-warning/10 text-warning",
+  error: "bg-destructive/10 text-destructive",
+  info: "bg-info/10 text-info",
+  outline: "border border-border text-foreground",
 };
 
-export function Badge({ variant = "default", className, ...props }: BadgeProps) {
+const dotClasses = {
+  default: "bg-muted-foreground",
+  success: "bg-success",
+  warning: "bg-warning",
+  error: "bg-destructive",
+  info: "bg-info",
+  outline: "bg-muted-foreground",
+};
+
+export function Badge({ variant = "default", dot, className, children, ...props }: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
         variantClasses[variant],
         className
       )}
       {...props}
-    />
+    >
+      {dot && <span className={cn("h-1.5 w-1.5 rounded-full", dotClasses[variant])} />}
+      {children}
+    </span>
   );
 }
 
 export function SeverityBadge({ score }: { score: number }) {
   const variant =
-    score >= 80 ? "error" : score >= 60 ? "warning" : score >= 40 ? "info" : "default";
+    score >= 80 ? "error" : score >= 60 ? "warning" : score >= 40 ? "info" : "success";
   const label =
     score >= 80 ? "Critical" : score >= 60 ? "High" : score >= 40 ? "Medium" : "Low";
   return (
-    <Badge variant={variant}>
-      {label} ({score})
+    <Badge variant={variant} dot>
+      {label} · {score}
     </Badge>
   );
 }
 
-const statusVariant: Record<GrievanceStatus, BadgeProps["variant"]> = {
-  RECEIVED: "info",
+const STATUS_VARIANT: Record<GrievanceStatus, BadgeProps["variant"]> = {
+  RECEIVED: "default",
   CLASSIFIED: "info",
   ASSIGNED: "info",
   IN_PROGRESS: "warning",
@@ -66,6 +80,24 @@ const statusVariant: Record<GrievanceStatus, BadgeProps["variant"]> = {
   REJECTED_SPAM: "default",
 };
 
+const STATUS_LABEL: Record<GrievanceStatus, string> = {
+  RECEIVED: "Received",
+  CLASSIFIED: "Categorised",
+  ASSIGNED: "Assigned",
+  IN_PROGRESS: "In Progress",
+  ACTION_TAKEN: "Action Taken",
+  RESOLVED: "Resolved",
+  VERIFIED: "Verified",
+  REOPENED: "Reopened",
+  CLOSED: "Closed",
+  REJECTED_SPAM: "Rejected",
+  ESCALATED: "Escalated",
+};
+
 export function StatusBadge({ status }: { status: GrievanceStatus }) {
-  return <Badge variant={statusVariant[status]}>{status.replace("_", " ")}</Badge>;
+  return (
+    <Badge variant={STATUS_VARIANT[status]} dot>
+      {STATUS_LABEL[status] ?? status.replace(/_/g, " ")}
+    </Badge>
+  );
 }

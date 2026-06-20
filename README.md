@@ -1,135 +1,126 @@
 # DCOS — Delhi Citizen Operating System
 
 Grievance & governance command center for Delhi NCT.
+File a complaint, let AI route it, track it end-to-end.
 
-## Architecture at a glance
+**Stack:** FastAPI · Next.js 15 · Postgres 16 (PostGIS + pgvector) · Supabase Auth · Groq AI (Llama 3.3 70B) · Redis · MinIO
 
-| Layer | Stack |
+---
+
+## Architecture
+
+```
+  CLIENTS: citizen (PWA) · officer console · CM dashboard · public transparency
+                              │ HTTPS
+              ┌───────────────▼───────────────┐
+              │     Next.js 15 (Vercel)        │  Modern GovTech design system
+              │  23 routes, 4 surfaces         │  Supabase Auth (ES256 JWKS)
+              └───────────────┬───────────────┘
+                              │ REST
+              ┌───────────────▼───────────────┐
+              │    FastAPI modular monolith    │  11 domain modules
+              │    + Arq background workers   │  Rate limiting · Security headers
+              └──────┬───────────┬────────────┘
+                     │           │
+              ┌──────▼───┐  ┌───▼────┐  ┌──────────────┐
+              │ Postgres  │  │ Redis  │  │ Object store │
+              │ PostGIS   │  │ queue  │  │ MinIO / S3   │
+              │ pgvector  │  │ cache  │  └──────────────┘
+              └──────────┘  └────────┘
+```
+
+| Layer | Choice |
 |---|---|
-| Frontend | Next.js 15 (App Router, TS), Tailwind, shadcn-style components, MapLibre |
-| API | FastAPI (Python 3.12), modular monolith — 11 domain modules |
-| Queue | Redis + Arq (async workers) |
-| Database | PostgreSQL 16 + PostGIS + pgvector |
-| Auth/Realtime | Supabase |
-| Storage | Supabase Storage / MinIO (local) |
-| AI | Gemini 2.5 Flash / Pro |
-| Notifications | WhatsApp Cloud API + MSG91 SMS + Web Push |
-| Observability | OpenTelemetry + Sentry + Grafana |
+| Frontend | Next.js 15 App Router, Tailwind (semantic tokens), Radix UI, Recharts, SWR |
+| Auth | Supabase Auth (ES256 JWKS) + local-JWT dev fallback |
+| API | FastAPI (Python 3.12), async SQLAlchemy, Alembic |
+| AI | Groq — Llama 3.3 70B (14,400 req/day free) · fallback: OpenRouter / Gemini |
+| Queue | Redis + Arq — classify · assign · notify · SLA escalation · analytics refresh |
+| Database | PostgreSQL 16 + PostGIS (geo) + pgvector (semantic dedup) |
+| Storage | MinIO (local) / S3-compatible (prod) |
+| Notifications | WhatsApp Cloud API + MSG91 SMS + Web Push (VAPID keyed) |
+
+---
 
 ## Quickstart (local)
 
-### Prerequisites
-- Docker Desktop ≥ 4.x
-- Node.js ≥ 20 + pnpm ≥ 10
-- Python 3.12
-- `cp .env.example .env` and fill in your values (Supabase, Gemini at minimum)
-
-### 1. Start infrastructure
-
 ```bash
-cd infra
-docker compose up -d
-# Postgres (5432), Redis (6379), MinIO (9000 + 9001 console) boot up
-```
-
-### 2. API
-
-```bash
-cd apps/api
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-
-# Run DB migrations (Epic 2 adds real migrations)
-alembic upgrade head
-
-# Start dev server
-python main.py
-# → http://localhost:8000/docs
-```
-
-### 3. Web
-
-```bash
-# From repo root
+# Prerequisites: Docker Desktop, Python 3.12, Node 20+, pnpm
+git clone https://github.com/jmanan999/dcos.git && cd dcos
 pnpm install
-pnpm --filter web dev
-# → http://localhost:3000
+
+# Configure — copy and fill in GROQ_API_KEY + Supabase keys
+cp .env.example apps/api/.env
+
+# Start infra (Postgres, Redis, MinIO)
+cd infra && docker compose up -d && cd ..
+
+# Migrate + seed (758 realistic Delhi grievances)
+cd apps/api && source .venv/bin/activate
+DATABASE_URL="postgresql+asyncpg://dcos:dcos@localhost:5432/dcos" alembic upgrade head
+DATABASE_URL="postgresql://dcos:dcos@localhost:5432/dcos" python -m scripts.seed
+
+# Run everything (3 terminals)
+python main.py                        # API  →  http://localhost:8000/docs
+arq app.worker.WorkerSettings         # worker (AI + notifications + analytics)
+cd ../.. && pnpm --filter web dev     # web  →  http://localhost:3000
 ```
 
-### 4. Verify
+> **Dashboards empty?** Docker stopped between sessions. Run `docker compose up -d` in `/infra` then restart the API.
 
-```bash
-curl http://localhost:8000/healthz         # {"status":"ok"}
-curl http://localhost:8000/readyz          # {"status":"ok","checks":{...}}
-curl http://localhost:8000/api/v1/intake/health
+---
+
+## What's built
+
+| Epic | Status |
+|---|---|
+| 1 — Foundation (monorepo, Docker, CI) | ✅ |
+| 2 — Data model (Postgres, PostGIS, pgvector, seed) | ✅ |
+| 3 — Identity (Supabase Auth, RBAC, RLS) | ✅ |
+| 4 — Intake (web, WhatsApp, emergency intercept) | ✅ |
+| 5 — AI engine (Groq classify, severity, spam, dedup) | ✅ |
+| 6 — Routing & SLA (assignment, escalation ladder) | ✅ |
+| 7 — Officer console (queue, proof gate, geo-verify) | ✅ |
+| 8 — Citizen transparency (CSAT, reopen, notifications) | ✅ |
+| 9 — Analytics (KPIs, hotspots, NL→SQL copilot, reports) | ✅ |
+| 10 — Hardening (rate limiting, security headers, adapters) | ✅ core |
+| FE — Modern GovTech design system (23 routes) | ✅ |
+
+**See [TODO.md](TODO.md) for what remains.**
+
+---
+
+## Routes
+
+```
+/                       Landing (hero, live stats, features)
+/login                  Citizen OTP | Officer email  (Supabase)
+/signup                 Citizen registration
+/file                   3-step complaint form (4 languages)
+/track / /track/[id]    Status timeline + feedback + reopen
+/my-complaints          Device-local complaint history
+
+/transparency           Public KPI dashboard (recharts)
+/transparency/departments  Department performance table
+/transparency/map       Ward heatmap (placeholder — see TODO #5)
+
+/officer                Dashboard, /queue (DataTable), /grievance/[id], /team
+/cm                     Command center: KPIs + 14-day chart + hotspots
+/cm/map /cm/hotspots /cm/departments /cm/analytics /cm/reports
 ```
 
-## Project structure
+---
 
-```
-dcos/
-├── apps/
-│   ├── api/                    FastAPI modular monolith
-│   │   ├── app/
-│   │   │   ├── core/           config, db, deps, logging, middleware, telemetry
-│   │   │   └── modules/
-│   │   │       ├── identity/   auth, RBAC, users
-│   │   │       ├── intake/     omnichannel ingestion (Epic 4)
-│   │   │       ├── ai/         classify, severity, dedup (Epic 5)
-│   │   │       ├── routing/    assignment, geo-routing (Epic 6)
-│   │   │       ├── sla/        clocks, escalation (Epic 6)
-│   │   │       ├── workforce/  officer queues, proof (Epic 7)
-│   │   │       ├── citizen/    tracking, CSAT, reopen (Epic 8)
-│   │   │       ├── analytics/  materialized views, NL→SQL (Epic 9)
-│   │   │       ├── reporting/  PDF/PPTX/XLSX (Epic 9)
-│   │   │       ├── integration/ dept adapters (Epic 10)
-│   │   │       └── platform/   outbox, audit, flags (shared kernel)
-│   │   ├── migrations/         Alembic (forward-only)
-│   │   └── tests/
-│   └── web/                    Next.js 4-surface app
-│       └── src/app/
-│           ├── (citizen)/      / and /track/[id]
-│           ├── (officer)/      /officer/*
-│           ├── (cm)/           /cm/* (command center)
-│           └── (public)/       /public/* (transparency)
-├── packages/
-│   ├── ui/                     Shared React components
-│   └── types/                  Shared TypeScript types
-├── infra/
-│   ├── docker-compose.yml      Local: Postgres, Redis, MinIO
-│   └── postgres/               Custom image (PostGIS + pgvector)
-└── .github/workflows/ci.yml    lint → typecheck → test → build
-```
+## Security
 
-## Build epics
+- **Role escalation prevented** — roles come from admin-only `app_metadata`, not user-editable `user_metadata`. Provision officers via the Supabase admin API.
+- **RLS** — PostgreSQL Row Level Security at the DB layer (defense in depth).
+- **JWT** — Supabase ES256 tokens verified via JWKS (no shared secret).
+- **Rate limiting** — per-IP sliding window, active in staging/production.
+- **Security headers** — X-Frame-Options, X-Content-Type-Options, Referrer-Policy on every response.
 
-| Epic | Focus | Status |
-|---|---|---|
-| **1** | Foundation & DX (this) | ✅ Done |
-| **2** | Full schema + seed + migrations | ⬜ Next |
-| **3** | Identity, RBAC, RLS | ⬜ |
-| **4** | Intake & channels (web + WhatsApp) | ⬜ |
-| **5** | AI engine (classify, severity, dedup) | ⬜ |
-| **6** | Routing, assignment, SLA engine | ⬜ |
-| **7** | Officer console & field app | ⬜ |
-| **8** | Citizen transparency & notifications | ⬜ |
-| **9** | GIS command center & analytics | ⬜ |
-| **10** | Hardening, compliance, observability | ⬜ |
+---
 
-## Development conventions
+## License
 
-- **Module boundaries**: one module must never import another module's SQLAlchemy models directly — call the other module's `service.py` interface.
-- **Outbox pattern**: every state change emits a `platform.OutboxEvent` in the same DB transaction; workers relay it.
-- **Migrations**: forward-only. Never edit a shipped migration.
-- **Feature flags**: half-built epics ship behind a `FEATURE_*` env flag.
-- **No cross-module table reads**: if you need data from another module, call its service layer.
-
-## CI
-
-GitHub Actions runs on every push/PR:
-
-1. `api-lint` — ruff + mypy
-2. `api-test` — pytest with real Postgres service (pgvector + PostGIS)
-3. `web-lint` — ESLint + TypeScript
-4. `web-build` — `next build`
-5. `docker-build` — on `main` only
+MIT. Built for the people of Delhi.

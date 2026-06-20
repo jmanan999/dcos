@@ -32,9 +32,33 @@
 | **5** | AI complaint engine (classify, severity, dedup, worker) | ✅ Done |
 | **6** | Routing, assignment, SLA engine | ✅ Done |
 | **7** | Officer console & field app | ✅ Done |
-| **8** | Citizen transparency & notifications | ⬜ |
-| **9** | GIS command center & analytics | ⬜ |
-| **10** | Hardening, compliance, observability, launch | ⬜ |
+| **8** | Citizen transparency & notifications | ✅ Done |
+| **9** | GIS command center & analytics | ✅ Done |
+| **10** | Hardening, compliance, observability, launch | ✅ Done (core) |
+| **FE** | Frontend overhaul — Modern GovTech design system, auth, modular routes | ✅ Done |
+
+---
+
+## Frontend design system (read before any UI work)
+
+The web app was rebuilt into a cohesive **Modern GovTech** design system. Rules:
+
+1. **Use semantic tokens, never raw colors.** `bg-background`, `text-foreground`, `bg-primary`,
+   `text-muted-foreground`, `border-border`, `bg-card`, `bg-success/warning/destructive`, etc.
+   Tokens live in `apps/web/src/app/globals.css` (HSL) → mapped in `tailwind.config.ts`.
+   Do NOT reintroduce `brand-*`, `saffron-*`, `slate-950`, or ad-hoc hex.
+2. **Build from `@dcos/ui`.** Reuse Button, Card, StatCard, DataTable, PageHeader, Badge,
+   Tabs, Dialog, Alert, EmptyState, Skeleton, etc. before writing bespoke markup.
+3. **App-shell surfaces** (officer, cm) use `<AppShell>` + `<RouteGuard>` in their layout —
+   which must be `"use client"` (they pass lucide icon components to a client shell).
+   Public surfaces (marketing, auth, citizen, transparency) use `MarketingHeader`+`Footer`.
+4. **Data via SWR hooks** in `lib/hooks.ts` (token auto-attached by `apiFetch`). Don't hand-roll
+   `useEffect`+`fetch`.
+5. **Auth**: `useAuth()` from `lib/auth/provider`. Real Supabase when configured, else local-JWT
+   fallback (`POST /identity/token`). Citizens → phone OTP, officers → email/password.
+   `isSupabaseConfigured()` decides. Paste real keys into `apps/web/.env.local` to go live.
+6. **Routes restructured**: `/` is now the landing page; the file form moved to `/file`;
+   `/public` → `/transparency`; `/officer/admin` → `/officer/team`.
 
 ---
 
@@ -92,16 +116,36 @@ dcos/
 │   │   │       │   │               mark_action_taken, request_info, verify_proof, get_workload)
 │   │   │       │   └── router.py   GET /workforce/queue, /dept-queue, /workload
 │   │   │       │                   POST /workforce/grievances/{id}/claim|action-taken|resolve|notes
-│   │   │       ├── citizen/        Feedback, Notification; Epic 8
-│   │   │       ├── analytics/      Epic 9 — materialized views, NL→SQL
-│   │   │       ├── reporting/      Epic 9 — PDF/PPTX
-│   │   │       ├── integration/    Epic 10 — dept adapters
+│   │   │       ├── citizen/        CSAT, reopen, public stats, notification dispatch
+│   │   │       │   ├── models.py   Feedback, Notification
+│   │   │       │   ├── schemas.py  FeedbackCreate, ReopenRequest, PublicKPISnapshot
+│   │   │       │   ├── service.py  CitizenService (submit_feedback, reopen, get_public_stats,
+│   │   │       │   │               notify_status_change)
+│   │   │       │   └── router.py   POST /citizen/feedback/{id}, POST /citizen/reopen/{id},
+│   │   │       │                   GET /citizen/public-stats
+│   │   │       ├── analytics/      KPIs, hotspots, leaderboard, trend, NL→SQL, executive brief
+│   │   │       │   ├── schemas.py  KPISnapshot, WardHotspot, DeptLeaderboardRow, NLQueryRequest
+│   │   │       │   ├── service.py  AnalyticsService (get_kpis, get_hotspots, get_dept_leaderboard,
+│   │   │       │   │               get_trend, nl_query, get_executive_brief, refresh_views)
+│   │   │       │   └── router.py   GET /analytics/kpis|hotspots|leaderboard|trend|executive-brief
+│   │   │       │                   POST /analytics/nl-query, POST /analytics/refresh-views
+│   │   │       ├── reporting/      CSV export — grievances, dept scorecard, ward stats
+│   │   │       │   ├── schemas.py  CSVExportParams, ReportResponse
+│   │   │       │   ├── service.py  ReportingService (export_csv, dept_scorecard_csv, ward_stats_csv)
+│   │   │       │   └── router.py   GET /reporting/export/grievances|dept-scorecard|ward-stats
+│   │   │       ├── integration/    Dept adapter framework (rest | email | file)
+│   │   │       │   ├── schemas.py  AdapterConfig, SyncRecord
+│   │   │       │   ├── service.py  IntegrationService + BaseAdapter protocol + RestAdapter
+│   │   │       │   └── router.py   GET /integration/adapters, POST /integration/push/{id}
 │   │   │       └── platform/       OutboxEvent, AuditLog, IdempotencyKey, District, Zone, Ward
 │   │   │           ├── models.py   District, Zone, AssemblyConstituency, Ward, OutboxEvent,
 │   │   │           │               AuditLog, IdempotencyKey
 │   │   │           └── repository.py OutboxRepository, AuditRepository, GeoRepository
 │   │   ├── app/worker.py           Arq worker: enrich_grievance, assign_grievance,
-│   │   │                           check_sla_breaches, relay_outbox (cron every 5s)
+│   │   │                           check_sla_breaches, refresh_analytics_views, notify_citizen,
+│   │   │                           relay_outbox
+│   │   │   Cron: relay_outbox every 5s, check_sla_breaches every 5min,
+│   │   │         refresh_analytics_views every 15min
 │   │   │   Start: arq app.worker.WorkerSettings
 │   │   ├── app/core/storage.py     Async boto3 upload helper (MinIO/S3/R2)
 │   │   ├── migrations/
@@ -111,7 +155,10 @@ dcos/
 │   │   │       │                             sync_grievance_location trigger
 │   │   │       ├── 0002_rls_policies.py     RLS ENABLE + FORCE + all policies
 │   │   │       ├── 0003_ai_tables.py        ai_results + feedback_labels
-│   │   │       └── 0004_officer_notes.py    officer_notes table + dcos_app grant
+│   │   │       ├── 0004_officer_notes.py    officer_notes table + dcos_app grant
+│   │   │       └── 0005_analytics_views.py  notification_preferences + 3 materialized views
+│   │   │                                    (mv_grievances_daily, mv_ward_stats, mv_dept_stats)
+│   │   │                                    + refresh_analytics_views() function
 │   │   ├── scripts/
 │   │   │   └── seed.py             Async asyncpg seed: 11 districts, 12 zones, 272 wards,
 │   │   │                           12 departments, 540 grievances, 2680 status events
@@ -123,15 +170,43 @@ dcos/
 │   │   ├── alembic.ini
 │   │   ├── main.py                 uvicorn entrypoint
 │   │   └── Dockerfile
-│   └── web/                        Next.js 15 App Router — 4 route groups
-│       └── src/app/
-│           ├── (citizen)/          /  →  file form  |  /track/[id]  →  tracking
-│           ├── (officer)/          /officer  →  dashboard  |  /officer/queue
-│           │                       /officer/grievance/[id]  |  /officer/admin  →  officer mgmt
-│           ├── (cm)/               /cm  →  command center  |  /cm/analytics
-│           └── (public)/           /public  →  transparency dashboard
+│   │   ├── app/core/notifications.py  Idempotent WhatsApp/SMS/push dispatcher
+│   │   │                              + status_change_message() bilingual templates
+│   └── web/                        Next.js 15 — Modern GovTech design system (see UI note below)
+│       └── src/
+│           ├── app/
+│           │   ├── layout.tsx          Root: Inter font + <Providers> (Auth + Toast)
+│           │   ├── globals.css         Semantic HSL design tokens (light, indigo)
+│           │   ├── (marketing)/        / → landing (hero, live stats, how-it-works, CTA)
+│           │   ├── (auth)/             /login (citizen OTP | officer email tabs), /signup
+│           │   │                       split-screen layout w/ dark brand panel
+│           │   ├── (citizen)/          /file (3-step stepper form), /track, /track/[id],
+│           │   │                       /track/[id]/feedback|reopen, /my-complaints
+│           │   ├── (transparency)/     /transparency (recharts), /departments, /map
+│           │   ├── (officer)/          AppShell+RouteGuard: /officer, /queue (DataTable),
+│           │   │                       /grievance/[id] (tabs: notes/proof/resolve), /team
+│           │   └── (cm)/               AppShell+RouteGuard: /cm, /map, /hotspots,
+│           │                           /departments, /analytics (NL copilot), /reports
+│           ├── middleware.ts           Supabase route protection (/officer,/cm,/my-complaints)
+│           ├── components/
+│           │   ├── providers.tsx       AuthProvider + ToastProvider
+│           │   ├── route-guard.tsx     Client role-gate (works w/ local-JWT fallback)
+│           │   ├── shell/              AppShell, Sidebar, Topbar, MobileNav, MarketingHeader,
+│           │   │                       Footer, nav-config (lucide icons per surface)
+│           │   └── marketing/          LiveStats island
+│           └── lib/
+│               ├── api.ts              apiFetch (auto-attaches token) + swrFetcher
+│               ├── hooks.ts            SWR: useKpis, useHotspots, useLeaderboard, useTrend,
+│               │                       usePublicStats, useQueue
+│               ├── auth/               config (isSupabaseConfigured), types (Role, homeForRole),
+│               │                       provider (AuthProvider/useAuth + local-JWT fallback)
+│               └── supabase/           client.ts (browser), server.ts (SSR)
 ├── packages/
-│   ├── ui/src/                     Button, Badge (SeverityBadge, StatusBadge), Card, Spinner
+│   ├── ui/src/                     Design-system kit (~22 components, all token-based):
+│   │                              Button, Badge/Severity/Status, Card, Input, Label, Textarea,
+│   │                              Select, Tabs, Dialog, DropdownMenu, Toast, Avatar, Skeleton,
+│   │                              Separator, Alert, Progress, EmptyState, StatCard, PageHeader,
+│   │                              DataTable, cn. Radix-backed. Consumed via `@dcos/ui`.
 │   └── types/src/index.ts          Shared TS types: GrievanceStatus, Channel, Priority,
 │                                   GrievanceRead, GrievanceCreate, KPISnapshot, etc.
 ├── infra/
@@ -193,9 +268,15 @@ dcos/
 **Roles:** `citizen` | `field_officer` | `dept_admin` | `district_officer` | `cm_cell` | `super_admin`
 
 **JWT flow:**
-- Supabase issues JWTs; custom claims in `user_metadata.dcos_role` + `user_metadata.department_id`
-- `app/core/auth.py::decode_token()` handles both Supabase JWTs and local JWTs
-- `POST /api/v1/identity/token` issues local JWTs (disabled in production)
+- Supabase project `nggbydarhctzacxzivyw` issues **ES256** JWTs (asymmetric — no shared secret).
+  `decode_token()` verifies them against the project JWKS (`/auth/v1/.well-known/jwks.json`,
+  cached 1h). Local dev tokens stay **HS256** via `JWT_SECRET`; the token header `alg` picks the path.
+- **App role comes from `app_metadata.dcos_role`** (admin/service-key only) — NOT `user_metadata`
+  (which is user-editable and would allow self-escalation). `department_id` likewise in app_metadata.
+  Provision officers via the Supabase admin API with `app_metadata: { dcos_role, department_id }`.
+- `POST /api/v1/identity/token` issues local HS256 JWTs (disabled in production).
+- Frontend mirrors the Supabase access token into `localStorage.dcos_token` (kept fresh via
+  `onAuthStateChange`) so `apiFetch` sends a valid bearer in both auth modes.
 
 **Permission check:** `require_permission(P.GRIEVANCE_READ_DEPT)` as a FastAPI dependency.  
 **Permission matrix:** `app/core/permissions.py` — `ROLE_PERMISSIONS` dict.
@@ -282,24 +363,32 @@ cd ../.. && pnpm --filter web dev   # http://localhost:3000
 
 ---
 
-## What to build next — Epic 8
+## Epics 8–10 reference (completed)
 
-**Goal:** Citizen transparency — notifications (WhatsApp+SMS+push), CSAT, reopen, public dashboard.
+### Epic 8 — Citizen transparency
 
-**Files to create/modify:**
-- `app/modules/citizen/service.py` — NotificationService + CSATService + ReopenService
-- `app/modules/citizen/schemas.py` — NotificationRead, FeedbackCreate, ReopenRequest
-- `app/modules/citizen/router.py` — POST /citizen/feedback, POST /citizen/reopen/{id}
-- `app/core/notifications.py` — async WhatsApp/SMS/push dispatcher (idempotent + retry)
-- `apps/web/src/app/(citizen)/track/[id]/feedback/page.tsx` — CSAT form after closure
-- `apps/web/src/app/(public)/public/page.tsx` — live anonymized KPI dashboard
+- `app/core/notifications.py` — idempotent WhatsApp/SMS/push dispatcher; `status_change_message()` bilingual templates (en/hi)
+- `citizen/service.py` — `submit_feedback()` (CSAT 1-5; ≥3 → VERIFIED, ≤2 → auto-reopen), `reopen()`, `get_public_stats()`, `notify_status_change()`
+- `citizen/router.py` — POST /citizen/feedback/{id}, POST /citizen/reopen/{id}, GET /citizen/public-stats
+- Worker: `notify_citizen` job; relay_outbox dispatches it for `grievance.assigned/escalated/reopened`
+- Frontend: `/track/[id]/feedback` (star rating + comment), `/track/[id]/reopen` (reason form), `/public` (live KPI tiles, category bars, dept table, hotspot wards)
 
-**Key things to implement:**
-1. Notification worker — consumes `grievance.*` outbox events → WhatsApp + SMS + push
-2. CSAT flow — POST /citizen/feedback (rating 1-5 + comment)
-3. Reopen flow — citizen rejects closure → RESOLVED→REOPENED → outbox → re-route
-4. Public dashboard — anonymized totals by ward/dept/category (no auth needed)
-5. Notification preferences + opt-out + consent records (DPDP)
+### Epic 9 — Analytics & Reporting
+
+- Migration `0005`: `notification_preferences` table + 3 materialized views + `refresh_analytics_views()` PG function
+- `analytics/service.py` — `get_kpis()`, `get_hotspots()`, `get_dept_leaderboard()`, `get_trend()`, `nl_query()` (NL→SQL via Gemini, guarded by `FEATURE_ANALYTICS_NL_QUERY`), `get_executive_brief()`, `refresh_views()`
+- `reporting/service.py` — CSV exports: grievances, dept scorecard, ward stats
+- Worker: `refresh_analytics_views` cron job every 15 minutes
+- Frontend: `/cm` (live KPI tiles, hotspot list, dept leaderboard), `/cm/analytics` (scorecard table, CSV download buttons, NL copilot)
+
+### Epic 10 — Hardening (core)
+
+- `SecurityHeadersMiddleware` — X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, Permissions-Policy
+- `RateLimitMiddleware` — in-process sliding-window, per-IP; 30/min for intake, 200/min global; skipped in `local` env
+- `integration/service.py` — `BaseAdapter` protocol + `RestAdapter` (webhook push) + `IntegrationService.push_status_to_dept()`
+- `integration/router.py` — GET /integration/adapters, POST /integration/push/{id}
+
+**Remaining for full Epic 10:** DPDP consent UI, PII field-level encryption, WCAG audit, load test, PITR restore drill, pen-test findings.
 
 ---
 

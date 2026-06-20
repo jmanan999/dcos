@@ -24,6 +24,15 @@ from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.logging import setup_logging
 
+# Pre-import all models so SQLAlchemy can resolve cross-module FK references
+# before any job function runs (same pattern as Alembic env.py).
+import app.modules.identity.models  # noqa: F401, E402
+import app.modules.intake.models  # noqa: F401, E402
+import app.modules.sla.models  # noqa: F401, E402
+import app.modules.workforce.models  # noqa: F401, E402
+import app.modules.citizen.models  # noqa: F401, E402
+import app.modules.platform.models  # noqa: F401, E402
+
 log = structlog.get_logger()
 
 
@@ -69,6 +78,41 @@ async def assign_grievance(ctx: dict, grievance_id: str) -> dict[str, Any]:
 
     log.info("worker.assign.done", grievance_id=grievance_id, status=result.status)
     return result.model_dump(mode="json")
+
+
+# ── Analytics view refresh job ────────────────────────────────────────────────
+
+
+async def refresh_analytics_views(ctx: dict) -> dict[str, str]:
+    """Refresh mv_grievances_daily, mv_ward_stats, mv_dept_stats every 15 min."""
+    setup_logging()
+    from app.modules.analytics.service import AnalyticsService
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+        svc = AnalyticsService(session)
+        result = await svc.refresh_views()
+
+    log.info("worker.analytics.refresh", result=result)
+    return result
+
+
+# ── Citizen notification job ──────────────────────────────────────────────────
+
+
+async def notify_citizen(ctx: dict, grievance_id: str) -> dict[str, str]:
+    """Dispatch WhatsApp/SMS status-change notification to the citizen."""
+    setup_logging()
+    from app.modules.citizen.service import CitizenService
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+        svc = CitizenService(session)
+        await svc.notify_status_change(uuid.UUID(grievance_id))
+        await session.commit()
+
+    log.info("worker.notify.done", grievance_id=grievance_id)
+    return {"grievance_id": grievance_id, "status": "notified"}
 
 
 # ── SLA escalation job ────────────────────────────────────────────────────────
@@ -119,6 +163,12 @@ async def relay_outbox(ctx: dict) -> dict[str, int]:
                     await queue.enqueue_job("enrich_grievance", aggregate_id)
                 elif event_type == "grievance.enriched" and queue:
                     await queue.enqueue_job("assign_grievance", aggregate_id)
+                elif event_type in (
+                    "grievance.assigned",
+                    "grievance.escalated",
+                    "grievance.reopened",
+                ) and queue:
+                    await queue.enqueue_job("notify_citizen", aggregate_id)
 
                 await session.execute(
                     text("UPDATE outbox_events SET processed_at = now() WHERE id = :id"),
@@ -137,17 +187,26 @@ async def relay_outbox(ctx: dict) -> dict[str, int]:
 
 
 class WorkerSettings:
-    functions = [enrich_grievance, assign_grievance, check_sla_breaches, relay_outbox]
+    functions = [
+        enrich_grievance,
+        assign_grievance,
+        check_sla_breaches,
+        refresh_analytics_views,
+        notify_citizen,
+        relay_outbox,
+    ]
     max_jobs = 20
     job_timeout = 120
 
     redis_settings = RedisSettings.from_dsn(settings.REDIS_URL)
 
     cron_jobs = [
-        # Relay outbox events every 5 s — dispatches enrich + assign jobs
+        # Relay outbox events every 5 s — dispatches enrich + assign + notify jobs
         cron(relay_outbox, second={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
         # SLA breach check every 5 minutes
         cron(check_sla_breaches, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
+        # Analytics materialized view refresh every 15 minutes
+        cron(refresh_analytics_views, minute={0, 15, 30, 45}),
     ]
 
 

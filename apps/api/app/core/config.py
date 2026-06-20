@@ -37,10 +37,23 @@ class Settings(BaseSettings):
     STORAGE_BUCKET_MEDIA: str = "dcos-media"
     STORAGE_REGION: str = "ap-south-1"
 
-    # ── AI ───────────────────────────────────────────────────────────────────
+    # ── AI provider (groq | openrouter | gemini) ─────────────────────────────
+    AI_PROVIDER: str = "groq"
+
+    # Groq — LPU hardware, 14,400 req/day free, OpenAI-compatible
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "llama-3.3-70b-versatile"
+    GROQ_BASE_URL: str = "https://api.groq.com/openai/v1"
+
+    # Gemini (fallback)
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL_DEFAULT: str = "gemini-2.5-flash"
     GEMINI_MODEL_PRO: str = "gemini-2.5-pro"
+
+    # OpenRouter (fallback, OpenAI-compatible)
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_MODEL: str = "deepseek/deepseek-chat-v3-0324"
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
 
     # ── WhatsApp Cloud API ───────────────────────────────────────────────────
     WHATSAPP_TOKEN: str = ""

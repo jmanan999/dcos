@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 
 from app.core.config import settings
 from app.core.logging import setup_logging
-from app.core.middleware import RequestIDMiddleware
+from app.core.middleware import RateLimitMiddleware, RequestIDMiddleware, SecurityHeadersMiddleware
 from app.core.telemetry import setup_telemetry
 from app.modules.ai.router import router as ai_router
 from app.modules.analytics.router import router as analytics_router
@@ -66,6 +66,12 @@ def create_app() -> FastAPI:
 
     # ── Middleware (applied bottom-to-top) ────────────────────────────────────
     app.add_middleware(RequestIDMiddleware)
+    app.add_middleware(SecurityHeadersMiddleware)
+    app.add_middleware(
+        RateLimitMiddleware,
+        intake_limit=settings.RATE_LIMIT_INTAKE_PER_MINUTE,
+        global_limit=settings.RATE_LIMIT_API_PER_MINUTE,
+    )
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.CORS_ORIGINS,

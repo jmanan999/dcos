@@ -2,19 +2,127 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+  DCOS Design System — Modern GovTech
+  Semantic HSL tokens. Light, institutional, indigo-anchored.
+  All components consume these via Tailwind (bg-background, text-foreground, …).
+*/
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --brand: 221 71% 37%;
-  }
+    /* Surfaces */
+    --background: 210 40% 98.5%; /* page */
+    --foreground: 222 47% 11%; /* primary text */
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
 
-  body {
-    @apply bg-white text-slate-900;
+    /* Brand — deep institutional indigo/blue */
+    --primary: 221 70% 38%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 221 72% 33%;
+
+    /* Neutral accents */
+    --secondary: 215 28% 95%;
+    --secondary-foreground: 222 35% 22%;
+    --muted: 215 28% 95%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 214 95% 93%;
+    --accent-foreground: 221 70% 32%;
+
+    /* Lines / inputs / focus */
+    --border: 214 25% 89%;
+    --input: 214 25% 89%;
+    --ring: 221 70% 45%;
+
+    /* Status / data-viz */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 64% 38%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 45%;
+    --warning-foreground: 0 0% 100%;
+    --info: 217 91% 55%;
+    --info-foreground: 0 0% 100%;
+
+    /* Severity scale */
+    --severity-critical: 0 72% 51%;
+    --severity-high: 25 95% 53%;
+    --severity-medium: 38 92% 45%;
+    --severity-low: 158 64% 38%;
+
+    /* Sidebar (tinted dark for command surfaces) */
+    --sidebar: 222 47% 13%;
+    --sidebar-foreground: 215 20% 75%;
+    --sidebar-muted: 217 19% 55%;
+    --sidebar-accent: 221 83% 60%;
+    --sidebar-border: 222 30% 22%;
+
+    --radius: 0.625rem;
   }
 }
 
-/* MapLibre overrides */
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  :focus-visible {
+    outline: none;
+  }
+}
+
+@layer utilities {
+  /* Subtle grid / dot backdrop for hero sections */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+  .bg-dots {
+    background-image: radial-gradient(hsl(var(--border)) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+  .text-balance {
+    text-wrap: balance;
+  }
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 9999px;
+  }
+}
+
+/* MapLibre — inherit app font */
 .maplibregl-map {
   font-family: inherit;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
 }

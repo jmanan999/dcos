@@ -47,7 +47,7 @@ def test_tampered_token_raises() -> None:
 
 
 def test_supabase_style_token_parsed() -> None:
-    """Tokens with dcos_role inside user_metadata (Supabase format) are parsed correctly."""
+    """Supabase tokens carry the app role in app_metadata (admin-only, secure)."""
     from datetime import datetime
 
     from jose import jwt
@@ -58,13 +58,12 @@ def test_supabase_style_token_parsed() -> None:
     dept = str(uuid.uuid4())
     payload = {
         "sub": uid,
-        "role": "authenticated",  # Supabase's own field
+        "role": "authenticated",  # Supabase's own DB role
         "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
-        "user_metadata": {
-            "dcos_role": "dept_admin",  # our custom claim
-            "department_id": dept,
-            "name": "Test Admin",
-        },
+        # Role + department live in app_metadata (only settable via service key)
+        "app_metadata": {"dcos_role": "dept_admin", "department_id": dept},
+        # user_metadata is user-editable → used only for display name
+        "user_metadata": {"name": "Test Admin"},
     }
     token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
     claims = decode_token(token)
@@ -72,6 +71,27 @@ def test_supabase_style_token_parsed() -> None:
     assert claims.role == "dept_admin"
     assert claims.department_id == dept
     assert claims.name == "Test Admin"
+
+
+def test_user_metadata_role_cannot_escalate() -> None:
+    """A self-set user_metadata.dcos_role must NOT grant privileges (anti-escalation)."""
+    from datetime import datetime
+
+    from jose import jwt
+
+    from app.core.config import settings
+
+    payload = {
+        "sub": str(uuid.uuid4()),
+        "role": "authenticated",
+        "exp": int((datetime.now(UTC) + timedelta(hours=1)).timestamp()),
+        # Malicious citizen tries to self-promote via user_metadata
+        "user_metadata": {"dcos_role": "cm_cell"},
+    }
+    token = jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+    claims = decode_token(token)
+    # Backend ignores user_metadata for roles → stays a citizen
+    assert claims.role == "citizen"
 
 
 # ── TokenClaims helpers ────────────────────────────────────────────────────────
