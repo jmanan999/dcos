@@ -14,16 +14,16 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <ShieldCheck className="h-6 w-6" />
           </span>
           <div className="leading-tight">
-            <p className="text-base font-bold">DCOS Delhi</p>
+            <p className="text-base font-bold">JanSetu</p>
             <p className="text-2xs uppercase tracking-wider text-sidebar-muted">
-              Citizen Operating System
+              Delhi Grievance Portal
             </p>
           </div>
         </Link>
 
         <div className="relative space-y-6">
           <h2 className="max-w-md text-3xl font-bold leading-tight text-balance">
-            One platform for every civic grievance in Delhi.
+            JanSetu — People's Bridge to the Government of Delhi.
           </h2>
           <ul className="space-y-3 text-sm text-sidebar-foreground">
             {[

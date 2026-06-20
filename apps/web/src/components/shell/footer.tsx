@@ -43,9 +43,9 @@ export function Footer() {
                 <ShieldCheck className="h-5 w-5" />
               </span>
               <div className="leading-tight">
-                <p className="text-sm font-bold text-foreground">DCOS Delhi</p>
+                <p className="text-sm font-bold text-foreground">JanSetu</p>
                 <p className="text-2xs uppercase tracking-wider text-muted-foreground">
-                  Citizen Operating System
+                  Delhi Grievance Portal
                 </p>
               </div>
             </div>

@@ -143,7 +143,7 @@ export const T = {
   "complaints.subtitle": { en: "Complaints you have filed from this device.", hi: "आपके द्वारा इस डिवाइस से दर्ज की गई शिकायतें।" },
   "complaints.empty_title": { en: "No complaints yet", hi: "अब तक कोई शिकायत नहीं" },
   "complaints.empty_desc": { en: "When you file a complaint, it will show up here for quick tracking.", hi: "जब आप शिकायत दर्ज करेंगे, तो यह त्वरित ट्रैकिंग के लिए यहाँ दिखाई देगी।" },
-  "track.id_placeholder": { en: "DCOS-20260620-XXXXXXXX", hi: "DCOS-20260620-XXXXXXXX" },
+  "track.id_placeholder": { en: "JS-20260620-XXXXXXXX", hi: "JS-20260620-XXXXXXXX" },
   "file.desc_placeholder": { en: "e.g. Sadak pe bahut bada gadda hai market ke paas…", hi: "जैसे: सड़क पर बहुत बड़ा गड्डा है मार्केट के पास…" },
   "file.phone_placeholder": { en: "+91 98765 43210", hi: "+91 98765 43210" },
 } as const;

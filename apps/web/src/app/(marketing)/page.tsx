@@ -79,7 +79,7 @@ export default function LandingPage() {
                     <ShieldCheck className="h-5 w-5" />
                   </span>
                   <div>
-                    <p className="text-sm font-semibold text-foreground">DCOS-20260620-4C22</p>
+                    <p className="text-sm font-semibold text-foreground">JS-20260620-4C22</p>
                     <p className="text-2xs text-muted-foreground">Pothole · Lajpat Nagar</p>
                   </div>
                 </div>

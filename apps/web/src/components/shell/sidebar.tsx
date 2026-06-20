@@ -77,7 +77,7 @@ export function Sidebar({
 
       {/* Footer */}
       <div className="border-t border-sidebar-border px-5 py-4">
-        <p className="text-2xs text-sidebar-muted">Delhi Citizen Operating System</p>
+        <p className="text-2xs text-sidebar-muted">JanSetu — Delhi Grievance Portal</p>
         <p className="text-2xs text-sidebar-muted/70">v0.1 · Govt. of NCT of Delhi</p>
       </div>
     </aside>

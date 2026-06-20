@@ -46,7 +46,7 @@ def _is_emergency(raw_text: str) -> bool:
 def _make_tracking_id() -> str:
     today = datetime.now(UTC).strftime("%Y%m%d")
     suffix = str(uuid.uuid4()).replace("-", "")[:8].upper()
-    return f"DCOS-{today}-{suffix}"
+    return f"JS-{today}-{suffix}"
 
 
 class IntakeService:

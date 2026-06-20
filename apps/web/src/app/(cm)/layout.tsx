@@ -7,7 +7,7 @@ import { CM_NAV } from "@/components/shell/nav-config";
 export default function CMLayout({ children }: { children: React.ReactNode }) {
   return (
     <RouteGuard require="command">
-      <AppShell sections={CM_NAV} brandTitle="DCOS" brandSubtitle="Command Center">
+      <AppShell sections={CM_NAV} brandTitle="JanSetu" brandSubtitle="Command Center">
         {children}
       </AppShell>
     </RouteGuard>

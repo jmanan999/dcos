@@ -11,13 +11,13 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "DCOS — Delhi Citizen Operating System",
-    template: "%s · DCOS Delhi",
+    default: "JanSetu — Delhi Grievance Portal",
+    template: "%s · JanSetu",
   },
   description:
-    "File, track, and resolve civic grievances for Delhi. " +
+    "JanSetu — File, track, and resolve civic grievances for Delhi. " +
     "Aapki shikayat, sarkar tak pahunche.",
-  keywords: ["Delhi", "grievance", "civic", "shikayat", "sarkar", "governance"],
+  keywords: ["JanSetu", "Delhi", "grievance", "civic", "shikayat", "sarkar", "jansetu", "जनसेतु"],
   manifest: "/manifest.json",
   icons: { icon: "/favicon.ico", apple: "/apple-touch-icon.png" },
 };
