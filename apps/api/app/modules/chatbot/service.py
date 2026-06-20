@@ -33,7 +33,13 @@ FAQ = [
             "व्हाट्सएप या वेब पर स्थिति देख सकते हैं।"
         ),
         "navigation_action": "/file",
-        "keywords_en": ["file complaint", "register complaint", "new complaint", "lodge complaint", "how to complain"],
+        "keywords_en": [
+            "file complaint",
+            "register complaint",
+            "new complaint",
+            "lodge complaint",
+            "how to complain",
+        ],
         "keywords_hi": ["शिकायत दर्ज", "नई शिकायत", "शिकायत कैसे करें", "शिकायत दर्ज करें"],
     },
     {
@@ -51,7 +57,13 @@ FAQ = [
             "आप अपनी ट्रैकिंग आईडी व्हाट्सएप पर भेजकर भी अपडेट प्राप्त कर सकते हैं।"
         ),
         "navigation_action": "/track",
-        "keywords_en": ["track complaint", "check status", "tracking id", "follow up", "complaint status"],
+        "keywords_en": [
+            "track complaint",
+            "check status",
+            "tracking id",
+            "follow up",
+            "complaint status",
+        ],
         "keywords_hi": ["शिकायत ट्रैक", "स्थिति जांच", "ट्रैकिंग आईडी", "शिकायत की स्थिति"],
     },
     {
@@ -85,7 +97,13 @@ FAQ = [
             "पूरी सूची /departments पर देखें।"
         ),
         "navigation_action": "/departments",
-        "keywords_en": ["departments", "which department", "who handles", "responsibilities", "department list"],
+        "keywords_en": [
+            "departments",
+            "which department",
+            "who handles",
+            "responsibilities",
+            "department list",
+        ],
         "keywords_hi": ["विभाग", "कौन सा विभाग", "क्या संभालता है", "विभागों की सूची"],
     },
     {
@@ -144,7 +162,13 @@ FAQ = [
             "मांग सकते हैं, या दूसरे विभाग को स्थानांतरित कर सकते हैं।"
         ),
         "navigation_action": "/officer",
-        "keywords_en": ["officer dashboard", "officer console", "claim complaint", "resolve complaint", "officer guide"],
+        "keywords_en": [
+            "officer dashboard",
+            "officer console",
+            "claim complaint",
+            "resolve complaint",
+            "officer guide",
+        ],
         "keywords_hi": ["अधिकारी डैशबोर्ड", "शिकायत लें", "शिकायत हल करें", "अधिकारी गाइड"],
     },
     {
@@ -165,7 +189,13 @@ FAQ = [
             "विस्तृत स्कोरकार्ड और CSV एक्सपोर्ट के लिए /cm/analytics का उपयोग करें।"
         ),
         "navigation_action": "/cm",
-        "keywords_en": ["cm dashboard", "cm analytics", "executive brief", "cm view", "command center"],
+        "keywords_en": [
+            "cm dashboard",
+            "cm analytics",
+            "executive brief",
+            "cm view",
+            "command center",
+        ],
         "keywords_hi": ["सीएम डैशबोर्ड", "सीएम एनालिटिक्स", "कमांड सेंटर", "सीएम व्यू"],
     },
 ]
@@ -188,7 +218,9 @@ class ChatbotService:
                 language=lang,
                 is_faq=True,
                 faq=faq_match,
-                suggested_actions=[faq_match.navigation_action] if faq_match.navigation_action else [],
+                suggested_actions=[faq_match.navigation_action]
+                if faq_match.navigation_action
+                else [],
                 conversation_id=request.conversation_id or str(uuid.uuid4()),
             )
 
@@ -232,7 +264,9 @@ class ChatbotService:
     async def _llm_answer(self, message: str, language: str) -> str:
         if not self._has_ai_key():
             fallback_en = "I'm a DCOS assistant. Please try asking about how to file a complaint, track one, or navigate the dashboard."
-            fallback_hi = "मैं DCOS सहायक हूं। कृपया शिकायत दर्ज करने, ट्रैक करने या डैशबोर्ड का उपयोग करने के बारे में पूछें।"
+            fallback_hi = (
+                "मैं DCOS सहायक हूं। कृपया शिकायत दर्ज करने, ट्रैक करने या डैशबोर्ड का उपयोग करने के बारे में पूछें।"
+            )
             return fallback_hi if language == "hi" else fallback_en
 
         system_prompt = (
@@ -248,14 +282,16 @@ class ChatbotService:
         try:
             if settings.AI_PROVIDER == "groq":
                 return await self._openai_compat(
-                    prompt, system_prompt,
+                    prompt,
+                    system_prompt,
                     base_url=settings.GROQ_BASE_URL,
                     api_key=settings.GROQ_API_KEY,
                     model=settings.GROQ_MODEL,
                 )
             if settings.AI_PROVIDER == "openrouter":
                 return await self._openai_compat(
-                    prompt, system_prompt,
+                    prompt,
+                    system_prompt,
                     base_url=settings.OPENROUTER_BASE_URL,
                     api_key=settings.OPENROUTER_API_KEY,
                     model=settings.OPENROUTER_MODEL,
@@ -263,7 +299,11 @@ class ChatbotService:
             return await self._gemini_answer(prompt, system_prompt)
         except Exception as exc:
             log.error("chatbot.llm_failed", error=str(exc))
-            return "I'm sorry, I'm having trouble connecting. Please try again later." if language == "en" else "क्षमा करें, कनेक्शन में समस्या है। कृपया बाद में पुनः प्रयास करें।"
+            return (
+                "I'm sorry, I'm having trouble connecting. Please try again later."
+                if language == "en"
+                else "क्षमा करें, कनेक्शन में समस्या है। कृपया बाद में पुनः प्रयास करें।"
+            )
 
     def _has_ai_key(self) -> bool:
         if settings.AI_PROVIDER == "groq":
