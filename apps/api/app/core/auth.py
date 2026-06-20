@@ -146,9 +146,7 @@ def decode_token(token: str) -> TokenClaims:
     dept_id: str | None = app_meta.get("department_id") or payload.get("department_id") or None
 
     # Display name is non-sensitive, so user_metadata is acceptable here.
-    name: str | None = (
-        app_meta.get("name") or user_meta.get("name") or payload.get("name") or None
-    )
+    name: str | None = app_meta.get("name") or user_meta.get("name") or payload.get("name") or None
 
     return TokenClaims(user_id=sub, role=role, department_id=dept_id, name=name)
 

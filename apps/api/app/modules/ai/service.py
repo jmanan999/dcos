@@ -377,12 +377,13 @@ class AIService:
         """
         import hashlib
         import math
+
         dims = 768
         vec = [0.0] * dims
         words = text.lower().split()
         for i, token in enumerate(words):
             for n in (1, 2, 3):
-                ngrams = [token[j:j+n] for j in range(len(token)-n+1)] or [token]
+                ngrams = [token[j : j + n] for j in range(len(token) - n + 1)] or [token]
                 for gram in ngrams:
                     h = int(hashlib.md5(gram.encode()).hexdigest(), 16)  # noqa: S324
                     idx = h % dims

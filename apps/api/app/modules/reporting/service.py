@@ -85,7 +85,8 @@ class ReportingService:
 
     async def dept_scorecard_csv(self) -> tuple[str, int]:
         """Department scorecard as CSV from the materialized view."""
-        result = await self._db.execute(text("""
+        result = await self._db.execute(
+            text("""
             SELECT
                 department,
                 total,
@@ -98,7 +99,8 @@ class ReportingService:
                 reopen_rate
             FROM mv_dept_stats
             ORDER BY resolution_rate DESC NULLS LAST
-        """))
+        """)
+        )
         rows = result.fetchall()
         cols = list(result.keys())
 
@@ -112,12 +114,14 @@ class ReportingService:
 
     async def ward_stats_csv(self) -> tuple[str, int]:
         """Ward statistics as CSV."""
-        result = await self._db.execute(text("""
+        result = await self._db.execute(
+            text("""
             SELECT ward_name, district_name, total, open, resolved,
                    avg_resolution_hours, sla_breaches
             FROM mv_ward_stats
             ORDER BY open DESC
-        """))
+        """)
+        )
         rows = result.fetchall()
         cols = list(result.keys())
 

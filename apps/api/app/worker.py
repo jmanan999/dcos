@@ -163,11 +163,15 @@ async def relay_outbox(ctx: dict) -> dict[str, int]:
                     await queue.enqueue_job("enrich_grievance", aggregate_id)
                 elif event_type == "grievance.enriched" and queue:
                     await queue.enqueue_job("assign_grievance", aggregate_id)
-                elif event_type in (
-                    "grievance.assigned",
-                    "grievance.escalated",
-                    "grievance.reopened",
-                ) and queue:
+                elif (
+                    event_type
+                    in (
+                        "grievance.assigned",
+                        "grievance.escalated",
+                        "grievance.reopened",
+                    )
+                    and queue
+                ):
                     await queue.enqueue_job("notify_citizen", aggregate_id)
 
                 await session.execute(

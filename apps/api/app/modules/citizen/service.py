@@ -47,6 +47,7 @@ class CitizenService:
         row = grev.fetchone()
         if not row:
             from fastapi import HTTPException
+
             raise HTTPException(status_code=404, detail="Grievance not found")
 
         # Upsert feedback (unique per grievance)
@@ -71,14 +72,25 @@ class CitizenService:
         current_status = row[1]
         if current_status == "RESOLVED":
             if rating >= 3:
-                await self._transition(grievance_id, "RESOLVED", "VERIFIED", "citizen", "citizen", f"CSAT {rating}/5")
+                await self._transition(
+                    grievance_id, "RESOLVED", "VERIFIED", "citizen", "citizen", f"CSAT {rating}/5"
+                )
             else:
                 # Low rating = implicit reopen
-                await self._transition(grievance_id, "RESOLVED", "REOPENED", "citizen", "citizen", f"Low CSAT ({rating}/5) — reopened automatically")
+                await self._transition(
+                    grievance_id,
+                    "RESOLVED",
+                    "REOPENED",
+                    "citizen",
+                    "citizen",
+                    f"Low CSAT ({rating}/5) — reopened automatically",
+                )
                 await self._emit_outbox(str(grievance_id), "grievance.reopened")
 
         result = await self._db.execute(
-            text("SELECT id, grievance_id, rating, comment, created_at FROM feedback WHERE grievance_id = CAST(:gid AS uuid)"),
+            text(
+                "SELECT id, grievance_id, rating, comment, created_at FROM feedback WHERE grievance_id = CAST(:gid AS uuid)"
+            ),
             {"gid": str(grievance_id)},
         )
         fb_row = result.fetchone()
@@ -105,11 +117,13 @@ class CitizenService:
         row = grev.fetchone()
         if not row:
             from fastapi import HTTPException
+
             raise HTTPException(status_code=404, detail="Grievance not found")
 
         status = row[0]
         if status not in ("RESOLVED", "VERIFIED"):
             from fastapi import HTTPException
+
             raise HTTPException(
                 status_code=422,
                 detail=f"Can only reopen a RESOLVED or VERIFIED grievance, current status: {status}",
@@ -124,7 +138,8 @@ class CitizenService:
 
     async def get_public_stats(self) -> PublicKPISnapshot:
         """Return anonymized aggregated stats for the public transparency dashboard."""
-        totals = await self._db.execute(text("""
+        totals = await self._db.execute(
+            text("""
             SELECT
                 COUNT(*) AS total_filed,
                 COUNT(*) FILTER (WHERE status IN ('RESOLVED','VERIFIED','CLOSED')) AS total_resolved,
@@ -135,19 +150,23 @@ class CitizenService:
                     ) FILTER (WHERE closed_at IS NOT NULL),
                 2) AS avg_resolution_hours
             FROM grievances
-        """))
+        """)
+        )
         t = totals.fetchone()
 
-        by_cat = await self._db.execute(text("""
+        by_cat = await self._db.execute(
+            text("""
             SELECT category, COUNT(*) AS cnt
             FROM grievances
             WHERE category IS NOT NULL
             GROUP BY category
             ORDER BY cnt DESC
             LIMIT 10
-        """))
+        """)
+        )
 
-        by_dept = await self._db.execute(text("""
+        by_dept = await self._db.execute(
+            text("""
             SELECT d.name, COUNT(*) AS total,
                    COUNT(*) FILTER (WHERE g.status IN ('RESOLVED','VERIFIED','CLOSED')) AS resolved
             FROM grievances g
@@ -155,9 +174,11 @@ class CitizenService:
             GROUP BY d.name
             ORDER BY total DESC
             LIMIT 10
-        """))
+        """)
+        )
 
-        hotspots = await self._db.execute(text("""
+        hotspots = await self._db.execute(
+            text("""
             SELECT w.name, w.centroid_lat, w.centroid_lng,
                    COUNT(*) FILTER (WHERE g.status NOT IN ('RESOLVED','VERIFIED','CLOSED','REJECTED_SPAM')) AS open_count,
                    COUNT(*) AS total_count
@@ -167,7 +188,8 @@ class CitizenService:
             HAVING COUNT(*) > 0
             ORDER BY open_count DESC
             LIMIT 50
-        """))
+        """)
+        )
 
         dept_rows = by_dept.fetchall()
 

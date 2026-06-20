@@ -112,7 +112,9 @@ async def dispatch(
         {"status": status, "ext_id": external_id, "error": error, "id": str(notif_id)},
     )
 
-    log.info("notifications.dispatch", channel=channel, status=status, grievance_id=str(grievance_id))
+    log.info(
+        "notifications.dispatch", channel=channel, status=status, grievance_id=str(grievance_id)
+    )
     return status
 
 
@@ -205,5 +207,7 @@ def status_change_message(tracking_id: str, new_status: str, language: str = "en
         },
     }
     lang_map = labels.get(language, labels["en"])
-    template = lang_map.get(new_status, "Your complaint {tid} status has been updated to " + new_status + ".")
+    template = lang_map.get(
+        new_status, "Your complaint {tid} status has been updated to " + new_status + "."
+    )
     return template.format(tid=tracking_id)

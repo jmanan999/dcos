@@ -109,7 +109,11 @@ class RateLimitMiddleware:
     def _check(self, ip: str, path: str) -> bool:
         now = int(time.time())
         window = 60
-        limit = self._intake_limit if "/intake/grievances" in path and path.endswith("grievances") else self._global_limit
+        limit = (
+            self._intake_limit
+            if "/intake/grievances" in path and path.endswith("grievances")
+            else self._global_limit
+        )
 
         buckets = self._counters[ip]
         # Remove old buckets outside the window
@@ -127,12 +131,19 @@ class RateLimitMiddleware:
 
         # Skip rate limiting in local dev / test environments
         from app.core.config import settings as _settings
+
         if _settings.ENVIRONMENT == "local":
             await self.app(scope, receive, send)
             return
 
         request = Request(scope)
-        client_ip = request.headers.get("X-Forwarded-For", request.client.host if request.client else "unknown").split(",")[0].strip()
+        client_ip = (
+            request.headers.get(
+                "X-Forwarded-For", request.client.host if request.client else "unknown"
+            )
+            .split(",")[0]
+            .strip()
+        )
 
         if not self._check(client_ip, request.url.path):
             log.warning("rate_limit.exceeded", ip=client_ip, path=request.url.path)

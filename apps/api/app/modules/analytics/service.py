@@ -35,7 +35,8 @@ class AnalyticsService:
     # ── Real-time KPIs ────────────────────────────────────────────────────────
 
     async def get_kpis(self) -> KPISnapshot:
-        result = await self._db.execute(text("""
+        result = await self._db.execute(
+            text("""
             SELECT
                 COUNT(*)                                                        AS total_filed,
                 COUNT(*) FILTER (WHERE status NOT IN ('RESOLVED','VERIFIED','CLOSED','REJECTED_SPAM')) AS total_open,
@@ -59,12 +60,11 @@ class AnalyticsService:
                     FILTER (WHERE closed_at IS NOT NULL),
                 1)                                                              AS avg_resolution_hours
             FROM grievances
-        """))
+        """)
+        )
         row = result.fetchone()
 
-        csat = await self._db.execute(
-            text("SELECT ROUND(AVG(rating), 2) FROM feedback")
-        )
+        csat = await self._db.execute(text("SELECT ROUND(AVG(rating), 2) FROM feedback"))
         csat_row = csat.fetchone()
 
         return KPISnapshot(
@@ -99,7 +99,9 @@ class AnalyticsService:
             open_cnt = r[5] or 0
             total = r[6] or 1
             ratio = open_cnt / total
-            severity = "high" if ratio > 0.6 or open_cnt >= 20 else ("medium" if ratio > 0.3 else "low")
+            severity = (
+                "high" if ratio > 0.6 or open_cnt >= 20 else ("medium" if ratio > 0.3 else "low")
+            )
             hotspots.append(
                 WardHotspot(
                     ward_id=str(r[0]),
@@ -118,12 +120,14 @@ class AnalyticsService:
     # ── Department leaderboard ────────────────────────────────────────────────
 
     async def get_dept_leaderboard(self) -> list[DeptLeaderboardRow]:
-        result = await self._db.execute(text("""
+        result = await self._db.execute(
+            text("""
             SELECT department, total, resolved, open, sla_breaches,
                    resolution_rate, avg_resolution_hours, avg_csat, reopen_rate
             FROM mv_dept_stats
             ORDER BY resolution_rate DESC NULLS LAST
-        """))
+        """)
+        )
         rows = result.fetchall()
         return [
             DeptLeaderboardRow(
@@ -212,23 +216,57 @@ Rules:
         try:
             if settings.AI_PROVIDER in ("groq", "openrouter"):
                 import httpx
-                base_url = settings.GROQ_BASE_URL if settings.AI_PROVIDER == "groq" else settings.OPENROUTER_BASE_URL
-                api_key = settings.GROQ_API_KEY if settings.AI_PROVIDER == "groq" else settings.OPENROUTER_API_KEY
-                model = settings.GROQ_MODEL if settings.AI_PROVIDER == "groq" else settings.OPENROUTER_MODEL
+
+                base_url = (
+                    settings.GROQ_BASE_URL
+                    if settings.AI_PROVIDER == "groq"
+                    else settings.OPENROUTER_BASE_URL
+                )
+                api_key = (
+                    settings.GROQ_API_KEY
+                    if settings.AI_PROVIDER == "groq"
+                    else settings.OPENROUTER_API_KEY
+                )
+                model = (
+                    settings.GROQ_MODEL
+                    if settings.AI_PROVIDER == "groq"
+                    else settings.OPENROUTER_MODEL
+                )
                 async with httpx.AsyncClient(timeout=30) as client:
                     r = await client.post(
                         f"{base_url}/chat/completions",
-                        json={"model": model, "messages": [{"role": "user", "content": prompt}], "temperature": 0.0},
-                        headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+                        json={
+                            "model": model,
+                            "messages": [{"role": "user", "content": prompt}],
+                            "temperature": 0.0,
+                        },
+                        headers={
+                            "Authorization": f"Bearer {api_key}",
+                            "Content-Type": "application/json",
+                        },
                     )
                 r.raise_for_status()
-                sql = r.json()["choices"][0]["message"]["content"].strip().removeprefix("```sql").removeprefix("```").removesuffix("```").strip()
+                sql = (
+                    r.json()["choices"][0]["message"]["content"]
+                    .strip()
+                    .removeprefix("```sql")
+                    .removeprefix("```")
+                    .removesuffix("```")
+                    .strip()
+                )
             else:
                 import google.generativeai as genai
+
                 genai.configure(api_key=settings.GEMINI_API_KEY)
                 model = genai.GenerativeModel(settings.GEMINI_MODEL_DEFAULT)
                 response = model.generate_content(prompt)
-                sql = response.text.strip().removeprefix("```sql").removeprefix("```").removesuffix("```").strip()
+                sql = (
+                    response.text.strip()
+                    .removeprefix("```sql")
+                    .removeprefix("```")
+                    .removesuffix("```")
+                    .strip()
+                )
 
             # Safety: block any non-SELECT
             if not sql.upper().lstrip().startswith("SELECT"):
@@ -243,9 +281,7 @@ Rules:
 
         except Exception as exc:
             log.error("analytics.nl_query.error", error=str(exc))
-            return NLQueryResponse(
-                question=req.question, sql="", results=[], error=str(exc)
-            )
+            return NLQueryResponse(question=req.question, sql="", results=[], error=str(exc))
 
     # ── Executive brief ───────────────────────────────────────────────────────
 
@@ -254,7 +290,9 @@ Rules:
         leaderboard = await self.get_dept_leaderboard()
         hotspots = await self.get_hotspots(limit=5)
 
-        top_backlog = [r.department for r in sorted(leaderboard, key=lambda x: x.open, reverse=True)[:3]]
+        top_backlog = [
+            r.department for r in sorted(leaderboard, key=lambda x: x.open, reverse=True)[:3]
+        ]
         top_wards = [h.ward_name for h in hotspots[:3]]
 
         sections = [
@@ -285,9 +323,7 @@ Rules:
                     + (
                         "Bottom performers by resolution rate: "
                         + ", ".join(
-                            r.department
-                            for r in leaderboard[-3:]
-                            if r.resolution_rate is not None
+                            r.department for r in leaderboard[-3:] if r.resolution_rate is not None
                         )
                         if leaderboard
                         else ""
