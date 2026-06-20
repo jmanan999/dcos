@@ -11,6 +11,8 @@ export const T = {
   "nav.transparency": { en: "Transparency", hi: "पारदर्शिता" },
   "nav.signin": { en: "Sign in", hi: "साइन इन करें" },
   "nav.file_btn": { en: "File Complaint", hi: "शिकायत दर्ज करें" },
+  "hero.title1": { en: "Aapki shikayat,", hi: "आपकी शिकायत," },
+  "hero.title2": { en: "sarkar tak pahunche.", hi: "सरकार तक पहुंचे।" },
   "hero.badge": { en: "Live across the National Capital Territory", hi: "राष्ट्रीय राजधानी क्षेत्र में लाइव" },
   "hero.subtitle": { en: "The unified grievance platform for Delhi. File a civic complaint, let AI route it to the right department, and track it end-to-end with real accountability.", hi: "दिल्ली के लिए एकीकृत शिकायत मंच। एक नागरिक शिकायत दर्ज करें, AI इसे सही विभाग में रूट करे, और पूरी जिम्मेदारी के साथ ट्रैक करें।" },
   "hero.emergency": { en: "Emergency? Call", hi: "आपातकालीन? कॉल करें" },

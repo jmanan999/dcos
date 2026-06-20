@@ -1,33 +1,38 @@
+"use client";
+
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
-
-const COLS = [
-  {
-    title: "Citizens",
-    links: [
-      { href: "/file", label: "File a Complaint" },
-      { href: "/track", label: "Track Status" },
-      { href: "/login", label: "Sign in" },
-    ],
-  },
-  {
-    title: "Transparency",
-    links: [
-      { href: "/transparency", label: "Public Dashboard" },
-      { href: "/transparency/departments", label: "Department Performance" },
-      { href: "/transparency/map", label: "Ward Map" },
-    ],
-  },
-  {
-    title: "Government",
-    links: [
-      { href: "/login", label: "Officer Login" },
-      { href: "/login", label: "Command Center" },
-    ],
-  },
-];
+import { useLanguage } from "@/lib/i18n";
 
 export function Footer() {
+  const { t } = useLanguage();
+
+  const COLS = [
+    {
+      title: t("footer.citizens"),
+      links: [
+        { href: "/file", label: t("nav.file") },
+        { href: "/track", label: t("nav.track") },
+        { href: "/login", label: t("nav.signin") },
+      ],
+    },
+    {
+      title: t("footer.transparency"),
+      links: [
+        { href: "/transparency", label: "Public Dashboard" },
+        { href: "/transparency/departments", label: "Department Performance" },
+        { href: "/transparency/map", label: "Ward Map" },
+      ],
+    },
+    {
+      title: t("footer.government"),
+      links: [
+        { href: "/login", label: t("footer.officer_login") },
+        { href: "/login", label: t("footer.command") },
+      ],
+    },
+  ];
+
   return (
     <footer className="border-t border-border bg-card">
       <div className="container py-12">
@@ -45,7 +50,7 @@ export function Footer() {
               </div>
             </div>
             <p className="mt-4 max-w-xs text-sm text-muted-foreground">
-              A unified civic grievance platform for the National Capital Territory of Delhi.
+              {t("footer.description")}
             </p>
           </div>
 
@@ -55,10 +60,7 @@ export function Footer() {
               <ul className="mt-3 space-y-2">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link
-                      href={l.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
-                    >
+                    <Link href={l.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
                       {l.label}
                     </Link>
                   </li>
@@ -70,10 +72,10 @@ export function Footer() {
 
         <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-center sm:flex-row sm:text-left">
           <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} Government of NCT of Delhi. All rights reserved.
+            © {new Date().getFullYear()} {t("footer.copyright")}
           </p>
           <p className="text-xs text-muted-foreground">
-            Helpline 1031 · Emergency 112 · DPDP Act 2023 compliant
+            {t("footer.helpline")} · DPDP Act 2023 compliant
           </p>
         </div>
       </div>
