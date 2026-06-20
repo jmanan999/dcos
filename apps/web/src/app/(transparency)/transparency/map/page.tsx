@@ -1,56 +1,79 @@
 "use client";
 
-import { MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton } from "@dcos/ui";
+import { GisMap, type MapWard } from "@/components/GisMap";
 import { usePublicStats } from "@/lib/hooks";
 
 export default function TransparencyMap() {
   const { data } = usePublicStats();
 
+  const wards: MapWard[] = (data?.hotspots ?? [])
+    .filter((h) => h.lat && h.lng)
+    .map((h) => ({
+      ward_name: h.ward_name,
+      lat: h.lat,
+      lng: h.lng,
+      open: h.open_count,
+      total: h.total_count,
+    }));
+
   return (
     <div className="grid gap-6 lg:grid-cols-3">
       {/* Map */}
-      <Card className="lg:col-span-2">
-        <CardContent className="p-0">
-          <div className="flex h-[460px] items-center justify-center rounded-xl bg-muted/40">
-            <div className="text-center">
-              <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm">
-                <MapPin className="h-6 w-6" />
-              </span>
-              <p className="text-sm font-medium text-foreground">Interactive ward heatmap</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                MapLibre GL + Delhi ward GeoJSON · {data?.hotspots.length ?? 0} wards with data
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="lg:col-span-2">
+        {wards.length === 0 ? (
+          <Skeleton className="h-[460px] w-full rounded-xl" />
+        ) : (
+          <GisMap wards={wards} theme="light" height="h-[460px]" />
+        )}
+        <p className="mt-2 text-xs text-muted-foreground">
+          {wards.length} wards shown · circle size = complaint volume ·{" "}
+          <span className="font-medium text-destructive">red</span> = high load ·{" "}
+          <span className="font-medium text-warning">amber</span> = medium ·{" "}
+          <span className="font-medium text-success">green</span> = low
+        </p>
+      </div>
 
-      {/* Ward list */}
+      {/* Sidebar */}
       <Card>
         <CardHeader>
           <CardTitle>Wards by open load</CardTitle>
         </CardHeader>
         <CardContent>
-          {!data ? (
+          {wards.length === 0 ? (
             <div className="space-y-2">
-              {[0, 1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-12 rounded-lg" />
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-11 rounded-lg" />
               ))}
             </div>
           ) : (
             <div className="max-h-[380px] space-y-2 overflow-y-auto scrollbar-thin pr-1">
-              {data.hotspots.slice(0, 20).map((h) => (
-                <div
-                  key={h.ward_name}
-                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
-                >
-                  <span className="truncate text-sm text-foreground">{h.ward_name}</span>
-                  <Badge variant={h.open_count >= 20 ? "error" : h.open_count >= 10 ? "warning" : "success"} dot>
-                    {h.open_count}
-                  </Badge>
-                </div>
-              ))}
+              {wards
+                .sort((a, b) => b.open - a.open)
+                .slice(0, 20)
+                .map((w) => {
+                  const ratio = w.total > 0 ? w.open / w.total : 0;
+                  const sev =
+                    w.open >= 20 || ratio > 0.6
+                      ? "error"
+                      : w.open >= 10 || ratio > 0.3
+                        ? "warning"
+                        : "success";
+                  return (
+                    <div
+                      key={w.ward_name}
+                      className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                    >
+                      <div>
+                        <p className="text-sm text-foreground">{w.ward_name}</p>
+                        <p className="text-2xs text-muted-foreground">{w.total} total filed</p>
+                      </div>
+                      <Badge variant={sev} dot>
+                        {w.open} open
+                      </Badge>
+                    </div>
+                  );
+                })}
             </div>
           )}
         </CardContent>

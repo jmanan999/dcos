@@ -1,70 +1,100 @@
 "use client";
 
-import { MapPin } from "lucide-react";
-import {
-  PageHeader,
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  Badge,
-  Skeleton,
-} from "@dcos/ui";
+import { PageHeader, Card, CardContent, CardHeader, CardTitle, Badge, Skeleton } from "@dcos/ui";
+import { GisMap } from "@/components/GisMap";
+import type { MapWard } from "@/components/GisMap";
 import { useHotspots } from "@/lib/hooks";
 
 const LEGEND = [
-  { label: "High (20+ open)", variant: "error" as const },
-  { label: "Medium (10–19)", variant: "warning" as const },
-  { label: "Low (<10)", variant: "success" as const },
+  { label: "High — 20+ open or >60% unresolved", color: "#ef4444" },
+  { label: "Medium — 10–19 open", color: "#f59e0b" },
+  { label: "Low — < 10 open", color: "#22c55e" },
 ];
 
 export default function CMMap() {
-  const { data } = useHotspots(200);
+  const { data, isLoading } = useHotspots(500);
 
   return (
-    <div className="space-y-6">
-      <PageHeader title="GIS Heatmap" description="Ward-level grievance density across Delhi NCT." />
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardContent className="p-0">
-            <div className="flex h-[520px] flex-col items-center justify-center rounded-xl bg-muted/40">
-              <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm">
-                <MapPin className="h-6 w-6" />
+    <div className="flex h-[calc(100vh-5rem)] flex-col gap-4">
+      <PageHeader
+        title="GIS Ward Heatmap"
+        description={`${data?.length ?? 0} Delhi wards · hover for details · circle size = complaint volume`}
+        actions={
+          <div className="flex items-center gap-3">
+            {LEGEND.map((l) => (
+              <span key={l.label} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span
+                  className="inline-block h-3 w-3 rounded-full"
+                  style={{ backgroundColor: l.color }}
+                />
+                {l.label}
               </span>
-              <p className="text-sm font-medium text-foreground">Interactive MapLibre heatmap</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {data?.length ?? 0} wards · red/yellow/green by open load
-              </p>
-              <div className="mt-5 flex gap-3">
-                {LEGEND.map((l) => (
-                  <Badge key={l.label} variant={l.variant} dot>
-                    {l.label}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            ))}
+          </div>
+        }
+      />
 
-        <Card>
-          <CardHeader>
+      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-4">
+        {/* Map — takes 3/4 width */}
+        <div className="lg:col-span-3">
+          {isLoading ? (
+            <Skeleton className="h-full w-full rounded-xl" />
+          ) : (
+            <GisMap
+              wards={(data ?? [])
+                .filter((w) => w.lat != null && w.lng != null)
+                .map((w): MapWard => ({ ...w, lat: w.lat!, lng: w.lng! }))}
+              theme="dark"
+              height="h-full"
+              className="min-h-[500px]"
+            />
+          )}
+        </div>
+
+        {/* Sidebar — top wards */}
+        <Card className="flex flex-col overflow-hidden">
+          <CardHeader className="shrink-0">
             <CardTitle>Worst wards</CardTitle>
           </CardHeader>
-          <CardContent>
-            {!data ? (
-              <div className="space-y-2">{[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-11 rounded-lg" />)}</div>
-            ) : (
-              <div className="max-h-[440px] space-y-2 overflow-y-auto scrollbar-thin pr-1">
-                {data.slice(0, 20).map((h) => (
-                  <div key={h.ward_id} className="flex items-center justify-between rounded-lg border border-border px-3 py-2">
-                    <span className="truncate text-sm text-foreground">{h.ward_name}</span>
-                    <Badge variant={h.severity === "high" ? "error" : h.severity === "medium" ? "warning" : "success"} dot>
-                      {h.open}
-                    </Badge>
-                  </div>
+          <CardContent className="min-h-0 flex-1 overflow-y-auto p-0 scrollbar-thin">
+            {isLoading ? (
+              <div className="space-y-2 p-4">
+                {[...Array(8)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 rounded-lg" />
                 ))}
               </div>
+            ) : (
+              <ul className="divide-y divide-border/60">
+                {(data ?? []).slice(0, 30).map((w) => (
+                  <li key={w.ward_id} className="flex items-center justify-between px-4 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-foreground">{w.ward_name}</p>
+                      {w.district_name && (
+                        <p className="text-2xs text-muted-foreground">{w.district_name}</p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
+                      {w.sla_breaches > 0 && (
+                        <span className="text-2xs font-semibold text-destructive">
+                          {w.sla_breaches}↑
+                        </span>
+                      )}
+                      <Badge
+                        variant={
+                          w.severity === "high"
+                            ? "error"
+                            : w.severity === "medium"
+                              ? "warning"
+                              : "success"
+                        }
+                        dot
+                      >
+                        {w.open}
+                      </Badge>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </CardContent>
         </Card>
