@@ -28,6 +28,7 @@ import {
   useToast,
 } from "@dcos/ui";
 import { apiFetch } from "@/lib/api";
+import { useLanguage } from "@/lib/i18n";
 
 const LANGUAGES = [
   { code: "hi", label: "हिंदी" },
@@ -36,11 +37,7 @@ const LANGUAGES = [
   { code: "ur", label: "اردو" },
 ];
 
-const STEPS = [
-  { icon: MessageSquare, label: "Describe" },
-  { icon: MapPin, label: "Location" },
-  { icon: UserRound, label: "Review" },
-];
+// Steps are translated inline where used
 
 interface Result {
   tracking_id: string;
@@ -51,6 +48,13 @@ interface Result {
 
 export default function FilePage() {
   const { toast } = useToast();
+  const { t } = useLanguage();
+  const STEPS = [
+    { icon: MessageSquare, label: t("file.step_describe") },
+    { icon: MapPin, label: t("file.step_location") },
+    { icon: UserRound, label: t("file.step_review") },
+  ];
+
   const [step, setStep] = useState(0);
   const [text, setText] = useState("");
   const [language, setLanguage] = useState("hi");
@@ -68,9 +72,9 @@ export default function FilePage() {
       (pos) => {
         setLat(pos.coords.latitude);
         setLng(pos.coords.longitude);
-        toast({ variant: "success", title: "Location captured" });
+        toast({ variant: "success", title: t("file.location_label") });
       },
-      () => toast({ variant: "warning", title: "Location denied", description: "You can still file without it." })
+      () => toast({ variant: "warning", title: "Location denied", description: t("file.location_label") })
     );
   };
 
@@ -110,7 +114,7 @@ export default function FilePage() {
     return (
       <div className="mx-auto max-w-xl space-y-4">
         {result.is_emergency && (
-          <Alert variant="error" title="Emergency detected — call 112 now" icon={<AlertTriangle className="h-4 w-4" />}>
+          <Alert variant="error" title={t("file.emergency_title")} icon={<AlertTriangle className="h-4 w-4" />}>
             Police 100 · Fire 101 · Ambulance 102. {result.emergency_guidance}
           </Alert>
         )}
@@ -120,7 +124,7 @@ export default function FilePage() {
               <CheckCircle2 className="h-7 w-7" />
             </span>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Complaint filed</h1>
+              <h1 className="text-xl font-bold text-foreground">{t("file.success_title")}</h1>
               <p className="mt-1 text-sm text-muted-foreground">{result.message}</p>
             </div>
             <div className="mx-auto flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-2.5">
@@ -128,7 +132,7 @@ export default function FilePage() {
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(result.tracking_id);
-                  toast({ variant: "success", title: "Copied" });
+                  toast({ variant: "success", title: t("file.copied") });
                 }}
                 className="text-muted-foreground hover:text-foreground"
               >
@@ -137,7 +141,7 @@ export default function FilePage() {
             </div>
             <div className="flex justify-center gap-3">
               <Link href={`/track/${result.tracking_id}`}>
-                <Button>Track this complaint <ArrowRight className="h-4 w-4" /></Button>
+                <Button>{t("file.track_btn")} <ArrowRight className="h-4 w-4" /></Button>
               </Link>
               <Button
                 variant="outline"
@@ -151,7 +155,7 @@ export default function FilePage() {
                   setFiles([]);
                 }}
               >
-                File another
+                {t("file.file_another")}
               </Button>
             </div>
           </CardContent>
@@ -165,10 +169,8 @@ export default function FilePage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">File a Complaint</h1>
-        <p className="text-sm text-muted-foreground">
-          Apni shikayat darj karein — it reaches the right department automatically.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("file.title")}</h1>
+        <p className="text-sm text-muted-foreground">{t("file.subtitle")}</p>
       </div>
 
       {/* Stepper */}
@@ -227,14 +229,11 @@ export default function FilePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="desc" required>Describe the problem</Label>
+                <Label htmlFor="desc" required>{t("file.desc_label")}</Label>
                 <Textarea
-                  id="desc"
-                  rows={6}
-                  value={text}
+                  id="desc" rows={6} value={text}
                   onChange={(e) => setText(e.target.value)}
-                  maxLength={5000}
-                  placeholder="e.g. Sadak pe bahut bada gadda hai market ke paas. 3 din se koi nahi aaya…"
+                  maxLength={5000} placeholder={t("file.desc_placeholder")}
                 />
                 <p className="text-right text-2xs text-muted-foreground">{text.length} / 5000</p>
               </div>
@@ -245,10 +244,10 @@ export default function FilePage() {
           {step === 1 && (
             <div className="space-y-5 animate-fade-in">
               <div className="space-y-2">
-                <Label>Location (optional)</Label>
+                <Label>{t("file.location_label")}</Label>
                 <div className="flex items-center gap-3">
                   <Button variant="outline" size="sm" onClick={geolocate}>
-                    <Locate className="h-4 w-4" /> Use my location
+                    <Locate className="h-4 w-4" /> {t("file.use_location")}
                   </Button>
                   {lat && lng && (
                     <span className="font-mono text-xs text-success">
@@ -257,25 +256,19 @@ export default function FilePage() {
                   )}
                 </div>
                 <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
-                  {lat && lng ? "📍 Location pinned" : "Map preview — capture or pin your location"}
+                  {lat && lng ? "📍 Location pinned" : t("file.map_placeholder")}
                 </div>
               </div>
               <div className="space-y-2">
-                <Label>Photos / video (optional)</Label>
+                <Label>{t("file.photo_label")}</Label>
                 <button
                   onClick={() => fileRef.current?.click()}
                   className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-6 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
                 >
-                  <Camera className="h-5 w-5" /> Tap to add evidence
+                  <Camera className="h-5 w-5" /> {t("file.photo_tap")}
                 </button>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  multiple
-                  accept="image/*,video/*,audio/*"
-                  className="hidden"
-                  onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-                />
+                <input ref={fileRef} type="file" multiple accept="image/*,video/*,audio/*"
+                  className="hidden" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
                 {files.length > 0 && (
                   <p className="text-xs text-muted-foreground">{files.length} file(s) selected</p>
                 )}
@@ -287,7 +280,7 @@ export default function FilePage() {
           {step === 2 && (
             <div className="space-y-5 animate-fade-in">
               <div className="rounded-lg border border-border bg-muted/30 p-4">
-                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">Your complaint</p>
+                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">{t("file.your_complaint")}</p>
                 <p className="mt-1.5 text-sm text-foreground line-clamp-4">{text}</p>
                 <div className="mt-3 flex flex-wrap gap-2 text-2xs text-muted-foreground">
                   <span className="rounded-full bg-card px-2 py-0.5 ring-1 ring-border">
@@ -299,29 +292,19 @@ export default function FilePage() {
               </div>
 
               <label className="flex items-center gap-2.5 text-sm">
-                <input
-                  type="checkbox"
-                  checked={anonymous}
+                <input type="checkbox" checked={anonymous}
                   onChange={(e) => setAnonymous(e.target.checked)}
-                  className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
-                />
-                <span className="text-foreground">File anonymously</span>
+                  className="h-4 w-4 rounded border-input text-primary focus:ring-ring" />
+                <span className="text-foreground">{t("file.anonymous")}</span>
               </label>
 
               {!anonymous && (
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Mobile number for updates</Label>
-                  <Input
-                    id="phone"
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="+91 98765 43210"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                  <p className="text-2xs text-muted-foreground">
-                    We&apos;ll send WhatsApp/SMS updates at every step.
-                  </p>
+                  <Label htmlFor="phone">{t("file.phone_label")}</Label>
+                  <Input id="phone" type="tel" inputMode="numeric"
+                    placeholder={t("file.phone_placeholder")}
+                    value={phone} onChange={(e) => setPhone(e.target.value)} />
+                  <p className="text-2xs text-muted-foreground">{t("file.phone_hint")}</p>
                 </div>
               )}
             </div>
@@ -331,18 +314,18 @@ export default function FilePage() {
           <div className="flex items-center justify-between pt-2">
             {step > 0 ? (
               <Button variant="ghost" onClick={() => setStep(step - 1)}>
-                <ArrowLeft className="h-4 w-4" /> Back
+                <ArrowLeft className="h-4 w-4" /> {t("file.back")}
               </Button>
             ) : (
               <span />
             )}
             {step < STEPS.length - 1 ? (
               <Button onClick={() => setStep(step + 1)} disabled={!canNext}>
-                Continue <ArrowRight className="h-4 w-4" />
+                {t("file.continue")} <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
               <Button onClick={submit} loading={submitting}>
-                Submit Complaint
+                {submitting ? t("file.submitting") : t("file.submit")}
               </Button>
             )}
           </div>

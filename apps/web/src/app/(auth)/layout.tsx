@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { ShieldCheck, CheckCircle2 } from "lucide-react";
+import { LanguageProvider } from "@/lib/i18n";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
+    <LanguageProvider>
     <div className="grid min-h-screen lg:grid-cols-2">
       {/* Brand panel */}
       <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-12 text-white lg:flex">
@@ -48,5 +50,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <div className="w-full max-w-sm">{children}</div>
       </div>
     </div>
+    </LanguageProvider>
   );
 }
