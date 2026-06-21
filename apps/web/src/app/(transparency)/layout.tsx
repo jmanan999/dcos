@@ -8,9 +8,10 @@ import { LanguageProvider, useLanguage } from "@/lib/i18n";
 function TransparencyHeader() {
   const { t } = useLanguage();
   const TABS = [
-    { href: "/transparency", label: t("transparency.overview") },
+    { href: "/transparency",             label: t("transparency.overview") },
+    { href: "/transparency/wards",       label: "Ward Index" },
     { href: "/transparency/departments", label: t("transparency.departments") },
-    { href: "/transparency/map", label: t("transparency.map") },
+    { href: "/transparency/map",         label: t("transparency.map") },
   ];
   return (
     <div className="border-b border-border bg-card/40">

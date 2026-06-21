@@ -243,3 +243,96 @@ export interface AuditSample {
 }
 export const useAuditSample = (limit = 20) =>
   useSWR<AuditSample>(`/analytics/audit-sample?limit=${limit}`, swrFetcher, REFRESH);
+
+// ── Intelligence Layer (Governance OS) ────────────────────────────────────────
+
+export interface EconomicDragItem {
+  category: string;
+  open_count: number;
+  avg_days_open: number;
+  daily_cost_per_complaint: number;
+  total_daily_drag: number;
+  total_monthly_projection: number;
+}
+export interface EconomicDragReport {
+  total_daily_drag_inr: number;
+  total_monthly_projection_inr: number;
+  total_annual_projection_inr: number;
+  trend_vs_last_week_pct: number;
+  by_category: EconomicDragItem[];
+  top_drain_category: string;
+  top_drain_daily_inr: number;
+}
+export const useEconomicDrag = () =>
+  useSWR<EconomicDragReport>("/analytics/economic-drag", swrFetcher, REFRESH);
+
+export interface WardIntelligence {
+  ward_name: string;
+  district_name: string | null;
+  wpi: number;
+  wpi_grade: string;
+  wpi_rank: number;
+  total_complaints: number;
+  open_complaints: number;
+  resolution_rate: number;
+  sla_compliance_rate: number;
+  avg_resolution_hours: number;
+  reopen_rate: number;
+  economic_drag_daily_inr: number;
+  wpi_change_30d: number;
+}
+export interface WardIndexReport {
+  wards: WardIntelligence[];
+  city_avg_wpi: number;
+  total_wards_ranked: number;
+  top_5: string[];
+  bottom_5: string[];
+  total_economic_drag_daily: number;
+  wards_in_crisis: number;
+}
+export const useWardIndex = () =>
+  useSWR<WardIndexReport>("/analytics/ward-index", swrFetcher, { ...REFRESH, refreshInterval: 300_000 });
+
+export interface PredictiveAlert {
+  ward_name: string;
+  district_name: string | null;
+  alert_type: string;
+  category: string;
+  predicted_spike_pct: number;
+  confidence_pct: number;
+  days_until_peak: number;
+  estimated_complaints: number;
+  economic_impact_if_ignored_lakh: number;
+  recommended_action: string;
+  urgency: string;
+}
+export interface PredictiveReport {
+  alerts: PredictiveAlert[];
+  total_wards_at_risk: number;
+  highest_risk_category: string;
+  total_economic_risk_lakh: number;
+  monsoon_risk_score: number;
+  pre_emptive_budget_recommendation_lakh: number;
+}
+export const usePredictions = () =>
+  useSWR<PredictiveReport>("/analytics/predictions", swrFetcher, REFRESH);
+
+export interface GovernanceScorecard {
+  date: string;
+  city_health_score: number;
+  city_health_grade: string;
+  daily_economic_drag_inr: number;
+  daily_economic_drag_vs_last_week_pct: number;
+  top_5_economic_drains: { category: string; daily_inr: number }[];
+  top_5_worst_wards: { ward: string; wpi: number; district: string | null }[];
+  top_5_contractor_risks: { dept: string; waste_lakh: number }[];
+  top_5_predictive_alerts: { ward: string; category: string; spike_pct: number; impact_lakh: number }[];
+  wpi_improving_wards: number;
+  wpi_declining_wards: number;
+  complaints_filed_7d: number;
+  complaints_resolved_7d: number;
+  resolution_rate_7d: number;
+  chief_secretary_action_items: string[];
+}
+export const useGovernanceScorecard = () =>
+  useSWR<GovernanceScorecard>("/analytics/governance-scorecard", swrFetcher, REFRESH);
