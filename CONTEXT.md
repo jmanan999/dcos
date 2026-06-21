@@ -54,6 +54,7 @@
 | **i18n** | Hindi/English auto-translation via Groq | ✅ Done |
 | **GIS** | MapLibre ward heatmap (CM + transparency) | ✅ Done |
 | **Chatbot** | JanSetu Assistant — FAQ + Groq AI fallback, bilingual | ✅ Done |
+| **WhatsApp** | Full interactive intake — language/menu/guided flow/reports | ✅ Done |
 
 ---
 

@@ -70,7 +70,7 @@ or API calls will be silently blocked.
 
 ## 🟡 High-value features not yet built
 
-### 6. WhatsApp intake channel — 🚧 IN PROGRESS
+### 6. WhatsApp intake channel — ✅ DONE
 Code is complete + tested. Need to complete Meta setup:
 
 **Step 1 — Create Meta App:**
