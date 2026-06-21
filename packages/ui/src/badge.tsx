@@ -1,7 +1,6 @@
 import * as React from "react";
 import { cn } from "./utils";
 
-// Inline the GrievanceStatus type to avoid cross-package resolution issues in CI
 type GrievanceStatus =
   | "RECEIVED"
   | "CLASSIFIED"
@@ -20,35 +19,45 @@ interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   dot?: boolean;
 }
 
+/* Rectangular chips — no pill radius. Status dot replaces background color. */
 const variantClasses = {
-  default: "bg-muted text-muted-foreground",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
-  error: "bg-destructive/10 text-destructive",
-  info: "bg-info/10 text-info",
-  outline: "border border-border text-foreground",
+  default: "bg-muted text-muted-foreground border border-border",
+  success: "bg-success/8 text-success border border-success/20",
+  warning: "bg-warning/8 text-warning border border-warning/20",
+  error:   "bg-destructive/8 text-destructive border border-destructive/20",
+  info:    "bg-primary/8 text-primary border border-primary/20",
+  outline: "border border-border text-foreground bg-transparent",
 };
 
 const dotClasses = {
   default: "bg-muted-foreground",
   success: "bg-success",
   warning: "bg-warning",
-  error: "bg-destructive",
-  info: "bg-info",
+  error:   "bg-destructive",
+  info:    "bg-primary",
   outline: "bg-muted-foreground",
 };
 
-export function Badge({ variant = "default", dot, className, children, ...props }: BadgeProps) {
+export function Badge({
+  variant = "default",
+  dot,
+  className,
+  children,
+  ...props
+}: BadgeProps) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium",
+        "inline-flex items-center gap-1.5 rounded px-2 py-0.5",
+        "text-[10px] font-bold tracking-[0.08em] uppercase",
         variantClasses[variant],
         className
       )}
       {...props}
     >
-      {dot && <span className={cn("h-1.5 w-1.5 rounded-full", dotClasses[variant])} />}
+      {dot && (
+        <span className={cn("h-[7px] w-[7px] rounded-full flex-shrink-0", dotClasses[variant])} />
+      )}
       {children}
     </span>
   );
@@ -61,37 +70,37 @@ export function SeverityBadge({ score }: { score: number }) {
     score >= 80 ? "Critical" : score >= 60 ? "High" : score >= 40 ? "Medium" : "Low";
   return (
     <Badge variant={variant} dot>
-      {label} · {score}
+      {label}
     </Badge>
   );
 }
 
 const STATUS_VARIANT: Record<GrievanceStatus, BadgeProps["variant"]> = {
-  RECEIVED: "default",
-  CLASSIFIED: "info",
-  ASSIGNED: "info",
-  IN_PROGRESS: "warning",
-  ACTION_TAKEN: "warning",
-  RESOLVED: "success",
-  VERIFIED: "success",
-  CLOSED: "success",
-  REOPENED: "error",
-  ESCALATED: "error",
+  RECEIVED:      "default",
+  CLASSIFIED:    "info",
+  ASSIGNED:      "info",
+  IN_PROGRESS:   "warning",
+  ACTION_TAKEN:  "warning",
+  RESOLVED:      "success",
+  VERIFIED:      "success",
+  CLOSED:        "success",
+  REOPENED:      "error",
+  ESCALATED:     "error",
   REJECTED_SPAM: "default",
 };
 
 const STATUS_LABEL: Record<GrievanceStatus, string> = {
-  RECEIVED: "Received",
-  CLASSIFIED: "Categorised",
-  ASSIGNED: "Assigned",
-  IN_PROGRESS: "In Progress",
-  ACTION_TAKEN: "Action Taken",
-  RESOLVED: "Resolved",
-  VERIFIED: "Verified",
-  REOPENED: "Reopened",
-  CLOSED: "Closed",
+  RECEIVED:      "Received",
+  CLASSIFIED:    "Categorised",
+  ASSIGNED:      "Assigned",
+  IN_PROGRESS:   "In Progress",
+  ACTION_TAKEN:  "Action Taken",
+  RESOLVED:      "Resolved",
+  VERIFIED:      "Verified",
+  REOPENED:      "Reopened",
+  CLOSED:        "Closed",
   REJECTED_SPAM: "Rejected",
-  ESCALATED: "Escalated",
+  ESCALATED:     "Escalated",
 };
 
 export function StatusBadge({ status }: { status: GrievanceStatus }) {

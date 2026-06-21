@@ -1,11 +1,7 @@
 "use client";
 
 import { usePublicStats } from "@/lib/hooks";
-
-function fmt(n: number | null | undefined): string {
-  if (n == null) return "—";
-  return n.toLocaleString("en-IN");
-}
+import { TrendingUp } from "lucide-react";
 
 export function LiveStats() {
   const { data } = usePublicStats();
@@ -16,34 +12,26 @@ export function LiveStats() {
       : null;
 
   const items = [
-    {
-      value: fmt(data?.total_filed),
-      label: "Complaints filed",
-    },
-    {
-      value: resolveRate != null ? `${resolveRate}%` : "—",
-      label: "Resolved on time",
-    },
-    {
-      value: data?.avg_resolution_hours != null
-        ? `${Math.round(data.avg_resolution_hours)}h`
-        : "—",
-      label: "Avg resolution time",
-    },
-    {
-      value: fmt(data?.by_department?.length ?? 12),
-      label: "Departments tracked",
-    },
+    { label: "Complaints filed",   value: data?.total_filed?.toLocaleString("en-IN") ?? "—", trend: "All time" },
+    { label: "Resolved on time",   value: resolveRate != null ? `${resolveRate}%` : "—", trend: "Within SLA" },
+    { label: "Avg resolution",     value: data?.avg_resolution_hours != null ? `${Math.round(data.avg_resolution_hours)}h` : "—", trend: "End to end" },
+    { label: "Departments tracked",value: String(data?.by_department?.length ?? 12), trend: "Full coverage" },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border">
+    <div className="grid grid-cols-2 divide-x divide-border sm:grid-cols-4">
       {items.map((it) => (
-        <div key={it.label} className="px-6 py-8 sm:px-8">
-          <p className="text-3xl font-bold tracking-tight text-foreground tabular-nums">
+        <div key={it.label} className="group px-8 py-10 transition-colors hover:bg-secondary/30">
+          <p className="label-caps text-muted-foreground group-hover:text-primary transition-colors">
+            {it.label}
+          </p>
+          <p className="mt-4 text-5xl font-bold text-foreground tabular-nums tracking-tight">
             {it.value}
           </p>
-          <p className="mt-1.5 text-sm text-muted-foreground">{it.label}</p>
+          <div className="mt-3 flex items-center gap-1">
+            <TrendingUp className="h-3 w-3 text-primary" />
+            <p className="label-caps text-primary">{it.trend}</p>
+          </div>
         </div>
       ))}
     </div>

@@ -14,7 +14,8 @@ const variants = {
     "bg-secondary text-secondary-foreground hover:bg-secondary/70 focus-visible:ring-ring",
   outline:
     "border border-border bg-card text-foreground hover:bg-muted focus-visible:ring-ring",
-  ghost: "bg-transparent text-foreground hover:bg-muted focus-visible:ring-ring",
+  ghost:
+    "bg-transparent text-foreground hover:bg-muted focus-visible:ring-ring",
   destructive:
     "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive",
   success:
@@ -22,20 +23,23 @@ const variants = {
 };
 
 const sizes = {
-  sm: "h-8 px-3 text-xs",
-  md: "h-10 px-4 text-sm",
-  lg: "h-11 px-6 text-[15px]",
+  sm:   "h-8 px-4 text-[11px] font-bold tracking-[0.08em] uppercase",
+  md:   "h-10 px-5 text-[11px] font-bold tracking-[0.08em] uppercase",
+  lg:   "h-12 px-8 text-[11px] font-bold tracking-[0.08em] uppercase",
   icon: "h-9 w-9",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "primary", size = "md", loading, disabled, children, ...props }, ref) => (
+  (
+    { className, variant = "primary", size = "md", loading, disabled, children, ...props },
+    ref
+  ) => (
     <button
       ref={ref}
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium whitespace-nowrap",
-        "transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        "inline-flex items-center justify-center gap-2 rounded whitespace-nowrap",
+        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         "disabled:pointer-events-none disabled:opacity-50",
         variants[variant],
         sizes[size],

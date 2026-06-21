@@ -3,75 +3,73 @@
 @tailwind utilities;
 
 /*
-  JanSetu Design System — Authoritative Civic Tech
-  GOV.UK clarity × Linear density × Delhi's identity
+  JanSetu — Global Sovereign Design System
+  Inspired by high-stakes governance and national administration.
 
   Philosophy:
-  - Pure white backgrounds, no tints
-  - Deep navy primary (not bright indigo) — government authority
-  - Saffron accent — India's identity, urgency, action
-  - Data is the hero, decoration is noise
-  - Zero gradients. Zero glows. Zero glass.
-  - High contrast, high information density
+  - Surface: #faf8ff (blue-tinted, NOT pure white — institutional feel)
+  - Primary: #002652 (very deep navy — permanence and authority)
+  - Zero shadows — only 1px hairline borders for depth
+  - 4px radius — authoritative, not bubbly
+  - label-caps everywhere for metadata: 12px, 700, letter-spacing 0.1em
+  - Tables and data grids are the primary UI component
 */
 
 @layer base {
   :root {
-    /* ── Surfaces ──────────────────────────────────────────────────── */
-    --background:  0 0% 100%;          /* pure white */
-    --foreground:  220 20% 8%;         /* near-black */
-    --card:        0 0% 100%;
-    --card-foreground: 220 20% 8%;
+    /* ── Surfaces ───────────────────────────────────────────────────────── */
+    --background:  240 100% 99%;       /* #faf8ff — blue-tinted canvas */
+    --foreground:  222 42% 13%;        /* #131b2e — near-black */
+    --card:        0 0% 100%;          /* #ffffff — content cards */
+    --card-foreground: 222 42% 13%;
     --popover:     0 0% 100%;
-    --popover-foreground: 220 20% 8%;
+    --popover-foreground: 222 42% 13%;
 
-    /* ── Primary — deep navy, not indigo ──────────────────────────── */
-    --primary:     215 100% 22%;       /* #003B7A deep government navy */
+    /* ── Primary — institutional deep navy ─────────────────────────────── */
+    --primary:     215 100% 14%;       /* #002652 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 215 100% 17%;
+    --primary-hover: 215 100% 18%;     /* #003b7a */
 
-    /* ── Secondary & muted ────────────────────────────────────────── */
-    --secondary:   210 18% 95%;
-    --secondary-foreground: 220 20% 20%;
-    --muted:       210 16% 95%;
-    --muted-foreground: 215 14% 48%;
-    --accent:      210 18% 92%;
-    --accent-foreground: 215 100% 22%;
+    /* ── Secondary/Muted — surface-dim tones ───────────────────────────── */
+    --secondary:   229 51% 89%;        /* #d2d9f4 surface-dim */
+    --secondary-foreground: 222 42% 13%;
+    --muted:       231 100% 97%;       /* #f2f3ff surface-container-low */
+    --muted-foreground: 222 11% 30%;   /* #434750 on-surface-variant */
+    --accent:      229 51% 89%;
+    --accent-foreground: 215 100% 14%;
 
-    /* ── Borders & inputs ─────────────────────────────────────────── */
-    --border:      214 16% 88%;
-    --input:       214 16% 88%;
-    --ring:        215 100% 30%;
+    /* ── Borders — blue-tinted hairlines ───────────────────────────────── */
+    --border:      222 23% 79%;        /* #c3c6d2 outline-variant */
+    --input:       222 23% 79%;
+    --ring:        215 100% 14%;
 
-    /* ── Status (urgent = red, done = green, warn = amber) ─────────── */
-    --destructive:  0 80% 46%;
+    /* ── Status ─────────────────────────────────────────────────────────── */
+    --destructive: 0 77% 41%;          /* #ba1a1a */
     --destructive-foreground: 0 0% 100%;
-    --success:     155 60% 32%;
+    --success:     158 89% 26%;        /* #059669 */
     --success-foreground: 0 0% 100%;
-    --warning:     38 95% 42%;
+    --warning:     38 90% 38%;
     --warning-foreground: 0 0% 100%;
-    --info:        213 88% 48%;
+    --info:        215 88% 44%;
     --info-foreground: 0 0% 100%;
-
-    /* ── Saffron — India's accent, use sparingly ───────────────────── */
     --saffron:     28 100% 52%;
     --saffron-foreground: 0 0% 100%;
 
-    /* ── Severity ──────────────────────────────────────────────────── */
-    --severity-critical: 0 80% 46%;
-    --severity-high:     25 95% 48%;
-    --severity-medium:   38 95% 42%;
-    --severity-low:      155 60% 32%;
+    /* ── Severity ────────────────────────────────────────────────────────── */
+    --severity-critical: 0 77% 41%;
+    --severity-high:     25 90% 45%;
+    --severity-medium:   38 90% 38%;
+    --severity-low:      158 89% 26%;
 
-    /* ── Sidebar (dark command surfaces) ───────────────────────────── */
-    --sidebar:          220 35% 10%;
-    --sidebar-foreground: 215 22% 72%;
-    --sidebar-muted:    215 18% 48%;
-    --sidebar-accent:   213 88% 60%;
-    --sidebar-border:   220 24% 18%;
+    /* ── Sidebar — solid primary navy ──────────────────────────────────── */
+    --sidebar:          215 100% 14%;  /* #002652 */
+    --sidebar-foreground: 218 42% 77%;
+    --sidebar-muted:    218 20% 55%;
+    --sidebar-accent:   218 100% 83%;  /* #aac7ff */
+    --sidebar-border:   215 60% 20%;
 
-    /* ── Radius — tighter for government authority ─────────────────── */
-    --radius: 0.375rem;   /* 6px — less bubbly than before */
+    /* ── Radius — sharp institutional (4px, not 6px) ───────────────────── */
+    --radius: 0.25rem;
   }
 }
 
@@ -87,26 +85,30 @@
 }
 
 @layer utilities {
-  /* ── Ruled background — subtle lines, not dots ─────────────────── */
-  .bg-ruled {
-    background-image: linear-gradient(
-      hsl(var(--border) / 0.6) 1px,
-      transparent 1px
-    );
-    background-size: 100% 40px;
-  }
-  /* ── Grid — very subtle, for hero sections ─────────────────────── */
-  .bg-grid {
+  /* Institutional grid — subtle, for hero sections */
+  .bg-institutional-grid {
     background-image:
-      linear-gradient(to right, hsl(var(--border) / 0.4) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--border) / 0.4) 1px, transparent 1px);
-    background-size: 64px 64px;
+      linear-gradient(to right, hsl(var(--border) / 0.2) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.2) 1px, transparent 1px);
+    background-size: 48px 48px;
   }
-  /* ── Typography utilities ──────────────────────────────────────── */
-  .text-balance { text-wrap: balance; }
-  .tracking-editorial { letter-spacing: -0.025em; }
 
-  /* ── Scrollbar ─────────────────────────────────────────────────── */
+  /* Surface-dim — blue-tinted secondary surface */
+  .bg-surface-dim { background-color: hsl(229 51% 89%); }
+  .bg-surface-container { background-color: hsl(231 100% 95%); }
+
+  /* label-caps — the institutional metadata typography */
+  .label-caps {
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    line-height: 1rem;
+  }
+
+  .text-balance { text-wrap: balance; }
+  .tracking-editorial { letter-spacing: -0.02em; }
+
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;

@@ -77,11 +77,12 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
-        sm: "calc(var(--radius) - 4px)",
-        xl: "calc(var(--radius) + 4px)",
-        "2xl": "calc(var(--radius) + 8px)",
+        sm: "var(--radius)",                      /* 4px */
+        DEFAULT: "var(--radius)",                 /* 4px */
+        md: "var(--radius)",                      /* 4px */
+        lg: "var(--radius)",                      /* 4px */
+        xl: "calc(var(--radius) + 4px)",          /* 8px */
+        "2xl": "calc(var(--radius) + 8px)",       /* 12px */
       },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],

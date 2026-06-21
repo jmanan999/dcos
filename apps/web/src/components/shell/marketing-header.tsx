@@ -12,25 +12,10 @@ function LangToggle() {
   return (
     <button
       onClick={() => setLang(lang === "en" ? "hi" : "en")}
-      className="flex h-8 items-center gap-0.5 rounded border border-border bg-card px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+      className="label-caps text-muted-foreground hover:text-foreground transition-colors px-2 py-1"
       title="Switch language"
     >
-      <span
-        className={cn(
-          "rounded px-1 py-0.5 transition-colors",
-          lang === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-        )}
-      >
-        EN
-      </span>
-      <span
-        className={cn(
-          "rounded px-1 py-0.5 transition-colors",
-          lang === "hi" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-        )}
-      >
-        हिं
-      </span>
+      {lang === "en" ? "हिं" : "EN"}
     </button>
   );
 }
@@ -47,32 +32,24 @@ export function MarketingHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-border bg-background">
       <div className="container flex h-14 items-center justify-between">
-        {/* Logo — typographic, no icon badge */}
-        <Link href="/" className="flex items-center gap-3">
-          <span className="flex h-7 w-7 items-center justify-center bg-primary text-primary-foreground text-xs font-bold select-none">
-            JS
-          </span>
-          <div className="leading-none">
-            <p className="text-sm font-bold tracking-tight text-foreground">JanSetu</p>
-            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
-              Delhi · Grievance Portal
-            </p>
-          </div>
+        {/* Text wordmark — no icon */}
+        <Link href="/" className="flex items-baseline gap-2">
+          <span className="text-base font-bold tracking-tight text-foreground">JanSetu Delhi</span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-0 md:flex">
+        {/* Desktop nav — label-caps style */}
+        <nav className="hidden items-center gap-8 md:flex">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               className={cn(
-                "px-3 py-2 text-sm transition-colors",
+                "label-caps transition-colors border-b-2 py-1",
                 pathname.startsWith(l.href)
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-primary border-primary"
+                  : "text-muted-foreground border-transparent hover:text-foreground"
               )}
             >
               {t(l.key)}
@@ -80,17 +57,15 @@ export function MarketingHeader() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-3 md:flex">
           <LangToggle />
           <Link href="/login">
-            <Button variant="ghost" size="sm" className="text-sm">
+            <Button variant="ghost" size="sm">
               {t("nav.signin")}
             </Button>
           </Link>
           <Link href="/file">
-            <Button size="sm" className="text-sm">
-              {t("nav.file_btn")}
-            </Button>
+            <Button size="sm">{t("nav.file_btn")}</Button>
           </Link>
         </div>
 
@@ -114,21 +89,17 @@ export function MarketingHeader() {
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="block rounded px-3 py-2.5 text-sm text-foreground hover:bg-muted"
+              className="block px-3 py-2.5 label-caps text-foreground hover:bg-muted"
             >
               {t(l.key)}
             </Link>
           ))}
           <div className="mt-2 flex gap-2 px-3 pb-2">
             <Link href="/login" className="flex-1" onClick={() => setOpen(false)}>
-              <Button variant="outline" size="sm" className="w-full">
-                {t("nav.signin")}
-              </Button>
+              <Button variant="outline" size="sm" className="w-full">{t("nav.signin")}</Button>
             </Link>
             <Link href="/file" className="flex-1" onClick={() => setOpen(false)}>
-              <Button size="sm" className="w-full">
-                {t("nav.file_btn")}
-              </Button>
+              <Button size="sm" className="w-full">{t("nav.file_btn")}</Button>
             </Link>
           </div>
         </div>
