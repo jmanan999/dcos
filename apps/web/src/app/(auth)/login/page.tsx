@@ -2,7 +2,7 @@
 
 import { useState, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Phone, Mail, ArrowRight, Info } from "lucide-react";
 import {
   Button,
@@ -32,13 +32,16 @@ function LoginInner() {
   const { requestOtp, verifyOtp, loginPassword } = useAuth();
   const { toast } = useToast();
   const { t } = useLanguage();
+  const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
 
   const devMode = !isSupabaseConfigured();
 
+  // Use router.push (client-side navigation) so React state is preserved —
+  // window.location.assign causes a full reload which wipes the demo session.
   const redirect = (role: Parameters<typeof homeForRole>[0]) => {
-    window.location.assign(next || homeForRole(role));
+    router.push(next || homeForRole(role));
   };
 
   return (

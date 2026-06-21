@@ -91,7 +91,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       if (supabase) {
         const { data } = await supabase.auth.getSession();
-        if (active) applySession(data.session?.access_token ?? null);
+        if (data.session) {
+          if (active) applySession(data.session.access_token);
+        } else {
+          // No real Supabase session — fall back to demo/local session in storage.
+          // applySession(null) would wipe everything; we avoid calling it here
+          // so a demo bypass session (stored in USER_STORAGE_KEY) survives page reloads.
+          const t = localStorage.getItem(TOKEN_STORAGE_KEY);
+          const u = localStorage.getItem(USER_STORAGE_KEY);
+          if (active && u) {
+            const parsed = JSON.parse(u);
+            setUser(parsed);
+            if (t) { setToken(t); localStorage.setItem(TOKEN_STORAGE_KEY, t); }
+          }
+        }
       } else {
         const t = localStorage.getItem(TOKEN_STORAGE_KEY);
         const u = localStorage.getItem(USER_STORAGE_KEY);
