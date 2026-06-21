@@ -1,0 +1,19 @@
+name: Render keepalive
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"   # every 10 minutes, 24/7
+  workflow_dispatch:           # allow manual trigger from GitHub Actions UI
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping API health
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" --max-time 60 \
+            https://dcos.onrender.com/api/v1/analytics/health)
+          echo "HTTP $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "::warning::API returned $STATUS — Render may be cold-starting"
+          fi
