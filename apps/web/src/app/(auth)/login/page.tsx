@@ -38,10 +38,14 @@ function LoginInner() {
 
   const devMode = !isSupabaseConfigured();
 
-  // Use router.push (client-side navigation) so React state is preserved —
-  // window.location.assign causes a full reload which wipes the demo session.
+  // Use router.push (client-side navigation) so React state is preserved.
+  // Ignore `next` if it points to a protected area the user's role can't access
+  // (e.g. citizen logging in after visiting /cm → redirect to /file not /cm).
   const redirect = (role: Parameters<typeof homeForRole>[0]) => {
-    router.push(next || homeForRole(role));
+    const home = homeForRole(role);
+    const OFFICER_PATHS = ["/cm", "/officer", "/dept"];
+    const nextOk = next && !OFFICER_PATHS.some((p) => next.startsWith(p));
+    router.push(nextOk ? next : home);
   };
 
   return (
