@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Inbox, ArrowRight, Plus } from "lucide-react";
 import { Button, Card, CardContent, StatusBadge, EmptyState, Skeleton } from "@dcos/ui";
+import { useLanguage } from "@/lib/i18n";
 
 interface Tracked {
   tracking_id: string;
@@ -13,6 +14,7 @@ interface Tracked {
 }
 
 export default function MyComplaintsPage() {
+  const { t } = useLanguage();
   const [items, setItems] = useState<Tracked[] | null>(null);
 
   useEffect(() => {
@@ -41,13 +43,13 @@ export default function MyComplaintsPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">My complaints</h1>
-          <p className="text-sm text-muted-foreground">Complaints you&apos;ve filed from this device.</p>
+        <div className="space-y-0.5">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("my.title")}</h1>
+          <p className="text-sm text-muted-foreground">{t("my.subtitle")}</p>
         </div>
         <Link href="/file">
-          <Button>
-            <Plus className="h-4 w-4" /> New
+          <Button className="min-h-[44px]">
+            <Plus className="h-4 w-4" /> {t("my.new")}
           </Button>
         </Link>
       </div>
@@ -55,17 +57,17 @@ export default function MyComplaintsPage() {
       {items === null ? (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
-            <Skeleton key={i} className="h-20 w-full rounded-xl" />
+            <Skeleton key={i} className="h-20 w-full" />
           ))}
         </div>
       ) : items.length === 0 ? (
         <EmptyState
           icon={<Inbox className="h-6 w-6" />}
-          title="No complaints yet"
-          description="When you file a complaint, it'll show up here for quick tracking."
+          title={t("my.empty_title")}
+          description={t("my.empty_desc")}
           action={
             <Link href="/file">
-              <Button>File a complaint</Button>
+              <Button className="min-h-[48px]">{t("file.title")}</Button>
             </Link>
           }
         />
@@ -73,16 +75,17 @@ export default function MyComplaintsPage() {
         <div className="space-y-3">
           {items.map((it) => (
             <Link key={it.tracking_id} href={`/track/${it.tracking_id}`}>
-              <Card className="transition-shadow hover:shadow-md">
+              <Card className="transition-colors hover:border-primary/40">
                 <CardContent className="flex items-center justify-between py-4">
                   <div className="min-w-0">
                     <p className="font-mono text-sm font-semibold text-foreground">{it.tracking_id}</p>
                     <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                      {it.category ?? "Awaiting categorisation"} ·{" "}
+                      {it.category ?? t("my.awaiting")}
+                      {" · "}
                       {new Date(it.created_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}
                     </p>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 ml-3 shrink-0">
                     <StatusBadge status={it.status as never} />
                     <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </div>

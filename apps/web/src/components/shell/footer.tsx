@@ -2,29 +2,32 @@
 
 import Link from "next/link";
 import { Globe, ShieldCheck, BadgeCheck } from "lucide-react";
+import { useLanguage } from "@/lib/i18n";
 
 export function Footer() {
+  const { t } = useLanguage();
+
   const COLS = [
     {
-      title: "Quick Links",
+      title: t("footer.quick_links"),
       links: [
-        { href: "/file",         label: "Services Directory" },
-        { href: "/track",        label: "Tracking Portal" },
-        { href: "/transparency", label: "Transparency Lab" },
-        { href: "/login",        label: "Official Access" },
+        { href: "/file",         label: t("footer.services_dir") },
+        { href: "/track",        label: t("footer.tracking_portal") },
+        { href: "/transparency", label: t("footer.transparency_lab") },
+        { href: "/login",        label: t("footer.official_access") },
       ],
     },
     {
-      title: "Legals",
+      title: t("footer.legals"),
       links: [
-        { href: "/privacy",      label: "Privacy Policy" },
-        { href: "/privacy",      label: "Terms of Service" },
-        { href: "/privacy",      label: "Compliance" },
-        { href: "/privacy",      label: "Accessibility" },
+        { href: "/privacy", label: t("footer.privacy") },
+        { href: "/privacy", label: t("footer.terms") },
+        { href: "/privacy", label: t("footer.compliance") },
+        { href: "/privacy", label: t("footer.accessibility") },
       ],
     },
     {
-      title: "Contact",
+      title: t("footer.contact"),
       links: [],
       info: [
         "Support: 1800-DELHI-JS",
@@ -35,52 +38,48 @@ export function Footer() {
   ];
 
   return (
-    <footer className="bg-surface border-t border-outline-variant py-24">
+    <footer className="bg-surface border-t border-outline-variant py-16">
       <div className="max-w-container-max mx-auto px-margin-desktop">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-gutter mb-20">
+        <div className="grid gap-10 md:grid-cols-4">
           {/* Brand */}
-          <div className="col-span-1">
-            <span className="text-label-caps font-bold block mb-6 text-on-surface">
-              JanSetu Delhi
-            </span>
-            <p className="text-body-sm text-on-surface-variant max-w-xs">
-              An institutional initiative by the Delhi Administration to modernise grievance
-              redressal through technology and transparency.
+          <div>
+            <p className="text-sm font-bold text-on-surface">JanSetu Delhi</p>
+            <p className="label-caps text-on-surface-variant mt-1">{t("footer.description")}</p>
+            <p className="mt-4 text-xs leading-relaxed text-on-surface-variant">
+              {t("footer.brand_desc")}
             </p>
           </div>
 
           {COLS.map((col) => (
             <div key={col.title}>
-              <span className="text-label-caps text-on-surface mb-6 block">{col.title}</span>
-              <ul className="space-y-3">
+              <p className="label-caps text-on-surface mb-4">{col.title}</p>
+              <ul className="space-y-2.5">
                 {col.links.map((l) => (
                   <li key={l.label}>
                     <Link
                       href={l.href}
-                      className="text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                      className="text-sm text-on-surface-variant transition-colors hover:text-primary"
                     >
                       {l.label}
                     </Link>
                   </li>
                 ))}
                 {col.info?.map((line) => (
-                  <li key={line} className="text-body-sm text-on-surface-variant">
-                    {line}
-                  </li>
+                  <li key={line} className="text-sm text-on-surface-variant">{line}</li>
                 ))}
               </ul>
             </div>
           ))}
         </div>
 
-        <div className="pt-8 border-t border-outline-variant flex flex-col md:flex-row justify-between items-center gap-4">
-          <span className="text-body-sm text-on-surface-variant">
-            © {new Date().getFullYear()} JanSetu Delhi. Institutional Governance Portal.
-          </span>
-          <div className="flex gap-6">
-            <Globe className="h-5 w-5 text-on-surface-variant cursor-pointer hover:text-primary transition-colors" />
-            <ShieldCheck className="h-5 w-5 text-on-surface-variant cursor-pointer hover:text-primary transition-colors" />
-            <BadgeCheck className="h-5 w-5 text-on-surface-variant cursor-pointer hover:text-primary transition-colors" />
+        <div className="mt-10 flex flex-col items-start justify-between gap-2 border-t border-outline-variant pt-6 sm:flex-row sm:items-center">
+          <p className="text-xs text-on-surface-variant">
+            © {new Date().getFullYear()} {t("footer.copyright")}
+          </p>
+          <div className="flex gap-5">
+            <Globe className="h-4 w-4 text-on-surface-variant hover:text-primary transition-colors cursor-pointer" aria-hidden="true" />
+            <ShieldCheck className="h-4 w-4 text-on-surface-variant hover:text-primary transition-colors cursor-pointer" aria-hidden="true" />
+            <BadgeCheck className="h-4 w-4 text-on-surface-variant hover:text-primary transition-colors cursor-pointer" aria-hidden="true" />
           </div>
         </div>
       </div>

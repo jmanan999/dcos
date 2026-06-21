@@ -3,9 +3,11 @@
 import { Card, CardContent, CardHeader, CardTitle, Badge, Skeleton } from "@dcos/ui";
 import { GisMap, type MapWard } from "@/components/GisMap";
 import { usePublicStats } from "@/lib/hooks";
+import { useLanguage } from "@/lib/i18n";
 
 export default function TransparencyMap() {
   const { data } = usePublicStats();
+  const { t } = useLanguage();
 
   const wards: MapWard[] = (data?.hotspots ?? [])
     .filter((h) => h.lat && h.lng)
@@ -22,28 +24,28 @@ export default function TransparencyMap() {
       {/* Map */}
       <div className="lg:col-span-2">
         {wards.length === 0 ? (
-          <Skeleton className="h-[460px] w-full rounded-xl" />
+          <Skeleton className="h-[460px] w-full" />
         ) : (
           <GisMap wards={wards} theme="light" height="h-[460px]" />
         )}
         <p className="mt-2 text-xs text-muted-foreground">
-          {wards.length} wards shown · circle size = complaint volume ·{" "}
-          <span className="font-medium text-destructive">red</span> = high load ·{" "}
-          <span className="font-medium text-warning">amber</span> = medium ·{" "}
-          <span className="font-medium text-success">green</span> = low
+          {wards.length} {t("trans.map_legend")} ·{" "}
+          <span className="font-medium text-destructive">●</span> {t("trans.high_load")} ·{" "}
+          <span className="font-medium text-warning">●</span> {t("trans.medium_load")} ·{" "}
+          <span className="font-medium text-success">●</span> {t("trans.low_load")}
         </p>
       </div>
 
       {/* Sidebar */}
       <Card>
         <CardHeader>
-          <CardTitle>Wards by open load</CardTitle>
+          <CardTitle>{t("trans.wards_by_load")}</CardTitle>
         </CardHeader>
         <CardContent>
           {wards.length === 0 ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-11 rounded-lg" />
+                <Skeleton key={i} className="h-11" />
               ))}
             </div>
           ) : (
@@ -62,14 +64,14 @@ export default function TransparencyMap() {
                   return (
                     <div
                       key={w.ward_name}
-                      className="flex items-center justify-between rounded-lg border border-border px-3 py-2"
+                      className="flex items-center justify-between border border-border px-3 py-2.5"
                     >
                       <div>
-                        <p className="text-sm text-foreground">{w.ward_name}</p>
-                        <p className="text-2xs text-muted-foreground">{w.total} total filed</p>
+                        <p className="text-sm font-medium text-foreground">{w.ward_name}</p>
+                        <p className="text-2xs text-muted-foreground">{w.total} {t("trans.total_filed")}</p>
                       </div>
                       <Badge variant={sev} dot>
-                        {w.open} open
+                        {w.open} {t("trans.open_label")}
                       </Badge>
                     </div>
                   );

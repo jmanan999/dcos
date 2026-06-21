@@ -12,11 +12,13 @@ import {
 import { FileText, CheckCircle2, Clock, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, StatCard, Skeleton, Badge } from "@dcos/ui";
 import { usePublicStats } from "@/lib/hooks";
+import { useLanguage } from "@/lib/i18n";
 
 const CHART_COLOR = "hsl(215 100% 30%)";
 
 export default function TransparencyOverview() {
   const { data } = usePublicStats();
+  const { t } = useLanguage();
 
   const resolveRate =
     data && data.total_filed > 0 ? Math.round((data.total_resolved / data.total_filed) * 100) : null;
@@ -44,21 +46,21 @@ export default function TransparencyOverview() {
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Complaints filed" value={data.total_filed.toLocaleString("en-IN")} icon={<FileText className="h-4 w-4" />} accent="primary" />
-        <StatCard label="Resolved" value={resolveRate != null ? `${resolveRate}%` : "—"} hint={`${data.total_resolved.toLocaleString("en-IN")} complaints`} icon={<CheckCircle2 className="h-4 w-4" />} accent="success" />
-        <StatCard label="Currently open" value={data.total_open.toLocaleString("en-IN")} icon={<Clock className="h-4 w-4" />} accent="warning" />
-        <StatCard label="Avg resolution" value={data.avg_resolution_hours != null ? `${Math.round(data.avg_resolution_hours)}h` : "—"} hint="end-to-end" icon={<Building2 className="h-4 w-4" />} accent="info" />
+        <StatCard label={t("trans.complaints_filed")} value={data.total_filed.toLocaleString("en-IN")} icon={<FileText className="h-4 w-4" />} accent="primary" />
+        <StatCard label={t("trans.resolved")} value={resolveRate != null ? `${resolveRate}%` : "—"} hint={`${data.total_resolved.toLocaleString("en-IN")} ${t("trans.n_complaints")}`} icon={<CheckCircle2 className="h-4 w-4" />} accent="success" />
+        <StatCard label={t("trans.currently_open")} value={data.total_open.toLocaleString("en-IN")} icon={<Clock className="h-4 w-4" />} accent="warning" />
+        <StatCard label={t("trans.avg_resolution")} value={data.avg_resolution_hours != null ? `${Math.round(data.avg_resolution_hours)}h` : "—"} hint={t("trans.end_to_end")} icon={<Building2 className="h-4 w-4" />} accent="info" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Category chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Top complaint categories</CardTitle>
+            <CardTitle>{t("trans.top_categories")}</CardTitle>
           </CardHeader>
           <CardContent>
             {categoryData.length === 0 ? (
-              <p className="py-12 text-center text-sm text-muted-foreground">No data yet.</p>
+              <p className="py-12 text-center text-sm text-muted-foreground">{t("trans.no_data")}</p>
             ) : (
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={categoryData} layout="vertical" margin={{ left: 8, right: 16 }}>
@@ -90,7 +92,7 @@ export default function TransparencyOverview() {
         {/* Department performance */}
         <Card>
           <CardHeader>
-            <CardTitle>Department performance</CardTitle>
+            <CardTitle>{t("trans.dept_perf")}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {data.by_department.slice(0, 8).map((d) => (
@@ -118,11 +120,11 @@ export default function TransparencyOverview() {
       {/* Hotspots */}
       <Card>
         <CardHeader>
-          <CardTitle>Complaint hotspots by ward</CardTitle>
+          <CardTitle>{t("trans.hotspots")}</CardTitle>
         </CardHeader>
         <CardContent>
           {data.hotspots.length === 0 ? (
-            <p className="py-8 text-center text-sm text-muted-foreground">No hotspot data yet.</p>
+            <p className="py-8 text-center text-sm text-muted-foreground">{t("trans.no_hotspots")}</p>
           ) : (
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {data.hotspots.slice(0, 9).map((h) => (
@@ -132,10 +134,10 @@ export default function TransparencyOverview() {
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{h.ward_name}</p>
-                    <p className="text-2xs text-muted-foreground">{h.total_count} total filed</p>
+                    <p className="text-2xs text-muted-foreground">{h.total_count} {t("trans.total_filed")}</p>
                   </div>
                   <Badge variant={h.open_count >= 20 ? "error" : h.open_count >= 10 ? "warning" : "success"}>
-                    {h.open_count} open
+                    {h.open_count} {t("trans.open_label")}
                   </Badge>
                 </div>
               ))}
@@ -145,14 +147,14 @@ export default function TransparencyOverview() {
       </Card>
 
       <p className="text-center text-xs text-muted-foreground">
-        All personal information is removed. Open data:{" "}
+        {t("trans.anon_note")} {t("trans.open_api")}{" "}
         <a
           href={`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"}/api/v1/citizen/public-stats`}
           target="_blank"
           rel="noopener"
           className="underline hover:text-foreground"
         >
-          public API
+          {t("trans.public_api")}
         </a>
       </p>
     </div>

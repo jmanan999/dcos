@@ -92,7 +92,6 @@ export const T = {
   "feedback.low_warning": { en: "rating will automatically reopen your complaint for further review.", hi: "रेटिंग आपकी शिकायत को स्वचालित रूप से पुनः खोल देगी और आगे की समीक्षा के लिए भेज देगी।" },
   "reopen.title": { en: "Reopen complaint", hi: "शिकायत पुनः खोलें" },
   "reopen.reason_label": { en: "Why is the issue not resolved?", hi: "समस्या का समाधान क्यों नहीं हुआ?" },
-  "reopen.warning": { en: "Reopening assigns the complaint back to an officer. Misuse may delay future complaints.", hi: "शिकायत पुनः खोलने से यह एक अधिकारी को वापस सौंप दी जाएगी। दुरुपयोग से भविष्य की शिकायतों में देरी हो सकती है।" },
   "reopen.submit": { en: "Reopen complaint", hi: "शिकायत पुनः खोलें" },
   "reopen.cancel": { en: "Cancel", hi: "रद्द करें" },
   "reopen.done_title": { en: "Complaint Reopened", hi: "शिकायत पुनः खोली गई" },
@@ -187,4 +186,98 @@ export const T = {
   /* ── Marketing header nav labels ───────────────────────────────────────── */
   "nav.services":               { en: "Services", hi: "सेवाएं" },
   "nav.tracking":               { en: "Tracking", hi: "ट्रैकिंग" },
+
+  /* ── Footer ────────────────────────────────────────────────────────────── */
+  "footer.quick_links":         { en: "Quick Links", hi: "त्वरित लिंक" },
+  "footer.legals":              { en: "Legals", hi: "कानूनी" },
+  "footer.contact":             { en: "Contact", hi: "संपर्क" },
+  "footer.services_dir":        { en: "Services Directory", hi: "सेवा निर्देशिका" },
+  "footer.tracking_portal":     { en: "Tracking Portal", hi: "ट्रैकिंग पोर्टल" },
+  "footer.transparency_lab":    { en: "Transparency Lab", hi: "पारदर्शिता लैब" },
+  "footer.official_access":     { en: "Official Access", hi: "आधिकारिक पहुंच" },
+  "footer.privacy":             { en: "Privacy Policy", hi: "गोपनीयता नीति" },
+  "footer.terms":               { en: "Terms of Service", hi: "सेवा शर्तें" },
+  "footer.compliance":          { en: "Compliance", hi: "अनुपालन" },
+  "footer.accessibility":       { en: "Accessibility", hi: "पहुंच" },
+  "footer.brand_desc":          { en: "An institutional initiative by the Delhi Administration to modernise grievance redressal through technology and transparency.", hi: "प्रौद्योगिकी और पारदर्शिता के माध्यम से शिकायत निवारण को आधुनिक बनाने के लिए दिल्ली प्रशासन की एक संस्थागत पहल।" },
+
+  /* ── Live stats (homepage metrics bar) ─────────────────────────────────── */
+  "stats.filed":                { en: "Complaints filed", hi: "दर्ज शिकायतें" },
+  "stats.filed_sub":            { en: "All time", hi: "अब तक" },
+  "stats.resolved":             { en: "Resolved on time", hi: "समय पर निपटाई" },
+  "stats.resolved_sub":         { en: "Within SLA", hi: "SLA के अंदर" },
+  "stats.avg":                  { en: "Avg resolution", hi: "औसत समाधान" },
+  "stats.avg_sub":              { en: "End to end", hi: "शुरू से अंत तक" },
+  "stats.depts":                { en: "Departments tracked", hi: "ट्रैक किए विभाग" },
+  "stats.depts_sub":            { en: "Full coverage", hi: "पूर्ण कवरेज" },
+
+  /* ── Feedback page ──────────────────────────────────────────────────────── */
+  "feedback.star_1":            { en: "Very dissatisfied", hi: "बहुत असंतुष्ट" },
+  "feedback.star_2":            { en: "Dissatisfied", hi: "असंतुष्ट" },
+  "feedback.star_3":            { en: "Neutral", hi: "तटस्थ" },
+  "feedback.star_4":            { en: "Satisfied", hi: "संतुष्ट" },
+  "feedback.star_5":            { en: "Very satisfied", hi: "बहुत संतुष्ट" },
+  "feedback.rate_title":        { en: "Rate the resolution", hi: "समाधान की रेटिंग दें" },
+  "feedback.rate_question":     { en: "How satisfied are you with how your complaint was resolved?", hi: "आपकी शिकायत के समाधान से आप कितने संतुष्ट हैं?" },
+  "feedback.comments_label":    { en: "Additional comments (optional)", hi: "अतिरिक्त टिप्पणी (वैकल्पिक)" },
+  "feedback.comments_ph":       { en: "What could have been done better?", hi: "क्या बेहतर किया जा सकता था?" },
+  "feedback.low_warning_2":     { en: "will automatically reopen your complaint for further review.", hi: "रेटिंग आपकी शिकायत को दोबारा समीक्षा के लिए स्वतः खोल देगी।" },
+  "feedback.closed_msg":        { en: "Your complaint has been marked as closed.", hi: "आपकी शिकायत बंद कर दी गई है।" },
+  "feedback.reopened_msg2":     { en: "Your complaint has been reopened for further action.", hi: "आपकी शिकायत और कार्रवाई के लिए दोबारा खोली गई है।" },
+
+  /* ── Reopen page ────────────────────────────────────────────────────────── */
+  "reopen.done_heading":        { en: "Complaint Reopened", hi: "शिकायत दोबारा खोली गई" },
+  "reopen.done_sub":            { en: "It has been reopened and will be reassigned to an officer.", hi: "यह दोबारा खोली गई है और एक अधिकारी को सौंपी जाएगी।" },
+  "reopen.heading":             { en: "Reopen your complaint", hi: "अपनी शिकायत दोबारा खोलें" },
+  "reopen.sub":                 { en: "Your complaint was marked resolved. If the issue still exists, reopen it.", hi: "आपकी शिकायत हल हुई बताई गई। अगर समस्या अभी भी है तो दोबारा खोलें।" },
+  "reopen.placeholder":         { en: "e.g. The pothole was only partially filled and the problem remains.", hi: "जैसे: गड्ढा सिर्फ आधा भरा गया और समस्या बनी हुई है।" },
+  "reopen.warning":             { en: "Reopening assigns the complaint back to an officer. Please reopen only if needed.", hi: "दोबारा खोलने पर शिकायत फिर से अधिकारी को जाएगी। जरूरत हो तभी खोलें।" },
+
+  /* ── My complaints page ─────────────────────────────────────────────────── */
+  "my.title":                   { en: "My Complaints", hi: "मेरी शिकायतें" },
+  "my.subtitle":                { en: "Complaints filed from this device.", hi: "इस डिवाइस से दर्ज शिकायतें।" },
+  "my.new":                     { en: "New", hi: "नई" },
+  "my.empty_title":             { en: "No complaints yet", hi: "अभी कोई शिकायत नहीं" },
+  "my.empty_desc":              { en: "When you file a complaint, it shows up here for quick tracking.", hi: "जब आप शिकायत दर्ज करेंगे, वो यहाँ दिखेगी।" },
+  "my.awaiting":                { en: "Awaiting categorisation", hi: "वर्गीकरण की प्रतीक्षा" },
+
+  /* ── File complaint (missing ones) ─────────────────────────────────────── */
+  "file.lang_select":           { en: "Select Language", hi: "भाषा चुनें" },
+  "file.files_selected":        { en: "{n} file(s) selected", hi: "{n} फ़ाइल(ें) चुनी गईं" },
+  "file.location_pinned":       { en: "Location pinned", hi: "स्थान पिन किया गया" },
+  "file.location_denied":       { en: "Location access denied", hi: "स्थान की अनुमति नहीं मिली" },
+  "file.error_filing":          { en: "Could not file complaint", hi: "शिकायत दर्ज नहीं हो सकी" },
+  "file.voice_hint":            { en: "Or record your complaint in your voice", hi: "या अपनी आवाज़ में शिकायत दर्ज करें" },
+
+  /* ── Transparency ────────────────────────────────────────────────────────── */
+  "trans.top_categories":       { en: "Top complaint categories", hi: "शीर्ष शिकायत श्रेणियाँ" },
+  "trans.no_data":              { en: "No data yet.", hi: "अभी डेटा नहीं।" },
+  "trans.dept_perf":            { en: "Department performance", hi: "विभागीय प्रदर्शन" },
+  "trans.hotspots":             { en: "Complaint hotspots by ward", hi: "वार्ड-वार शिकायत क्षेत्र" },
+  "trans.no_hotspots":          { en: "No hotspot data yet.", hi: "अभी कोई क्षेत्र डेटा नहीं।" },
+  "trans.total_filed":          { en: "total filed", hi: "कुल दर्ज" },
+  "trans.open_label":           { en: "open", hi: "खुली" },
+  "trans.anon_note":            { en: "All personal information is removed.", hi: "सभी व्यक्तिगत जानकारी हटा दी गई है।" },
+  "trans.open_api":             { en: "Open data:", hi: "खुला डेटा:" },
+  "trans.public_api":           { en: "public API", hi: "सार्वजनिक API" },
+  "trans.complaints_filed":     { en: "Complaints filed", hi: "दर्ज शिकायतें" },
+  "trans.resolved":             { en: "Resolved", hi: "निपटाई गईं" },
+  "trans.n_complaints":         { en: "complaints", hi: "शिकायतें" },
+  "trans.currently_open":       { en: "Currently open", hi: "अभी खुली हैं" },
+  "trans.avg_resolution":       { en: "Avg resolution", hi: "औसत समाधान" },
+  "trans.end_to_end":           { en: "end-to-end", hi: "शुरू से अंत तक" },
+
+  /* ── Transparency / Departments ─────────────────────────────────────────── */
+  "trans.dept_col":             { en: "Department", hi: "विभाग" },
+  "trans.total_col":            { en: "Total", hi: "कुल" },
+  "trans.resolved_col":         { en: "Resolved", hi: "निपटाई" },
+  "trans.rate_col":             { en: "Resolution rate", hi: "निपटान दर" },
+  "trans.dept_desc":            { en: "Resolution performance across all departments, ranked best to worst.", hi: "सभी विभागों का निपटान प्रदर्शन, सर्वश्रेष्ठ से निम्नतम तक।" },
+
+  /* ── Transparency / Map ──────────────────────────────────────────────────── */
+  "trans.map_legend":           { en: "wards monitored · circle size = complaint volume", hi: "वार्ड निगरानी में · वृत्त का आकार = शिकायत मात्रा" },
+  "trans.high_load":            { en: "high load", hi: "अधिक भार" },
+  "trans.medium_load":          { en: "medium", hi: "मध्यम" },
+  "trans.low_load":             { en: "low", hi: "कम" },
+  "trans.wards_by_load":        { en: "Wards by open load", hi: "खुली शिकायतों वाले वार्ड" },
 } as const;

@@ -75,7 +75,7 @@ export default function FilePage() {
         setLng(pos.coords.longitude);
         toast({ variant: "success", title: t("file.location_label") });
       },
-      () => toast({ variant: "warning", title: "Location denied", description: t("file.location_label") })
+      () => toast({ variant: "warning", title: t("file.location_denied") })
     );
   };
 
@@ -104,7 +104,7 @@ export default function FilePage() {
       }
       setResult(data);
     } catch (e) {
-      toast({ variant: "error", title: "Could not file", description: String(e) });
+      toast({ variant: "error", title: t("file.error_filing"), description: String(e) });
     } finally {
       setSubmitting(false);
     }
@@ -211,14 +211,14 @@ export default function FilePage() {
           {step === 0 && (
             <div className="space-y-5 animate-fade-in">
               <div className="space-y-2">
-                <Label>Language</Label>
+                <Label>{t("file.lang_select")}</Label>
                 <div className="flex flex-wrap gap-2">
                   {LANGUAGES.map((l) => (
                     <button
                       key={l.code}
                       onClick={() => setLanguage(l.code)}
                       className={cn(
-                        "rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors",
+                        "min-h-[44px] rounded px-4 py-2 text-sm font-medium transition-colors",
                         language === l.code
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-muted-foreground hover:bg-secondary"
@@ -258,7 +258,7 @@ export default function FilePage() {
                   )}
                 </div>
                 <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
-                  {lat && lng ? "📍 Location pinned" : t("file.map_placeholder")}
+                  {lat && lng ? `📍 ${t("file.location_pinned")}` : t("file.map_placeholder")}
                 </div>
               </div>
               <div className="space-y-2">
@@ -272,7 +272,9 @@ export default function FilePage() {
                 <input ref={fileRef} type="file" multiple accept="image/*,video/*,audio/*"
                   className="hidden" onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
                 {files.length > 0 && (
-                  <p className="text-xs text-muted-foreground">{files.length} file(s) selected</p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("file.files_selected").replace("{n}", String(files.length))}
+                  </p>
                 )}
               </div>
             </div>
