@@ -15,7 +15,7 @@
 | Live frontend | https://dcos-ecru.vercel.app (alias: https://dcos-delhi.vercel.app) |
 | Live API | https://dcos.onrender.com |
 | GitHub | https://github.com/jmanan999/dcos |
-| Stack | FastAPI (Python 3.12) + Next.js 15 + Postgres 16 (PostGIS + pgvector) + Redis + Supabase |
+| Stack | FastAPI 0.115 (Python 3.12) + Next.js 15 + Postgres 17 + Redis + Supabase + Groq AI + WhatsApp |
 | Monorepo | Turborepo + pnpm workspaces |
 | Python venv | `apps/api/.venv/` — activate: `source apps/api/.venv/bin/activate` |
 | Local infra | `cd infra && docker compose up -d` (Postgres 5432, Redis 6379, MinIO 9000) |
@@ -53,6 +53,9 @@
 | **FE** | Modern GovTech design system + bilingual (EN/हिं) | ✅ Done |
 | **i18n** | Hindi/English auto-translation via Groq | ✅ Done |
 | **GIS** | MapLibre ward heatmap (CM + transparency) | ✅ Done |
+| **Chatbot** | JanSetu Assistant — FAQ + Groq AI fallback, bilingual EN/हिं | ✅ Done |
+| **WhatsApp** | Interactive intake — lang select, menu, guided flow, reports, Redis state | ✅ Done |
+| **WhatsApp** | Full interactive intake — language/menu/guided flow/reports | ✅ Done |
 
 ---
 
@@ -147,6 +150,7 @@ jansetu/ (git: dcos/)
 │           │   └── shell/              AppShell, Sidebar, Topbar, MobileNav,
 │           │                           MarketingHeader ("use client"), Footer ("use client")
 │           ├── scripts/translate.mjs   Auto-translate via Groq: run to regenerate Hindi strings
+│           └── components/chatbot/  chat-bot.tsx — floating widget, client FAQ + API fallback
 │           └── lib/
 │               ├── api.ts              apiFetch + swrFetcher (auto-attaches dcos_token)
 │               ├── hooks.ts            useKpis, useHotspots, useLeaderboard, useTrend,
@@ -176,6 +180,8 @@ jansetu/ (git: dcos/)
 5. **Feature flags** in `config.py`: `FEATURE_AI_CLASSIFY`, `FEATURE_WHATSAPP_INTAKE`, `FEATURE_ANALYTICS_NL_QUERY`.
 6. **RLS**: use `RlsDbSession` for scoped reads. Workers bypass via `set_config('app.bypass_rls','true',true)`.
 7. **Tracking IDs**: `JS-YYYYMMDD-XXXXXXXX` (8-char hex suffix). Changed from `DCOS-` in Jun 2026.
+9. **Chatbot**: `FEATURE_CHATBOT=true`
+10. **WhatsApp handler** (`intake/whatsapp.py`): all message logic isolated here. handle_message() is the entry point. Language stored in Redis state. Interactive buttons/lists via send_buttons()/send_list(). File complaint via file_complaint(). Report via get_user_complaints(). (default). FAQ matching is client-side (instant). Non-FAQ → Groq. Feature flag disables the `/chatbot/ask` endpoint.
 8. **AI provider**: Groq (`llama-3.3-70b-versatile`) primary; OpenRouter + Gemini as fallbacks.
    Set via `AI_PROVIDER` env var. `_make_tracking_id()` in `intake/service.py`.
 

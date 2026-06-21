@@ -24,7 +24,6 @@ from app.modules.intake.schemas import (
     AttachmentRead,
     GrievanceCreate,
     GrievanceCreateResponse,
-    LocationInput,
     StatusEventRead,
     TrackingResponse,
     TranscribeResponse,
@@ -296,74 +295,30 @@ def _extract_exif_gps(data: bytes) -> tuple[float | None, float | None]:
 
 
 def _verify_signature(request: Request, body: bytes) -> None:
-    if not settings.WHATSAPP_TOKEN:
-        return  # No-op in local dev without credentials
+    # Meta signs webhook payloads with the App Secret (not the access token).
+    # Skip verification in local dev when no secret is configured.
+    if not settings.WHATSAPP_APP_SECRET:
+        return
     sig = request.headers.get("X-Hub-Signature-256", "")
     if not sig.startswith("sha256="):
         raise HTTPException(status_code=401, detail="Missing WhatsApp signature")
     expected = (
-        "sha256=" + hmac.new(settings.WHATSAPP_TOKEN.encode(), body, hashlib.sha256).hexdigest()
+        "sha256="
+        + hmac.new(settings.WHATSAPP_APP_SECRET.encode(), body, hashlib.sha256).hexdigest()
     )
     if not hmac.compare_digest(sig, expected):
         raise HTTPException(status_code=401, detail="Invalid WhatsApp signature")
 
 
+# ── WhatsApp message handler (delegates to whatsapp.py) ──────────────────────
+
+
 async def _ingest_wa_message(msg: dict, svc: IntakeService) -> None:
-    msg_id: str = msg.get("id", "")
-    from_num: str = msg.get("from", "")
-    msg_type: str = msg.get("type", "")
-    raw_text: str | None = None
-    loc: LocationInput | None = None
-    meta: dict = {"whatsapp_message_id": msg_id, "from": from_num, "type": msg_type}
+    """Delegate to the full-featured WhatsApp handler in whatsapp.py."""
+    from sqlalchemy.ext.asyncio import AsyncSession
 
-    if msg_type == "text":
-        raw_text = msg.get("text", {}).get("body", "")
-    elif msg_type in ("image", "audio", "video", "document"):
-        raw_text = msg.get(msg_type, {}).get("caption") or f"[{msg_type.upper()}] via WhatsApp"
-        meta["media_id"] = msg.get(msg_type, {}).get("id", "")
-    elif msg_type == "location":
-        coords = msg.get("location", {})
-        raw_text = "Complaint about this location (sent via WhatsApp)"
-        loc = LocationInput(lat=coords.get("latitude", 0), lng=coords.get("longitude", 0))
+    from app.modules.intake.whatsapp import handle_message
 
-    if not raw_text or len(raw_text) < 5:
-        return
-
-    phone = f"+{from_num}" if not from_num.startswith("+") else from_num
-    body = GrievanceCreate(
-        raw_text=raw_text,
-        channel="whatsapp",
-        language="hi",
-        citizen_phone=phone,
-        idempotency_key=f"wa-{msg_id}",
-        channel_meta=meta,
-        location=loc,
-    )
-    result = await svc.create_grievance(body, actor=None)
-
-    # Reply to citizen with tracking ID
-    if settings.WHATSAPP_TOKEN and settings.WHATSAPP_PHONE_NUMBER_ID:
-        import httpx
-
-        reply = (
-            f"Namaste! Aapki shikayat darj ho gayi hai.\n"
-            f"Tracking ID: *{result.tracking_id}*\n\n"
-            f"Track: /track/{result.tracking_id}"
-        )
-        if result.is_emergency:
-            reply = "🚨 EMERGENCY: Please call 112 NOW.\n\n" + reply
-        try:
-            async with httpx.AsyncClient() as client:
-                await client.post(
-                    f"https://graph.facebook.com/{settings.WHATSAPP_API_VERSION}"
-                    f"/{settings.WHATSAPP_PHONE_NUMBER_ID}/messages",
-                    headers={"Authorization": f"Bearer {settings.WHATSAPP_TOKEN}"},
-                    json={
-                        "messaging_product": "whatsapp",
-                        "to": from_num,
-                        "type": "text",
-                        "text": {"body": reply},
-                    },
-                )
-        except Exception as exc:
-            log.warning("whatsapp.reply.failed", error=str(exc), to=from_num)
+    # Extract the underlying session from the service (it holds a reference)
+    db: AsyncSession = svc._s  # type: ignore[attr-defined]
+    await handle_message(msg, db)

@@ -48,12 +48,12 @@ FAQ = [
         "question_hi": "शिकायत को ट्रैक कैसे करें?",
         "answer_en": (
             "Use your tracking ID on the Track page at /track. "
-            "Enter the 8-character alphanumeric ID you received after filing. "
+            "Enter the tracking ID (format: JS-YYYYMMDD-XXXXXXXX) you received after filing. "
             "You can also get updates via WhatsApp by sending your tracking ID to our number."
         ),
         "answer_hi": (
             "अपनी ट्रैकिंग आईडी का उपयोग /track पेज पर करें। "
-            "शिकायत दर्ज करने के बाद आपको मिली 8 अंकों की आईडी दर्ज करें। "
+            "शिकायत दर्ज करने के बाद आपको मिली ट्रैकिंग आईडी (JS-YYYYMMDD-XXXXXXXX) दर्ज करें। "
             "आप अपनी ट्रैकिंग आईडी व्हाट्सएप पर भेजकर भी अपडेट प्राप्त कर सकते हैं।"
         ),
         "navigation_action": "/track",
@@ -125,25 +125,25 @@ FAQ = [
         "keywords_hi": ["संपर्क", "सहायता", "हेल्पलाइन", "मदद", "फोन", "कॉल"],
     },
     {
-        "id": "what-is-dcos",
-        "question_en": "What is DCOS?",
-        "question_hi": "DCOS क्या है?",
+        "id": "what-is-jansetu",
+        "question_en": "What is JanSetu?",
+        "question_hi": "JanSetu क्या है?",
         "answer_en": (
-            "DCOS (Delhi Citizen Operating System) is a grievance and governance "
+            "JanSetu (Delhi Grievance Portal) is a grievance and governance "
             "command center for Delhi NCT. Citizens can file complaints about "
             "civic issues, AI routes them to the right officer, and the CM can "
             "monitor everything in real-time. It handles potholes, water, "
             "electricity, garbage, and more across all 12 departments."
         ),
         "answer_hi": (
-            "DCOS (दिल्ली सिटिज़न ऑपरेटिंग सिस्टम) दिल्ली के लिए एक शिकायत और "
+            "JanSetu (जनसेतु) दिल्ली के लिए एक शिकायत और "
             "शासन कमांड सेंटर है। नागरिक नागरिक मुद्दों की शिकायत दर्ज कर सकते हैं, "
             "AI उन्हें सही अधिकारी तक पहुंचाता है, और CM वास्तविक समय में सब कुछ "
             "देख सकते हैं। यह 12 विभागों में गड्ढे, पानी, बिजली, कचरा आदि संभालता है।"
         ),
         "navigation_action": None,
         "keywords_en": ["what is dcos", "dcos", "about dcos", "what is this"],
-        "keywords_hi": ["dcos क्या है", "डीसीओएस", "डीसीओएस क्या है"],
+        "keywords_hi": ["jansetu क्या है", "जनसेतु", "जनसेतु क्या है"],
     },
     {
         "id": "officer-dashboard",
@@ -263,14 +263,14 @@ class ChatbotService:
 
     async def _llm_answer(self, message: str, language: str) -> str:
         if not self._has_ai_key():
-            fallback_en = "I'm a DCOS assistant. Please try asking about how to file a complaint, track one, or navigate the dashboard."
+            fallback_en = "I'm the JanSetu assistant. Please try asking about how to file a complaint, track one, or navigate the dashboard."
             fallback_hi = (
-                "मैं DCOS सहायक हूं। कृपया शिकायत दर्ज करने, ट्रैक करने या डैशबोर्ड का उपयोग करने के बारे में पूछें।"
+                "मैं JanSetu सहायक हूं। कृपया शिकायत दर्ज करने, ट्रैक करने या डैशबोर्ड का उपयोग करने के बारे में पूछें।"
             )
             return fallback_hi if language == "hi" else fallback_en
 
         system_prompt = (
-            "You are a helpful civic assistant for DCOS (Delhi Citizen Operating System). "
+            "You are a helpful civic assistant for JanSetu (Delhi Grievance Portal by the Government of Delhi). "
             "Answer concisely in the user's language. "
             "You can help with: filing complaints, tracking complaints, department info, "
             "navigating the website, understanding grievance statuses, and general Delhi civic info. "

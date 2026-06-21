@@ -1,6 +1,5 @@
 from collections.abc import AsyncGenerator
 
-from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -13,22 +12,10 @@ engine = create_async_engine(
     echo=settings.DATABASE_ECHO,
     future=True,
 )
-
-
-@event.listens_for(engine.sync_engine, "connect")
-def _register_asyncpg_codecs(dbapi_conn, _) -> None:
-    """Register pgvector type codec so asyncpg can round-trip vector columns."""
-    try:
-        import asyncio
-
-        async def _setup(conn) -> None:
-            from pgvector.asyncpg import register_vector
-
-            await register_vector(conn)
-
-        asyncio.get_event_loop().run_until_complete(_setup(dbapi_conn))
-    except Exception:
-        pass  # codec registration is best-effort; fails gracefully outside asyncpg
+# Note: pgvector codec registration via asyncpg's set_type_codec is not used here
+# because all vector queries use CAST(:emb AS vector) in raw SQL, which works
+# without a registered codec. Attempting auto-registration causes an
+# AttributeError on newer asyncpg (AsyncAdapt wrapper lacks set_type_codec).
 
 
 AsyncSessionLocal = async_sessionmaker(

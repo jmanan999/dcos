@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
-import { MessageCircle, X, Send, ArrowRight } from "lucide-react";
+import { MessageCircle, X, Send } from "lucide-react";
 import { Button } from "@dcos/ui";
 import { apiFetch } from "@/lib/api";
 import Link from "next/link";
@@ -64,15 +64,15 @@ const FAQS: FAQ[] = [
     keywords_hi: ["संपर्क", "सहायता", "हेल्पलाइन", "मदद", "फोन", "कॉल"],
   },
   {
-    question_en: "What is DCOS?",
-    question_hi: "DCOS क्या है?",
+    question_en: "What is JanSetu?",
+    question_hi: "JanSetu क्या है?",
     answer_en:
-      "DCOS (Delhi Citizen Operating System) is a grievance and governance command center for Delhi NCT. Citizens file complaints about civic issues, AI routes them to the right officer, and the CM monitors everything in real-time across 12 departments.",
+      "JanSetu (Delhi Grievance Portal) is a grievance and governance command center for Delhi NCT. Citizens file complaints about civic issues, AI routes them to the right officer, and the CM monitors everything in real-time across 12 departments.",
     answer_hi:
-      "DCOS (दिल्ली सिटिज़न ऑपरेटिंग सिस्टम) दिल्ली के लिए एक शिकायत और शासन कमांड सेंटर है। नागरिक शिकायत दर्ज करते हैं, AI सही अधिकारी तक पहुंचाता है, और CM 12 विभागों में रियल-टाइम में सब कुछ देख सकते हैं।",
+      "JanSetu (जनसेतु) दिल्ली के लिए एक शिकायत और शासन कमांड सेंटर है। नागरिक शिकायत दर्ज करते हैं, AI सही अधिकारी तक पहुंचाता है, और CM 12 विभागों में रियल-टाइम में सब कुछ देख सकते हैं।",
     navigation_action: null,
-    keywords_en: ["what is dcos", "dcos", "about dcos", "what is this"],
-    keywords_hi: ["dcos क्या है", "डीसीओएस", "डीसीओएस क्या है"],
+    keywords_en: ["what is jansetu", "jansetu", "about jansetu", "what is this"],
+    keywords_hi: ["jansetu क्या है", "जनसेतु", "जनसेतु क्या है"],
   },
   {
     question_en: "How to use the officer dashboard?",
@@ -140,8 +140,8 @@ const QUICK_ACTIONS = [
   { label_en: "📞 Contact Support", label_hi: "📞 सहायता से संपर्क", en: "contact support", hi: "संपर्क" },
 ];
 
-const WELCOME_EN = "Hi! 👋 I'm the DCOS assistant. Ask me how to file or track a complaint, or pick a quick option below.";
-const WELCOME_HI = "नमस्ते! 👋 मैं DCOS सहायक हूं। शिकायत दर्ज करने या ट्रैक करने के बारे में पूछें, या नीचे कोई विकल्प चुनें।";
+const WELCOME_EN = "Hi! 👋 I'm the JanSetu assistant. Ask me how to file or track a complaint, or pick a quick option below.";
+const WELCOME_HI = "नमस्ते! 👋 मैं JanSetu सहायक हूं। शिकायत दर्ज करने या ट्रैक करने के बारे में पूछें, या नीचे कोई विकल्प चुनें।";
 
 /* ── API response type ──────────────────────────────────────────────────── */
 
@@ -217,7 +217,7 @@ export function ChatBot() {
         const fallback =
           lang === "hi"
             ? "क्षमा करें, मैं अभी AI से कनेक्ट नहीं कर पा रहा। कृपया बाद में पुनः प्रयास करें या ऊपर दिए गए त्वरित विकल्पों का उपयोग करें।"
-            : "Sorry, I can't connect to the AI right now. Please try again later or use the quick options above.";
+            : "Sorry, I'm having trouble connecting. Please try again in a moment or use the quick options above.";
         setMessages((prev) => [...prev, { role: "bot", text: fallback, navigation_action: null, is_faq: false }]);
       } finally {
         setLoading(false);
@@ -268,7 +268,7 @@ export function ChatBot() {
       <div className="flex items-center justify-between rounded-t-2xl border-b border-border bg-primary px-4 py-3 text-primary-foreground">
         <div className="flex items-center gap-2">
           <MessageCircle className="size-5" />
-          <span className="text-sm font-semibold">DCOS Assistant</span>
+          <span className="text-sm font-semibold">JanSetu Assistant</span>
         </div>
         <div className="flex items-center gap-1">
           <button
