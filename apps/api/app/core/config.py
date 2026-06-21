@@ -86,6 +86,11 @@ class Settings(BaseSettings):
     FEATURE_WHATSAPP_INTAKE: bool = False
     FEATURE_ANALYTICS_NL_QUERY: bool = False
     FEATURE_CHATBOT: bool = True
+    FEATURE_VOICE_INTAKE: bool = True
+
+    # ── Speech-to-text (Groq Whisper) ──────────────────────────────────────────
+    STT_PROVIDER: str = "groq"
+    STT_GROQ_MODEL: str = "whisper-large-v3-turbo"
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

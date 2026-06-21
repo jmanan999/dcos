@@ -140,3 +140,8 @@ class TrackingResponse(BaseModel):
     sla_due_at: datetime | None
     timeline: list[StatusEventRead]
     attachments: list[AttachmentRead]
+
+
+class TranscribeResponse(BaseModel):
+    text: str
+    detected_language: str | None = None

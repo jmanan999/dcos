@@ -27,6 +27,7 @@ from app.modules.intake.schemas import (
     LocationInput,
     StatusEventRead,
     TrackingResponse,
+    TranscribeResponse,
 )
 from app.modules.intake.service import IntakeService
 
@@ -127,6 +128,71 @@ async def upload_attachment(
         proof_type=proof_type,
     )
     return AttachmentRead.model_validate(att)
+
+
+# ── Speech-to-text (voice intake) ──────────────────────────────────────────────
+
+
+@router.post(
+    "/transcribe",
+    response_model=TranscribeResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Transcribe audio to text via Groq Whisper",
+)
+async def transcribe_audio(
+    file: UploadFile = File(...),
+) -> TranscribeResponse:
+    if not settings.FEATURE_VOICE_INTAKE:
+        raise HTTPException(status_code=404, detail="Voice intake not enabled")
+
+    ALLOWED_AUDIO = {
+        "audio/flac",
+        "audio/mp4",
+        "audio/mpeg",
+        "audio/mpga",
+        "audio/oga",
+        "audio/ogg",
+        "audio/wav",
+        "audio/webm",
+        "audio/x-flac",
+        "audio/x-m4a",
+        "audio/x-wav",
+    }
+    ct = file.content_type or ""
+    if ct not in ALLOWED_AUDIO:
+        raise HTTPException(status_code=415, detail=f"Unsupported audio format: {ct}")
+
+    contents = await file.read()
+    if len(contents) > 20 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Audio too large (max 20 MB)")
+
+    import httpx
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                f"{settings.GROQ_BASE_URL}/audio/transcriptions",
+                headers={"Authorization": f"Bearer {settings.GROQ_API_KEY}"},
+                files={
+                    "file": (file.filename or "audio.webm", contents, ct),
+                },
+                data={
+                    "model": settings.STT_GROQ_MODEL,
+                    "response_format": "json",
+                },
+            )
+        if resp.status_code != 200:
+            detail = resp.text[:200]
+            log.error("stt.groq_failed", status=resp.status_code, detail=detail)
+            raise HTTPException(status_code=502, detail=f"Transcription service error: {detail}")
+
+        result = resp.json()
+        return TranscribeResponse(
+            text=result.get("text", ""),
+            detected_language=result.get("language", None),
+        )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Transcription service timed out")
 
 
 # ── Tracking (public — no auth required) ─────────────────────────────────────

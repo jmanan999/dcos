@@ -29,6 +29,7 @@ import {
 } from "@dcos/ui";
 import { apiFetch } from "@/lib/api";
 import { useLanguage } from "@/lib/i18n";
+import VoiceRecorder from "@/components/intake/voice-recorder";
 
 const LANGUAGES = [
   { code: "hi", label: "हिंदी" },
@@ -228,6 +229,7 @@ export default function FilePage() {
                   ))}
                 </div>
               </div>
+              <VoiceRecorder onTranscription={(t) => setText(t)} language={language} />
               <div className="space-y-2">
                 <Label htmlFor="desc" required>{t("file.desc_label")}</Label>
                 <Textarea
