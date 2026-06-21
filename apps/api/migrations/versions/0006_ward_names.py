@@ -292,7 +292,7 @@ WARD_NAMES: dict[int, str] = {
 def upgrade() -> None:
     # Build a single VALUES list for a bulk UPDATE
     cases = "\n".join(
-        f"    WHEN number = {num} THEN '{name.replace(chr(39), chr(39)+chr(39))}'"
+        f"    WHEN number = {num} THEN '{name.replace(chr(39), chr(39) + chr(39))}'"
         for num, name in WARD_NAMES.items()
     )
     op.execute(f"""
