@@ -40,11 +40,22 @@ const LANGUAGES = [
 
 // Steps are translated inline where used
 
+interface CitizenRight {
+  category: string;
+  sla_days: number;
+  legal_basis: string;
+  department: string;
+  escalation_after_days: number;
+  penalty_info: string;
+}
+
 interface Result {
   tracking_id: string;
   is_emergency: boolean;
   emergency_guidance?: string | null;
   message: string;
+  citizen_right?: CitizenRight | null;
+  cluster_size?: number;
 }
 
 export default function FilePage() {
@@ -61,6 +72,7 @@ export default function FilePage() {
   const [language, setLanguage] = useState("hi");
   const [phone, setPhone] = useState("");
   const [anonymous, setAnonymous] = useState(false);
+  const [dpdpConsent, setDpdpConsent] = useState(false);
   const [lat, setLat] = useState<number | null>(null);
   const [lng, setLng] = useState<number | null>(null);
   const [files, setFiles] = useState<File[]>([]);
@@ -112,6 +124,7 @@ export default function FilePage() {
 
   // ── Success screen ──────────────────────────────────────────────────────────
   if (result) {
+    const right = result.citizen_right;
     return (
       <div className="mx-auto max-w-xl space-y-4">
         {result.is_emergency && (
@@ -147,13 +160,9 @@ export default function FilePage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  setResult(null);
-                  setStep(0);
-                  setText("");
-                  setPhone("");
-                  setLat(null);
-                  setLng(null);
-                  setFiles([]);
+                  setResult(null); setStep(0); setText("");
+                  setPhone(""); setLat(null); setLng(null); setFiles([]);
+                  setDpdpConsent(false);
                 }}
               >
                 {t("file.file_another")}
@@ -161,11 +170,57 @@ export default function FilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* ── Cluster Alert — you're not alone ── */}
+        {result.cluster_size != null && result.cluster_size >= 4 && (
+          <div className="border border-warning/40 bg-warning/5 p-3 flex items-start gap-2.5">
+            <div className="h-2 w-2 rounded-full bg-warning mt-1.5 shrink-0 animate-pulse" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">
+                You are 1 of {result.cluster_size + 1} citizens reporting this issue
+              </p>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                This cluster has been automatically escalated as a priority case to the department.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── Citizen Rights Card — what the law guarantees you ── */}
+        {right && (
+          <div className="border border-primary/20 bg-primary/5 p-4 space-y-2.5">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-primary" />
+              <p className="text-xs font-bold uppercase tracking-wider text-primary">
+                आपके कानूनी अधिकार · Your Legal Rights
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="border border-border bg-card p-3">
+                <p className="text-2xs text-muted-foreground uppercase tracking-wide">SLA Deadline</p>
+                <p className="text-2xl font-black text-primary mt-0.5">{right.sla_days}d</p>
+                <p className="text-xs text-muted-foreground">{right.department} must resolve</p>
+              </div>
+              <div className="border border-border bg-card p-3">
+                <p className="text-2xs text-muted-foreground uppercase tracking-wide">Can Escalate After</p>
+                <p className="text-2xl font-black text-warning mt-0.5">Day {right.escalation_after_days}</p>
+                <p className="text-xs text-muted-foreground">First Appellate Authority</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground border-l-2 border-primary/30 pl-2">
+              {right.legal_basis}
+            </p>
+            <p className="text-xs text-muted-foreground">{right.penalty_info}</p>
+          </div>
+        )}
       </div>
     );
   }
 
-  const canNext = step === 0 ? text.trim().length >= 10 : true;
+  const canNext =
+    step === 0 ? text.trim().length >= 10 :
+    step === 2 ? dpdpConsent :
+    true;
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
@@ -311,6 +366,29 @@ export default function FilePage() {
                   <p className="text-2xs text-muted-foreground">{t("file.phone_hint")}</p>
                 </div>
               )}
+
+              {/* DPDP Act 2023 consent — legal requirement */}
+              <div className="border border-border bg-muted/20 p-3 space-y-2">
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={dpdpConsent}
+                    onChange={(e) => setDpdpConsent(e.target.checked)}
+                    className="h-4 w-4 mt-0.5 rounded border-input text-primary focus:ring-ring shrink-0"
+                    required
+                  />
+                  <span className="text-xs text-foreground leading-relaxed">
+                    I consent to sharing my phone number and location with the relevant government
+                    department solely for complaint resolution. Data is handled under the{" "}
+                    <Link href="/privacy" className="text-primary underline">
+                      Digital Personal Data Protection Act 2023
+                    </Link>.
+                  </span>
+                </label>
+                <p className="text-2xs text-muted-foreground pl-6">
+                  Your data is deleted after 1 year of case closure. You can request deletion anytime.
+                </p>
+              </div>
             </div>
           )}
 

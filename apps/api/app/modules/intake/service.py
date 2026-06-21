@@ -227,6 +227,32 @@ class IntakeService:
             )
         )
 
+        # 7b. Cluster detection — count open complaints in same ward × category
+        cluster_size = 0
+        if grievance.ward_id and body.raw_text:
+            cluster_row = (
+                await self._s.execute(
+                    text("""
+                        SELECT COUNT(*) FROM grievances
+                        WHERE ward_id = :wid
+                          AND status NOT IN ('CLOSED','RESOLVED','VERIFIED','REJECTED_SPAM')
+                          AND id != :gid
+                          AND (
+                              cluster_id = (
+                                  SELECT cluster_id FROM grievances WHERE id = :gid
+                              )
+                              OR (
+                                  cluster_id IS NULL
+                                  AND category IS NOT NULL
+                                  AND category = (SELECT category FROM grievances WHERE id = :gid)
+                              )
+                          )
+                    """),
+                    {"wid": str(grievance.ward_id), "gid": str(grievance.id)},
+                )
+            ).scalar()
+            cluster_size = int(cluster_row or 0)
+
         # 8. Idempotency key (24-hour window)
         await self._s.execute(
             text("""
@@ -292,6 +318,7 @@ class IntakeService:
                 else f"Filed successfully. Track at /track/{tracking_id}"
             ),
             citizen_right=detected_right,
+            cluster_size=cluster_size,
         )
 
     # ── Tracking ──────────────────────────────────────────────────────────────

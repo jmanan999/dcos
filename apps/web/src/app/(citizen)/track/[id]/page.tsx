@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { Clock, SearchX } from "lucide-react";
+import { AlertTriangle, Clock, SearchX } from "lucide-react";
 import { StatusBadge, Card, CardContent, Button, EmptyState, Skeleton } from "@dcos/ui";
 import { useLanguage } from "@/lib/i18n";
 
@@ -59,8 +59,50 @@ export default function TrackPage() {
 
   const timeline = data.timeline ?? [];
 
+  // SLA breach detection
+  const isTerminal = ["RESOLVED","VERIFIED","CLOSED","REJECTED_SPAM"].includes(data.status);
+  const slaOverdue = data.sla_due_at && !isTerminal && new Date(data.sla_due_at) < new Date();
+  const overdueDays = slaOverdue
+    ? Math.floor((Date.now() - new Date(data.sla_due_at!).getTime()) / 86_400_000)
+    : 0;
+
   return (
     <div className="mx-auto max-w-xl space-y-5">
+
+      {/* ── SLA Breach Alert — the rights engine in action ── */}
+      {slaOverdue && (
+        <div className="border border-destructive/40 bg-destructive/5 p-4 space-y-2">
+          <div className="flex items-start gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-destructive">
+                SLA Deadline Missed — {overdueDays} day{overdueDays !== 1 ? "s" : ""} overdue
+              </p>
+              <p className="text-xs text-foreground mt-1">
+                Under the Delhi Right to Public Services Act 2011, you have the right to escalate
+                this complaint to the First Appellate Authority.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 pl-6">
+            <a
+              href="https://pgportal.gov.in"
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 border border-destructive/30 bg-card px-3 py-1.5 text-xs font-medium text-destructive hover:bg-destructive/5 transition-colors"
+            >
+              Escalate to CPGRAMS →
+            </a>
+            <a
+              href="https://lokayukta.delhi.gov.in"
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Delhi Lokayukta →
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <Card>
         <CardContent className="py-5">

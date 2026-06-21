@@ -137,8 +137,9 @@ class GrievanceCreateResponse(BaseModel):
     is_emergency: bool
     emergency_guidance: str | None = None
     message: str
-    # Citizen's legal rights for this type of complaint
     citizen_right: CitizenRight | None = None
+    # How many other citizens have the same complaint in this ward right now
+    cluster_size: int = 0
 
 
 class TrackingResponse(BaseModel):
