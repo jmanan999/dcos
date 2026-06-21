@@ -11,17 +11,22 @@ from app.core.permissions import P
 from app.modules.analytics.schemas import (
     AuditSample,
     CitizenJourney,
+    ContractorIntelligenceReport,
     DailyTrendPoint,
     DelhiRiskIndex,
     DeptLeaderboardRow,
+    EconomicDragReport,
     EscalationPyramid,
     ExecutiveBrief,
+    GovernanceScorecard,
     KPISnapshot,
     NLQueryRequest,
     NLQueryResponse,
     PendencySnapshot,
+    PredictiveReport,
     RootCauseReport,
     WardHotspot,
+    WardIndexReport,
 )
 from app.modules.analytics.service import AnalyticsService
 
@@ -152,6 +157,51 @@ async def audit_sample(
 ) -> AuditSample:
     """Random sample of resolved/verified cases, re-checked for proof completeness."""
     return await svc.get_audit_sample(limit=limit)
+
+
+@router.get("/economic-drag", response_model=EconomicDragReport)
+async def economic_drag(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> EconomicDragReport:
+    """Daily economic cost of unresolved complaints in rupees — the headline number."""
+    return await svc.get_economic_drag()
+
+
+@router.get("/ward-index", response_model=WardIndexReport)
+async def ward_index(
+    _: _AnalyticsAuth = None,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> WardIndexReport:
+    """Ward Productivity Index — all Delhi wards ranked 0-100 by governance quality."""
+    return await svc.get_ward_index()
+
+
+@router.get("/predictions", response_model=PredictiveReport)
+async def predictions(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> PredictiveReport:
+    """Forward-looking alerts — predicts complaint spikes before they happen."""
+    return await svc.get_predictions()
+
+
+@router.get("/contractor-intelligence", response_model=ContractorIntelligenceReport)
+async def contractor_intelligence(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> ContractorIntelligenceReport:
+    """Department risk scores as proxy for contractor performance accountability."""
+    return await svc.get_contractor_intelligence()
+
+
+@router.get("/governance-scorecard", response_model=GovernanceScorecard)
+async def governance_scorecard(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> GovernanceScorecard:
+    """CM morning brief — city health, economic drag, worst wards, action items."""
+    return await svc.get_governance_scorecard()
 
 
 @router.post("/refresh-views", status_code=200)
