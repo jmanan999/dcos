@@ -27,16 +27,17 @@ export default function LandingPage() {
           <div
             className="w-full h-full bg-cover bg-center"
             style={{
-              backgroundImage: `url('https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=2000&q=80')`,
+              backgroundImage: `url('https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Red_Fort_in_New_Delhi_03-2016.jpg/1920px-Red_Fort_in_New_Delhi_03-2016.jpg')`,
             }}
           />
           {/* White overlay + fade-to-white gradient at bottom */}
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px]" />
+          {/* Slight cool tint to balance Red Fort's warm sandstone + fade to white at bottom */}
+          <div className="absolute inset-0 bg-white/55" />
           <div
             className="absolute inset-0"
             style={{
               background:
-                "linear-gradient(to bottom, rgba(250,248,255,0) 0%, rgba(250,248,255,1) 100%)",
+                "linear-gradient(to bottom, rgba(250,248,255,0) 30%, rgba(250,248,255,1) 100%)",
             }}
           />
         </div>
