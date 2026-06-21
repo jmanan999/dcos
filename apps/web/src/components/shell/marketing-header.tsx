@@ -8,13 +8,13 @@ import { useLanguage } from "@/lib/i18n";
 
 export function MarketingHeader() {
   const pathname = usePathname();
-  const { lang, setLang } = useLanguage();
+  const { t, lang, setLang } = useLanguage();
   const [open, setOpen] = useState(false);
 
   const LINKS = [
-    { href: "/file",         label: "Services" },
-    { href: "/track",        label: "Tracking" },
-    { href: "/transparency", label: "Transparency" },
+    { href: "/file",         label: t("nav.services") },
+    { href: "/track",        label: t("nav.tracking") },
+    { href: "/transparency", label: t("nav.transparency") },
   ];
 
   return (
