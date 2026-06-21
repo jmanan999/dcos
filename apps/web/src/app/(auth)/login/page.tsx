@@ -15,7 +15,7 @@ import {
   Alert,
   useToast,
 } from "@dcos/ui";
-import { useAuth } from "@/lib/auth/provider";
+import { useAuth, DEMO_PHONE, DEMO_OTP } from "@/lib/auth/provider";
 import { isSupabaseConfigured } from "@/lib/auth/config";
 import { homeForRole } from "@/lib/auth/types";
 import { useLanguage } from "@/lib/i18n";
@@ -108,7 +108,7 @@ function CitizenLogin({
   toast: Toast;
 }) {
   const { t } = useLanguage();
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(DEMO_PHONE);
   const [code, setCode] = useState("");
   const [sent, setSent] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -141,10 +141,16 @@ function CitizenLogin({
 
   return (
     <div className="space-y-4 pt-2">
+      {/* Demo hint — always visible so judges/reviewers can log in instantly */}
+      <div className="rounded border border-primary/20 bg-primary/5 px-3 py-2.5 text-xs text-primary">
+        <span className="font-semibold">Demo:</span> Phone pre-filled · OTP is{" "}
+        <span className="font-mono font-bold tracking-widest">{DEMO_OTP}</span>
+      </div>
+
       <div className="space-y-1.5">
         <Label htmlFor="phone" required>{t("login.phone_label")}</Label>
         <Input
-          id="phone" type="tel" inputMode="numeric" placeholder="+91 98765 43210"
+          id="phone" type="tel" inputMode="numeric" placeholder={DEMO_PHONE}
           value={phone} onChange={(e) => setPhone(e.target.value)} disabled={sent}
         />
       </div>

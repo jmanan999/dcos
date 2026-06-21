@@ -24,6 +24,10 @@ interface AuthContextValue {
   logout: () => Promise<void>;
 }
 
+/** Demo credentials — bypass real Supabase OTP for hackathon demos. */
+export const DEMO_PHONE = "+919999000000";
+export const DEMO_OTP = "000000";
+
 const AuthContext = React.createContext<AuthContextValue | null>(null);
 
 export function useAuth() {
@@ -147,12 +151,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const requestOtp = React.useCallback(
     async (phone: string): Promise<{ ok: boolean; message: string }> => {
+      // Demo shortcut — skip Supabase SMS entirely for the demo number
+      if (phone === DEMO_PHONE || !isSupabaseConfigured()) {
+        return { ok: true, message: `Demo: enter ${DEMO_OTP} to sign in as a citizen.` };
+      }
       const supabase = getSupabaseBrowserClient();
       if (!supabase) {
-        return {
-          ok: true,
-          message: "Dev mode: enter any 6-digit code to continue (OTP not actually sent).",
-        };
+        return { ok: true, message: `Demo: enter ${DEMO_OTP} to sign in.` };
       }
       const { error } = await supabase.auth.signInWithOtp({ phone });
       if (error) return { ok: false, message: error.message };
@@ -163,11 +168,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifyOtp = React.useCallback(
     async (phone: string, code: string): Promise<AuthUser> => {
-      const supabase = getSupabaseBrowserClient();
-      if (!supabase) {
-        // Dev fallback: issue a local citizen JWT (any code accepted)
-        return loginLocal("citizen", phone);
+      // Master demo OTP — always works regardless of Supabase config
+      if (code === DEMO_OTP || !isSupabaseConfigured()) {
+        return loginLocal("citizen", phone, "Demo Citizen");
       }
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) return loginLocal("citizen", phone);
       const { data, error } = await supabase.auth.verifyOtp({ phone, token: code, type: "sms" });
       if (error || !data.session) throw new Error(error?.message ?? "OTP verification failed");
       const t = data.session.access_token;
