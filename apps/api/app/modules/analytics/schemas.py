@@ -74,3 +74,33 @@ class ExecutiveBrief(BaseModel):
     top_departments_by_backlog: list[str]
     top_wards_by_open: list[str]
     generated_at: datetime
+
+
+class RiskFactor(BaseModel):
+    label: str
+    value: str
+    severity: str  # "critical" | "high" | "medium" | "low"
+
+
+class DelhiRiskIndex(BaseModel):
+    level: str  # "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
+    score: int  # 0-100 (higher = worse)
+    factors: list[RiskFactor]
+    summary: str  # One-line human-readable status
+
+
+class CitizenJourneyStep(BaseModel):
+    timestamp: str
+    event: str
+    detail: str
+    status: str  # "done" | "active" | "pending"
+
+
+class CitizenJourney(BaseModel):
+    tracking_id: str
+    category: str | None
+    department: str | None
+    channel: str
+    steps: list[CitizenJourneyStep]
+    is_resolved: bool
+    resolution_hours: float | None

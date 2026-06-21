@@ -350,6 +350,205 @@ Rules:
             generated_at=datetime.now(UTC),
         )
 
+    # ── Delhi Risk Index ──────────────────────────────────────────────────────
+
+    async def get_risk_index(self) -> DelhiRiskIndex:
+        from app.modules.analytics.schemas import DelhiRiskIndex, RiskFactor
+
+        kpis = await self.get_kpis()
+        hotspots = await self.get_hotspots(limit=20)
+
+        critical_wards = sum(1 for h in hotspots if h.severity == "high")
+        sla_breach_rate = (
+            round(kpis.sla_breaches_active / max(kpis.total_open, 1) * 100, 1)
+            if kpis.total_open
+            else 0
+        )
+        resolution_rate = (
+            round(kpis.total_resolved / max(kpis.total_filed, 1) * 100, 1)
+            if kpis.total_filed
+            else 0
+        )
+
+        # Weighted risk score (0-100, higher = worse)
+        score = min(
+            100,
+            int(
+                (sla_breach_rate * 0.4)
+                + (max(0, 70 - resolution_rate) * 0.4)
+                + (critical_wards * 3 * 0.2)
+            ),
+        )
+
+        if score >= 65:
+            level = "CRITICAL"
+        elif score >= 40:
+            level = "HIGH"
+        elif score >= 20:
+            level = "MEDIUM"
+        else:
+            level = "LOW"
+
+        factors: list[RiskFactor] = []
+        if sla_breach_rate > 30:
+            factors.append(
+                RiskFactor(
+                    label="SLA Breach Rate", value=f"{sla_breach_rate}%", severity="critical"
+                )
+            )
+        elif sla_breach_rate > 15:
+            factors.append(
+                RiskFactor(label="SLA Breach Rate", value=f"{sla_breach_rate}%", severity="high")
+            )
+        else:
+            factors.append(
+                RiskFactor(label="SLA Breach Rate", value=f"{sla_breach_rate}%", severity="low")
+            )
+
+        if resolution_rate < 40:
+            factors.append(
+                RiskFactor(
+                    label="Resolution Rate", value=f"{resolution_rate}%", severity="critical"
+                )
+            )
+        elif resolution_rate < 60:
+            factors.append(
+                RiskFactor(label="Resolution Rate", value=f"{resolution_rate}%", severity="high")
+            )
+        else:
+            factors.append(
+                RiskFactor(label="Resolution Rate", value=f"{resolution_rate}%", severity="low")
+            )
+
+        if critical_wards >= 10:
+            factors.append(
+                RiskFactor(label="Critical Wards", value=str(critical_wards), severity="critical")
+            )
+        elif critical_wards >= 5:
+            factors.append(
+                RiskFactor(label="Critical Wards", value=str(critical_wards), severity="high")
+            )
+        else:
+            factors.append(
+                RiskFactor(label="Critical Wards", value=str(critical_wards), severity="low")
+            )
+
+        factors.append(
+            RiskFactor(
+                label="Open Backlog",
+                value=str(kpis.total_open),
+                severity="medium" if kpis.total_open > 300 else "low",
+            )
+        )
+        factors.append(RiskFactor(label="Filed Today", value=str(kpis.filed_today), severity="low"))
+
+        summaries = {
+            "CRITICAL": f"City requires immediate intervention — {kpis.sla_breaches_active} active SLA breaches, {critical_wards} critical wards",
+            "HIGH": f"Elevated risk — {kpis.sla_breaches_active} SLA breaches, resolution at {resolution_rate}%",
+            "MEDIUM": f"Manageable — monitor {critical_wards} wards closely, {kpis.total_open} open complaints",
+            "LOW": f"City performing well — {resolution_rate}% resolution rate, {kpis.sla_breaches_active} SLA breaches",
+        }
+
+        return DelhiRiskIndex(level=level, score=score, factors=factors, summary=summaries[level])
+
+    # ── Citizen Journey ───────────────────────────────────────────────────────
+
+    async def get_citizen_journey(self, tracking_id: str | None = None) -> CitizenJourney | None:
+        """Return the most dramatic recent complaint journey for demo/display purposes."""
+        from app.modules.analytics.schemas import CitizenJourney, CitizenJourneyStep
+
+        if tracking_id:
+            q = text(
+                "SELECT id, tracking_id, channel, category, status, created_at, closed_at, department_id FROM grievances WHERE tracking_id = :tid"
+            )
+            params = {"tid": tracking_id}
+        else:
+            # Pick a recent interesting complaint (assigned/in-progress)
+            q = text("""
+                SELECT id, tracking_id, channel, category, status, created_at, closed_at, department_id
+                FROM grievances
+                WHERE channel = 'whatsapp' AND status NOT IN ('RECEIVED', 'REJECTED_SPAM')
+                ORDER BY created_at DESC LIMIT 1
+            """)
+            params = {}
+
+        res = await self._db.execute(q, params)
+        row = res.fetchone()
+        if not row:
+            # Fallback to any recent complaint
+            res2 = await self._db.execute(
+                text("""
+                SELECT id, tracking_id, channel, category, status, created_at, closed_at, department_id
+                FROM grievances ORDER BY created_at DESC LIMIT 1
+            """)
+            )
+            row = res2.fetchone()
+        if not row:
+            return None
+
+        gid, tid, channel, category, status, created_at, closed_at, dept_id = row
+
+        # Get dept name
+        dept_name = None
+        if dept_id:
+            dr = await self._db.execute(
+                text("SELECT name FROM departments WHERE id = CAST(:did AS uuid)"),
+                {"did": str(dept_id)},
+            )
+            dn = dr.fetchone()
+            dept_name = dn[0] if dn else None
+
+        # Get timeline events
+        tevents = await self._db.execute(
+            text(
+                "SELECT to_status, ts, note, actor_role FROM status_events WHERE grievance_id = CAST(:gid AS uuid) ORDER BY ts"
+            ),
+            {"gid": str(gid)},
+        )
+
+        STATUS_EVENT_LABELS = {
+            "RECEIVED": ("📥 Complaint received", "Filed via {channel}"),
+            "CLASSIFIED": ("🤖 AI classified", "Groq AI categorised in ~1.4s"),
+            "ASSIGNED": ("👮 Assigned to officer", "Routed to {dept}"),
+            "IN_PROGRESS": ("🔧 Officer working", "Field investigation started"),
+            "ACTION_TAKEN": ("✅ Action taken", "Work completed on site"),
+            "RESOLVED": ("🏁 Resolved", "Officer uploaded proof photos"),
+            "VERIFIED": ("✅ Citizen verified", "Rated resolution"),
+            "CLOSED": ("🔒 Case closed", "Marked closed in system"),
+            "ESCALATED": ("🔺 Escalated", "SLA breach — escalated to senior officer"),
+        }
+
+        steps: list[CitizenJourneyStep] = []
+        all_events = tevents.fetchall()
+        for i, (ev_status, ev_ts, ev_note, _ev_role) in enumerate(all_events):
+            label, detail_tmpl = STATUS_EVENT_LABELS.get(ev_status, (ev_status, ev_note or ""))
+            detail = detail_tmpl.format(channel=channel or "web", dept=dept_name or "dept")
+            steps.append(
+                CitizenJourneyStep(
+                    timestamp=ev_ts.strftime("%H:%M") if ev_ts else "",
+                    event=label,
+                    detail=detail,
+                    status="done"
+                    if i < len(all_events) - 1
+                    else ("active" if status not in ("CLOSED", "RESOLVED") else "done"),
+                )
+            )
+
+        is_resolved = status in ("RESOLVED", "VERIFIED", "CLOSED")
+        res_hours = None
+        if closed_at and created_at:
+            res_hours = round((closed_at - created_at).total_seconds() / 3600, 1)
+
+        return CitizenJourney(
+            tracking_id=tid,
+            category=category,
+            department=dept_name,
+            channel=channel or "web",
+            steps=steps,
+            is_resolved=is_resolved,
+            resolution_hours=res_hours,
+        )
+
     # ── Refresh materialized views ────────────────────────────────────────────
 
     async def refresh_views(self) -> dict[str, str]:

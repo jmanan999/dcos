@@ -9,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_db, require_permission
 from app.core.permissions import P
 from app.modules.analytics.schemas import (
+    CitizenJourney,
     DailyTrendPoint,
+    DelhiRiskIndex,
     DeptLeaderboardRow,
     ExecutiveBrief,
     KPISnapshot,
@@ -89,6 +91,25 @@ async def executive_brief(
 ) -> ExecutiveBrief:
     """Auto-generated morning executive brief with key stats and hotspots."""
     return await svc.get_executive_brief()
+
+
+@router.get("/risk-index", response_model=DelhiRiskIndex)
+async def risk_index(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> DelhiRiskIndex:
+    """Delhi Risk Index — composite city health score (CRITICAL/HIGH/MEDIUM/LOW)."""
+    return await svc.get_risk_index()
+
+
+@router.get("/citizen-journey", response_model=CitizenJourney | None)
+async def citizen_journey(
+    tracking_id: str | None = Query(default=None),
+    _: _AnalyticsAuth = None,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> CitizenJourney | None:
+    """Live citizen complaint journey for demo display."""
+    return await svc.get_citizen_journey(tracking_id)
 
 
 @router.post("/refresh-views", status_code=200)

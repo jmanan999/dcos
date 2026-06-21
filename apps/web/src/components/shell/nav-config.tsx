@@ -28,7 +28,7 @@ export const CM_NAV: NavSection[] = [
       { href: "/cm/map", label: "GIS Heatmap", icon: Map },
       { href: "/cm/hotspots", label: "Hotspots", icon: Flame },
       { href: "/cm/departments", label: "Departments", icon: Building2 },
-      { href: "/cm/analytics", label: "Analytics & AI", icon: LineChart },
+      { href: "/cm/analytics", label: "AI Chief Secretary", icon: LineChart },
       { href: "/cm/reports", label: "Reports", icon: FileText },
     ],
   },
