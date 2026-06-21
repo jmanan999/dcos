@@ -8,7 +8,7 @@ import { useLanguage } from "@/lib/i18n";
 
 export function MarketingHeader() {
   const pathname = usePathname();
-  const { t, lang, setLang } = useLanguage();
+  const { lang, setLang } = useLanguage();
   const [open, setOpen] = useState(false);
 
   const LINKS = [

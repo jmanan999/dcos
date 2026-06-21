@@ -20,6 +20,7 @@ import {
   useToast,
 } from "@dcos/ui";
 import { apiFetch } from "@/lib/api";
+import { GrievanceActions } from "@/components/officer/grievance-actions";
 
 type Grievance = {
   tracking_id: string;
@@ -205,20 +206,20 @@ export default function GrievanceDetailPage() {
             <span>Filed {new Date(grievance.created_at).toLocaleDateString("en-IN", { dateStyle: "medium" })}</span>
           </div>
 
-          {(canClaim || canActionTaken) && (
-            <div className="mt-5 flex flex-wrap gap-2">
-              {canClaim && (
-                <Button onClick={claim} loading={busy}>
-                  <Hand className="h-4 w-4" /> Claim complaint
-                </Button>
-              )}
-              {canActionTaken && (
-                <Button variant="secondary" onClick={markActionTaken} loading={busy}>
-                  Mark action taken
-                </Button>
-              )}
-            </div>
-          )}
+          <div className="mt-5 flex flex-wrap items-center gap-2">
+            {canClaim && (
+              <Button onClick={claim} loading={busy}>
+                <Hand className="h-4 w-4" /> Claim complaint
+              </Button>
+            )}
+            {canActionTaken && (
+              <Button variant="secondary" onClick={markActionTaken} loading={busy}>
+                Mark action taken
+              </Button>
+            )}
+            {/* Operational actions — escalate / hand off / request info */}
+            <GrievanceActions grievanceId={id} status={grievance.status} onDone={load} />
+          </div>
         </CardContent>
       </Card>
 

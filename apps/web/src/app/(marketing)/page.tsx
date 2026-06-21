@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { ArrowRight, TrendingUp, CheckCircle, Timer, Building2, Database, Map, BarChart3 } from "lucide-react";
-import { useLanguage } from "@/lib/i18n";
 import { usePublicStats } from "@/lib/hooks";
 
 export default function LandingPage() {
-  const { t } = useLanguage();
   const { data } = usePublicStats();
 
   const resolveRate =

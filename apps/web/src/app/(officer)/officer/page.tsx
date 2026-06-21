@@ -4,10 +4,8 @@ import Link from "next/link";
 import { TrendingUp, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
 import { StatusBadge, SeverityBadge, Skeleton, EmptyState } from "@dcos/ui";
 import { useQueue } from "@/lib/hooks";
-import { useAuth } from "@/lib/auth/provider";
 
 export default function OfficerDashboard() {
-  const { user } = useAuth();
   const { data: queue, isLoading } = useQueue();
 
   const assigned   = queue?.filter((g) => g.status === "ASSIGNED").length ?? 0;

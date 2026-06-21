@@ -13,7 +13,7 @@ function supabaseConfigured(): boolean {
   );
 }
 
-const PROTECTED = ["/officer", "/cm", "/my-complaints"];
+const PROTECTED = ["/officer", "/dept", "/cm", "/my-complaints"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -48,5 +48,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/officer/:path*", "/cm/:path*", "/my-complaints/:path*"],
+  matcher: ["/officer/:path*", "/dept/:path*", "/cm/:path*", "/my-complaints/:path*"],
 };

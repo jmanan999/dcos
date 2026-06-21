@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Spinner } from "@dcos/ui";
 import { useAuth } from "@/lib/auth/provider";
-import { isCommandRole, isOfficerRole, type Role } from "@/lib/auth/types";
+import { isCommandRole, isDeptRole, isOfficerRole, type Role } from "@/lib/auth/types";
 
 /**
  * Client-side route protection (works with both Supabase and the local-JWT dev
@@ -16,15 +16,20 @@ export function RouteGuard({
   require,
 }: {
   children: React.ReactNode;
-  require: "officer" | "command";
+  require: "officer" | "dept" | "command";
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
+  const role = user?.role as Role | undefined;
   const allowed =
-    !!user &&
-    (require === "officer" ? isOfficerRole(user.role as Role) || isCommandRole(user.role as Role) : isCommandRole(user.role as Role));
+    !!role &&
+    (require === "officer"
+      ? isOfficerRole(role) || isCommandRole(role)
+      : require === "dept"
+        ? isDeptRole(role)
+        : isCommandRole(role));
 
   useEffect(() => {
     if (loading) return;
