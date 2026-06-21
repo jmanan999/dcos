@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, TrendingUp, Database, Map, BarChart3 } from "lucide-react";
-import { Button } from "@dcos/ui";
+import { ArrowRight, TrendingUp, CheckCircle, Timer, Building2, Database, Map, BarChart3 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 import { usePublicStats } from "@/lib/hooks";
 
@@ -12,85 +11,117 @@ export default function LandingPage() {
 
   const resolveRate =
     data && data.total_filed > 0
-      ? Math.round((data.total_resolved / data.total_filed) * 100)
+      ? ((data.total_resolved / data.total_filed) * 100).toFixed(1)
+      : null;
+
+  const avgDays =
+    data?.avg_resolution_hours != null
+      ? (data.avg_resolution_hours / 24).toFixed(1)
       : null;
 
   return (
-    <>
-      {/* ── Hero ──────────────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden border-b border-border bg-institutional-grid">
-        <div className="absolute inset-0 bg-gradient-to-b from-background/60 to-background" />
-        <div className="container relative py-24 lg:py-36">
-          <div className="max-w-3xl space-y-8">
-            <p className="label-caps text-primary">{t("hero.badge")}</p>
-            <h1 className="text-5xl font-bold leading-[1.06] tracking-[-0.02em] text-foreground sm:text-6xl lg:text-7xl text-balance">
-              {t("hero.title1")}{" "}
-              <span className="text-primary">{t("hero.title2")}</span>
+    <main className="pt-[56px]">
+
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="relative h-[819px] flex items-center overflow-hidden bg-white">
+        {/* Background photo — Signature Bridge / Delhi architecture */}
+        <div className="absolute inset-0 z-0">
+          <div
+            className="w-full h-full bg-cover bg-center"
+            style={{
+              backgroundImage: `url('https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=2000&q=80')`,
+            }}
+          />
+          {/* White overlay + fade-to-white gradient at bottom */}
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px]" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(to bottom, rgba(250,248,255,0) 0%, rgba(250,248,255,1) 100%)",
+            }}
+          />
+        </div>
+
+        {/* Content */}
+        <div className="relative z-10 max-w-container-max mx-auto px-margin-desktop w-full">
+          <div className="max-w-2xl">
+            <h1 className="text-headline-xl text-on-surface mb-6 leading-tight">
+              Your grievance, addressed with institutional precision.
             </h1>
-            <p className="max-w-xl text-lg text-muted-foreground leading-relaxed">
-              {t("hero.subtitle")}
+            <p className="text-body-lg text-on-surface-variant mb-8 max-w-lg">
+              A centralised platform for the citizens of Delhi to resolve administrative
+              issues through a transparent, high-fidelity routing system.
             </p>
-            <div className="flex flex-wrap items-center gap-3 pt-2">
+            <div className="flex flex-wrap gap-4">
               <Link href="/file">
-                <Button size="lg">{t("nav.file")} <ArrowRight className="h-3.5 w-3.5" /></Button>
-              </Link>
-              <Link href="/track">
-                <Button size="lg" variant="outline">{t("nav.track")}</Button>
+                <button className="bg-primary text-white px-8 py-4 text-label-caps hover:bg-primary-container transition-all">
+                  Submit New Grievance
+                </button>
               </Link>
               <Link href="/transparency">
-                <Button size="lg" variant="ghost" className="text-muted-foreground">{t("hero.public_dashboard")}</Button>
+                <button className="border border-outline-variant text-on-surface px-8 py-4 text-label-caps hover:bg-surface-dim transition-all">
+                  View Public Registry
+                </button>
               </Link>
             </div>
-            <p className="label-caps text-muted-foreground border-l-2 border-border pl-3">
-              {t("hero.emergency")} <span className="text-foreground">112</span>
-              {" · "}
-              {t("hero.helpline")} <span className="text-foreground">1031</span>
-            </p>
           </div>
         </div>
       </section>
 
-      {/* ── Live metrics — shared borders, no gap ─────────────────────────── */}
-      <section className="border-b border-border">
-        <div className="container">
-          <div className="grid grid-cols-2 divide-x divide-border sm:grid-cols-4 border-border">
+      {/* ── Live Metrics ──────────────────────────────────────────────────── */}
+      <section className="py-24 bg-surface border-y border-outline-variant">
+        <div className="max-w-container-max mx-auto px-margin-desktop">
+          <div className="flex justify-between items-end mb-12">
+            <div>
+              <span className="text-label-caps text-primary mb-2 block">Real-time Performance</span>
+              <h2 className="text-headline-lg text-on-surface">Live Governance Metrics</h2>
+            </div>
+            <div className="text-right">
+              <span className="text-body-sm text-on-surface-variant">
+                Last updated: Today, live
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-0 border border-outline-variant divide-x divide-outline-variant">
             {[
               {
-                label: "Total complaints filed",
+                label: "Total Complaints",
                 value: data?.total_filed?.toLocaleString("en-IN") ?? "—",
-                trend: "+12% this month",
+                icon: <TrendingUp className="h-4 w-4 mr-1" />,
+                trend: "+12% from last month",
               },
               {
-                label: "On-time resolution",
-                value: resolveRate != null ? `${resolveRate}%` : "—",
+                label: "On-time Resolution",
+                value: resolveRate ? `${resolveRate}%` : "—",
+                icon: <CheckCircle className="h-4 w-4 mr-1" />,
                 trend: "Target: 90%",
               },
               {
-                label: "Avg. resolution time",
-                value: data?.avg_resolution_hours != null
-                  ? `${Math.round(data.avg_resolution_hours)}h`
-                  : "—",
-                trend: "End to end",
+                label: "Avg. Time (Days)",
+                value: avgDays ?? "—",
+                icon: <Timer className="h-4 w-4 mr-1" />,
+                trend: "System efficiency optimised",
               },
               {
-                label: "Departments tracked",
+                label: "Depts Tracked",
                 value: String(data?.by_department?.length ?? 12),
-                trend: "Full coverage",
+                icon: <Building2 className="h-4 w-4 mr-1" />,
+                trend: "Full municipal coverage",
               },
-            ].map((m, i) => (
+            ].map((m) => (
               <div
-                key={i}
-                className="group px-8 py-10 transition-colors hover:bg-secondary/30"
+                key={m.label}
+                className="p-8 bg-white hover:bg-surface-dim transition-colors group"
               >
-                <p className="label-caps text-muted-foreground group-hover:text-primary transition-colors">
+                <span className="text-label-caps text-on-surface-variant mb-4 block group-hover:text-primary transition-colors">
                   {m.label}
-                </p>
-                <p className="mt-4 text-5xl font-bold text-foreground tabular-nums tracking-tight">
-                  {m.value}
-                </p>
-                <div className="mt-3 flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3 text-primary" />
-                  <p className="label-caps text-primary">{m.trend}</p>
+                </span>
+                <div className="text-headline-xl text-on-surface tabular-nums">{m.value}</div>
+                <div className="mt-4 flex items-center text-primary text-label-md">
+                  {m.icon}
+                  {m.trend}
                 </div>
               </div>
             ))}
@@ -98,33 +129,47 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── The Protocol — editorial steps ────────────────────────────────── */}
-      <section className="border-b border-border py-24 lg:py-32">
-        <div className="container">
-          <div className="mb-16 max-w-xl">
-            <p className="label-caps text-primary mb-3">The Protocol</p>
-            <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-              {t("hero.how_title")}
+      {/* ── The Protocol ──────────────────────────────────────────────────── */}
+      <section className="py-32 bg-white">
+        <div className="max-w-container-max mx-auto px-margin-desktop">
+          <div className="max-w-xl mb-20">
+            <span className="text-label-caps text-primary mb-2 block">The Protocol</span>
+            <h2 className="text-headline-lg text-on-surface mb-6">
+              A structural workflow for citizen feedback.
             </h2>
-            <p className="mt-4 text-muted-foreground leading-relaxed">
-              {t("hero.how_subtitle")}
+            <p className="text-body-md text-on-surface-variant">
+              JanSetu employs a tri-phasic verification system to ensure every grievance is
+              correctly categorised, prioritised, and solved by the relevant jurisdictional
+              authority.
             </p>
           </div>
 
-          <div className="grid gap-0 md:grid-cols-3 border border-border divide-y md:divide-y-0 md:divide-x divide-border">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
             {[
-              { n: "01", title: t("hero.step1_title"), body: t("hero.step1_body") },
-              { n: "02", title: t("hero.step2_title"), body: t("hero.step2_body") },
-              { n: "03", title: t("hero.step3_title"), body: t("hero.step3_body") },
+              {
+                n: "01",
+                title: "Intake & Verification",
+                body: "System logs the complaint via secure identity tokens. Automated AI scans for validity and urgency markers to prevent system congestion.",
+              },
+              {
+                n: "02",
+                title: "Jurisdictional Routing",
+                body: "Direct transmission to the verified departmental officer. The grievance enters the Active Queue with a fixed resolution deadline based on policy.",
+              },
+              {
+                n: "03",
+                title: "Final Resolution",
+                body: "Officers submit photographic and documentary evidence of resolution. Citizens provide final audit approval before the case is closed.",
+              },
             ].map((s) => (
-              <div key={s.n} className="group p-10 bg-card hover:bg-muted/20 transition-colors">
-                <p className="text-5xl font-bold text-secondary group-hover:text-primary transition-colors">
+              <div key={s.n} className="relative group">
+                <div className="text-headline-xl text-surface-dim mb-8 group-hover:text-primary transition-colors">
                   {s.n}
-                </p>
-                <h3 className="mt-8 text-lg font-semibold text-foreground">{s.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{s.body}</p>
-                <div className="mt-8 flex items-center gap-2">
-                  <span className="h-[2px] w-6 bg-primary" />
+                </div>
+                <h3 className="text-headline-sm text-on-surface mb-4">{s.title}</h3>
+                <p className="text-body-sm text-on-surface-variant leading-relaxed">{s.body}</p>
+                <div className="mt-8 h-[1px] bg-outline-variant w-full relative">
+                  <div className="absolute top-[-4px] left-0 w-2 h-2 rounded-full bg-primary" />
                 </div>
               </div>
             ))}
@@ -132,97 +177,72 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Capabilities — definition table ───────────────────────────────── */}
-      <section className="border-b border-border py-24 lg:py-32 bg-card">
-        <div className="container">
-          <div className="mb-16 max-w-xl">
-            <p className="label-caps text-primary mb-3">System Capabilities</p>
-            <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-              Built for citizens and the state alike.
-            </h2>
-          </div>
-
-          <div className="border border-border divide-y divide-border">
-            {[
-              { label: "Multilingual intake", desc: "File in Hindi, English, Punjabi, or Urdu — voice or text. AI translates and routes to the correct department." },
-              { label: "Ward-level routing", desc: "PostGIS pinpoints your exact ward and routes to the responsible officer. Wrong department: zero tolerance." },
-              { label: "SLA accountability", desc: "Every complaint starts a 48-hour clock. Automatic escalation to senior officers on breach. Closure requires photographic proof." },
-              { label: "Public transparency", desc: "Anonymised, live dashboards anyone can audit. Resolution rates by ward, department, and category." },
-              { label: "WhatsApp-native", desc: "File and track without a browser. Works on any phone with WhatsApp — no app download, no registration." },
-              { label: "AI classification", desc: "Groq Llama 70B reads every complaint in 1.4 seconds. Routes to the right department with 95% accuracy." },
-            ].map((f) => (
+      {/* ── Transparency ──────────────────────────────────────────────────── */}
+      <section className="py-32 bg-surface">
+        <div className="max-w-container-max mx-auto px-margin-desktop">
+          <div className="flex flex-col md:flex-row gap-16 items-center">
+            {/* Left — map panel */}
+            <div className="w-full md:w-1/2">
               <div
-                key={f.label}
-                className="group grid grid-cols-1 gap-2 px-8 py-6 transition-colors hover:bg-muted/20 md:grid-cols-[240px_1fr] md:gap-8 md:items-baseline"
+                className="aspect-square border border-outline-variant bg-surface-dim p-4 relative"
               >
-                <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
-                  {f.label}
-                </p>
-                <p className="text-sm text-muted-foreground leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Transparency — map + links ────────────────────────────────────── */}
-      <section className="border-b border-border py-24 lg:py-32">
-        <div className="container">
-          <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
-            {/* Map placeholder — bordered institutional */}
-            <div className="relative border border-border bg-secondary/30 aspect-square max-h-[420px]">
-              <div className="absolute inset-0 bg-institutional-grid opacity-50" />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center space-y-2">
-                  <Map className="h-10 w-10 text-muted-foreground mx-auto" />
-                  <p className="label-caps text-muted-foreground">Delhi Ward Map</p>
-                  <p className="text-sm text-muted-foreground">272 wards · Live data</p>
-                </div>
-              </div>
-              {/* Overlay card */}
-              <div className="absolute top-6 right-6 border border-border bg-card p-5 w-44">
-                <p className="label-caps text-primary mb-3">Ward Analytics</p>
-                <div className="space-y-3">
-                  {["SAFDARJANG ENC.", "OKHLA", "LAJPAT NAGAR"].map((ward) => (
-                    <div key={ward} className="flex justify-between border-b border-border pb-2 last:border-0 last:pb-0">
-                      <span className="text-xs text-muted-foreground truncate">{ward}</span>
-                      <span className="text-xs font-bold text-foreground ml-2">Live</span>
-                    </div>
-                  ))}
+                <div
+                  className="w-full h-full bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url('https://lh3.googleusercontent.com/aida-public/AB6AXuDgpA2GFiKc8HXDn1blhtcRVbelVJ_NiSOh6cfUkqdHFpWf753Ec1MzyzosOuopl0z-3JspdssJBZxlPZLAHbWdfKQ3DTEZCB3OOwiW4WvMeSdv9fc3vwOd5SvU9OfdG7U9CTYJ3vlbs2i528uR03fmLp_y5z5T0xVtdWh61vi5NPB8Ey-T4dculOK2azo0GLqgjUfkjcNP1kjOXVeK_mLXOUAQzWfU8hLSwufnhYDrfQ7wdfhuPgmWwG58pejCq5f5x2G_fAG9HntC')`,
+                  }}
+                />
+                {/* Overlay analytics card */}
+                <div className="absolute top-8 right-8 bg-white border border-outline-variant p-6 max-w-xs">
+                  <span className="text-label-caps text-primary block mb-2">Ward Analytics</span>
+                  <div className="space-y-4">
+                    {[
+                      { name: "Safdarjang Enc.", rate: "98%" },
+                      { name: "Lajpat Nagar", rate: "82%" },
+                    ].map((w) => (
+                      <div key={w.name} className="flex justify-between border-b border-outline-variant pb-2">
+                        <span className="text-body-sm text-on-surface-variant">{w.name}</span>
+                        <span className="text-body-sm text-on-surface font-bold">{w.rate} Res.</span>
+                      </div>
+                    ))}
+                  </div>
+                  <Link href="/transparency/map">
+                    <button className="mt-6 w-full py-2 text-label-caps border border-primary text-primary hover:bg-primary hover:text-white transition-all">
+                      Expand Map
+                    </button>
+                  </Link>
                 </div>
               </div>
             </div>
 
             {/* Right — content */}
-            <div className="space-y-8">
-              <div>
-                <p className="label-caps text-primary mb-3">Institutional Integrity</p>
-                <h2 className="text-3xl font-bold tracking-[-0.02em] text-foreground sm:text-4xl">
-                  Radical transparency through public data.
-                </h2>
-                <p className="mt-4 text-muted-foreground leading-relaxed">
-                  Every number is real. Every complaint is on record. JanSetu provides
-                  granular access to performance data across every ward in Delhi.
-                </p>
-              </div>
-              <div className="space-y-2">
+            <div className="w-full md:w-1/2">
+              <span className="text-label-caps text-primary mb-2 block">Institutional Integrity</span>
+              <h2 className="text-headline-lg text-on-surface mb-8">
+                Radical transparency through public data.
+              </h2>
+              <p className="text-body-lg text-on-surface-variant mb-10">
+                We believe that governance is most effective when it is observable. JanSetu
+                provides granular access to performance data across every ward in Delhi.
+              </p>
+              <div className="grid grid-cols-1 gap-4">
                 {[
-                  { href: "/transparency", icon: Database, label: "Open Data Portal" },
-                  { href: "/transparency/map", icon: Map, label: "Interactive Ward Map" },
-                  { href: "/transparency/departments", icon: BarChart3, label: "Department Performance" },
+                  { href: "/transparency",             icon: Database, label: "Open Data Portal" },
+                  { href: "/transparency/map",          icon: Map,      label: "Interactive Ward Map" },
+                  { href: "/transparency/departments",  icon: BarChart3, label: "Annual Performance Audit" },
                 ].map((l) => {
                   const Icon = l.icon;
                   return (
                     <Link
                       key={l.href}
                       href={l.href}
-                      className="flex items-center justify-between border border-border bg-card p-5 transition-colors hover:border-primary group"
+                      className="flex items-center justify-between p-6 border border-outline-variant bg-white hover:border-primary transition-all group"
                     >
                       <div className="flex items-center gap-4">
-                        <Icon className="h-5 w-5 text-primary" />
-                        <span className="text-base font-semibold text-foreground">{l.label}</span>
+                        <Icon className="h-5 w-5 text-primary group-hover:scale-110 transition-transform" />
+                        <span className="text-headline-sm text-on-surface">{l.label}</span>
                       </div>
-                      <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <ArrowRight className="h-5 w-5 text-on-surface-variant" />
                     </Link>
                   );
                 })}
@@ -232,36 +252,27 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA ───────────────────────────────────────────────────────────── */}
-      <section className="bg-primary py-24">
-        <div className="container text-center">
-          <h2 className="text-4xl font-bold tracking-[-0.02em] text-primary-foreground sm:text-5xl text-balance">
-            {t("hero.cta_title")}
+      {/* ── Final CTA ─────────────────────────────────────────────────────── */}
+      <section className="py-24 bg-primary text-white">
+        <div className="max-w-container-max mx-auto px-margin-desktop text-center">
+          <h2 className="text-headline-xl text-white mb-8">
+            Efficient governance starts with citizen participation.
           </h2>
-          <p className="mt-4 text-primary-foreground/70 max-w-lg mx-auto">
-            {t("hero.cta_sub")}
-          </p>
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
+          <div className="flex flex-col md:flex-row justify-center gap-6">
             <Link href="/file">
-              <Button
-                size="lg"
-                className="bg-white text-primary hover:bg-secondary font-bold"
-              >
-                {t("nav.file")} <ArrowRight className="h-3.5 w-3.5" />
-              </Button>
+              <button className="bg-white text-primary px-10 py-5 text-label-caps hover:bg-surface-dim transition-all">
+                Submit a Grievance
+              </button>
             </Link>
             <Link href="/track">
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white/30 text-primary-foreground bg-transparent hover:bg-white/10"
-              >
-                {t("nav.track")}
-              </Button>
+              <button className="border border-white text-white px-10 py-5 text-label-caps hover:bg-white/10 transition-all">
+                Track Existing Status
+              </button>
             </Link>
           </div>
         </div>
       </section>
-    </>
+
+    </main>
   );
 }
