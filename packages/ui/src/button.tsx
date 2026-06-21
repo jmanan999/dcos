@@ -9,16 +9,16 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variants = {
   primary:
-    "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm focus-visible:ring-ring",
+    "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-ring",
   secondary:
     "bg-secondary text-secondary-foreground hover:bg-secondary/70 focus-visible:ring-ring",
   outline:
     "border border-border bg-card text-foreground hover:bg-muted focus-visible:ring-ring",
   ghost: "bg-transparent text-foreground hover:bg-muted focus-visible:ring-ring",
   destructive:
-    "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-sm focus-visible:ring-destructive",
+    "bg-destructive text-destructive-foreground hover:bg-destructive/90 focus-visible:ring-destructive",
   success:
-    "bg-success text-success-foreground hover:bg-success/90 shadow-sm focus-visible:ring-success",
+    "bg-success text-success-foreground hover:bg-success/90 focus-visible:ring-success",
 };
 
 const sizes = {

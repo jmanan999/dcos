@@ -13,7 +13,7 @@ import { FileText, CheckCircle2, Clock, Building2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, StatCard, Skeleton, Badge } from "@dcos/ui";
 import { usePublicStats } from "@/lib/hooks";
 
-const CHART_COLOR = "hsl(221 70% 45%)";
+const CHART_COLOR = "hsl(215 100% 30%)";
 
 export default function TransparencyOverview() {
   const { data } = usePublicStats();

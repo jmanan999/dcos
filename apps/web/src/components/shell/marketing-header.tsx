@@ -3,20 +3,34 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck, Menu, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button, cn } from "@dcos/ui";
-import { useLanguage, type Lang } from "@/lib/i18n";
+import { useLanguage } from "@/lib/i18n";
 
 function LangToggle() {
   const { lang, setLang } = useLanguage();
   return (
     <button
       onClick={() => setLang(lang === "en" ? "hi" : "en")}
-      className="flex h-8 items-center gap-0.5 rounded-lg border border-border bg-card px-2 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+      className="flex h-8 items-center gap-0.5 rounded border border-border bg-card px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted"
       title="Switch language"
     >
-      <span className={cn("rounded px-1 py-0.5 text-xs transition-colors", lang === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>EN</span>
-      <span className={cn("rounded px-1 py-0.5 text-xs transition-colors", lang === "hi" ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>हिं</span>
+      <span
+        className={cn(
+          "rounded px-1 py-0.5 transition-colors",
+          lang === "en" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+        )}
+      >
+        EN
+      </span>
+      <span
+        className={cn(
+          "rounded px-1 py-0.5 transition-colors",
+          lang === "hi" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+        )}
+      >
+        हिं
+      </span>
     </button>
   );
 }
@@ -33,29 +47,31 @@ export function MarketingHeader() {
   ];
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
-      <div className="container flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <ShieldCheck className="h-5 w-5" />
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
+      <div className="container flex h-14 items-center justify-between">
+        {/* Logo — typographic, no icon badge */}
+        <Link href="/" className="flex items-center gap-3">
+          <span className="flex h-7 w-7 items-center justify-center bg-primary text-primary-foreground text-xs font-bold select-none">
+            JS
           </span>
-          <div className="leading-tight">
-            <p className="text-sm font-bold text-foreground">JanSetu</p>
-            <p className="text-2xs font-medium uppercase tracking-wider text-muted-foreground">
-              Delhi Grievance Portal
+          <div className="leading-none">
+            <p className="text-sm font-bold tracking-tight text-foreground">JanSetu</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
+              Delhi · Grievance Portal
             </p>
           </div>
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-0 md:flex">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               className={cn(
-                "rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "px-3 py-2 text-sm transition-colors",
                 pathname.startsWith(l.href)
-                  ? "text-primary"
+                  ? "text-foreground font-medium"
                   : "text-muted-foreground hover:text-foreground"
               )}
             >
@@ -67,40 +83,43 @@ export function MarketingHeader() {
         <div className="hidden items-center gap-2 md:flex">
           <LangToggle />
           <Link href="/login">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="text-sm">
               {t("nav.signin")}
             </Button>
           </Link>
           <Link href="/file">
-            <Button size="sm">{t("nav.file_btn")}</Button>
+            <Button size="sm" className="text-sm">
+              {t("nav.file_btn")}
+            </Button>
           </Link>
         </div>
 
+        {/* Mobile */}
         <div className="flex items-center gap-2 md:hidden">
           <LangToggle />
           <button
             onClick={() => setOpen(!open)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
+            className="flex h-8 w-8 items-center justify-center text-muted-foreground hover:text-foreground"
             aria-label="Menu"
           >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
           </button>
         </div>
       </div>
 
       {open && (
-        <div className="border-t border-border bg-card px-4 py-3 md:hidden">
+        <div className="border-t border-border bg-background px-4 py-2 md:hidden">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="block rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-muted"
+              className="block rounded px-3 py-2.5 text-sm text-foreground hover:bg-muted"
             >
               {t(l.key)}
             </Link>
           ))}
-          <div className="mt-2 flex gap-2 px-3">
+          <div className="mt-2 flex gap-2 px-3 pb-2">
             <Link href="/login" className="flex-1" onClick={() => setOpen(false)}>
               <Button variant="outline" size="sm" className="w-full">
                 {t("nav.signin")}

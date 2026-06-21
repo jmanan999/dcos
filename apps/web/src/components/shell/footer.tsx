@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { ShieldCheck } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 
 export function Footer() {
@@ -34,33 +33,39 @@ export function Footer() {
   ];
 
   return (
-    <footer className="border-t border-border bg-card">
-      <div className="container py-12">
-        <div className="grid gap-10 md:grid-cols-4">
+    <footer className="border-t border-border">
+      <div className="container py-10">
+        <div className="grid gap-8 md:grid-cols-4">
+          {/* Brand */}
           <div>
             <div className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                <ShieldCheck className="h-5 w-5" />
+              <span className="flex h-6 w-6 items-center justify-center bg-primary text-primary-foreground text-[10px] font-bold select-none">
+                JS
               </span>
-              <div className="leading-tight">
+              <div className="leading-none">
                 <p className="text-sm font-bold text-foreground">JanSetu</p>
-                <p className="text-2xs uppercase tracking-wider text-muted-foreground">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-muted-foreground">
                   Delhi Grievance Portal
                 </p>
               </div>
             </div>
-            <p className="mt-4 max-w-xs text-sm text-muted-foreground">
+            <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
               {t("footer.description")}
             </p>
           </div>
 
           {COLS.map((col) => (
             <div key={col.title}>
-              <p className="text-sm font-semibold text-foreground">{col.title}</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                {col.title}
+              </p>
               <ul className="mt-3 space-y-2">
                 {col.links.map((l) => (
                   <li key={l.label}>
-                    <Link href={l.href} className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+                    <Link
+                      href={l.href}
+                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                    >
                       {l.label}
                     </Link>
                   </li>
@@ -70,7 +75,7 @@ export function Footer() {
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col items-center justify-between gap-3 border-t border-border pt-6 text-center sm:flex-row sm:text-left">
+        <div className="mt-8 flex flex-col items-start justify-between gap-2 border-t border-border pt-6 sm:flex-row sm:items-center">
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} {t("footer.copyright")}
           </p>

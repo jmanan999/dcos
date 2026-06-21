@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShieldCheck, CheckCircle2 } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { LanguageProvider } from "@/lib/i18n";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
@@ -10,12 +10,12 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="relative hidden flex-col justify-between overflow-hidden bg-sidebar p-12 text-white lg:flex">
         <div className="absolute inset-0 bg-grid opacity-[0.07]" />
         <Link href="/" className="relative flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sidebar-accent">
-            <ShieldCheck className="h-6 w-6" />
+          <span className="flex h-8 w-8 items-center justify-center bg-sidebar-accent text-white text-xs font-bold select-none">
+            JS
           </span>
-          <div className="leading-tight">
-            <p className="text-base font-bold">JanSetu</p>
-            <p className="text-2xs uppercase tracking-wider text-sidebar-muted">
+          <div className="leading-none">
+            <p className="text-sm font-bold">JanSetu</p>
+            <p className="text-[10px] uppercase tracking-[0.15em] text-sidebar-muted">
               Delhi Grievance Portal
             </p>
           </div>

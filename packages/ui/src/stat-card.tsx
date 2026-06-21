@@ -11,13 +11,13 @@ interface StatCardProps {
   className?: string;
 }
 
-const accentRing = {
-  primary: "text-primary bg-primary/10",
-  success: "text-success bg-success/10",
-  warning: "text-warning bg-warning/10",
-  danger: "text-destructive bg-destructive/10",
-  info: "text-info bg-info/10",
-  neutral: "text-muted-foreground bg-muted",
+const accentBorder = {
+  primary: "border-l-primary",
+  success: "border-l-success",
+  warning: "border-l-warning",
+  danger: "border-l-destructive",
+  info: "border-l-info",
+  neutral: "border-l-border",
 };
 
 const trendColor = {
@@ -38,25 +38,23 @@ export function StatCard({
   return (
     <div
       className={cn(
-        "rounded-xl border border-border bg-card p-5 shadow-sm transition-shadow hover:shadow-md",
+        "border border-border border-l-2 bg-card px-5 py-4",
+        accentBorder[accent],
         className
       )}
     >
-      <div className="flex items-start justify-between">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {label}
+        </p>
         {icon && (
-          <span
-            className={cn(
-              "flex h-9 w-9 items-center justify-center rounded-lg",
-              accentRing[accent]
-            )}
-          >
-            {icon}
-          </span>
+          <span className="text-muted-foreground/50">{icon}</span>
         )}
       </div>
-      <p className="mt-3 text-3xl font-bold tracking-tight text-foreground tabular-nums">{value}</p>
-      <div className="mt-1.5 flex items-center gap-2">
+      <p className="mt-2.5 text-3xl font-bold tracking-tight text-foreground tabular-nums">
+        {value}
+      </p>
+      <div className="mt-1 flex items-center gap-2">
         {trend && (
           <span className={cn("text-xs font-semibold", trendColor[trend.direction])}>
             {trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→"} {trend.value}

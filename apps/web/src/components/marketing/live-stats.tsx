@@ -16,23 +16,34 @@ export function LiveStats() {
       : null;
 
   const items = [
-    { label: "Complaints filed", value: fmt(data?.total_filed) },
-    { label: "Resolved", value: resolveRate != null ? `${resolveRate}%` : "—" },
     {
-      label: "Avg resolution",
-      value: data?.avg_resolution_hours != null ? `${Math.round(data.avg_resolution_hours)}h` : "—",
+      value: fmt(data?.total_filed),
+      label: "Complaints filed",
     },
-    { label: "Departments", value: fmt(data?.by_department.length ?? 12) },
+    {
+      value: resolveRate != null ? `${resolveRate}%` : "—",
+      label: "Resolved on time",
+    },
+    {
+      value: data?.avg_resolution_hours != null
+        ? `${Math.round(data.avg_resolution_hours)}h`
+        : "—",
+      label: "Avg resolution time",
+    },
+    {
+      value: fmt(data?.by_department?.length ?? 12),
+      label: "Departments tracked",
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border shadow-sm sm:grid-cols-4">
+    <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border">
       {items.map((it) => (
-        <div key={it.label} className="bg-card px-5 py-6 text-center">
+        <div key={it.label} className="px-6 py-8 sm:px-8">
           <p className="text-3xl font-bold tracking-tight text-foreground tabular-nums">
             {it.value}
           </p>
-          <p className="mt-1 text-xs font-medium text-muted-foreground">{it.label}</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">{it.label}</p>
         </div>
       ))}
     </div>

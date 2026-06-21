@@ -84,7 +84,7 @@ export default function CMAnalytics() {
               <button
                 key={s}
                 onClick={() => ask(s)}
-                className="rounded-full border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                className="rounded border border-border bg-card px-3 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
               >
                 {s}
               </button>

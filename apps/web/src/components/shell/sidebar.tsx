@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
 import { cn } from "@dcos/ui";
 import type { NavSection } from "./nav-config";
 
@@ -24,8 +23,8 @@ export function Sidebar({
     <aside className="hidden w-64 shrink-0 flex-col bg-sidebar lg:flex">
       {/* Brand */}
       <div className="flex items-center gap-3 px-5 py-5">
-        <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-sidebar-accent text-white">
-          <ShieldCheck className="h-5 w-5" />
+        <span className="flex h-8 w-8 items-center justify-center bg-sidebar-accent text-white font-bold text-xs select-none">
+          JS
         </span>
         <div className="leading-tight">
           <p className="text-sm font-bold text-white">{brandTitle}</p>

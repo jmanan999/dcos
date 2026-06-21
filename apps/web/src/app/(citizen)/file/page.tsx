@@ -285,11 +285,11 @@ export default function FilePage() {
                 <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">{t("file.your_complaint")}</p>
                 <p className="mt-1.5 text-sm text-foreground line-clamp-4">{text}</p>
                 <div className="mt-3 flex flex-wrap gap-2 text-2xs text-muted-foreground">
-                  <span className="rounded-full bg-card px-2 py-0.5 ring-1 ring-border">
+                  <span className="rounded bg-muted px-2 py-0.5 text-foreground">
                     {LANGUAGES.find((l) => l.code === language)?.label}
                   </span>
-                  {lat && lng && <span className="rounded-full bg-card px-2 py-0.5 ring-1 ring-border">📍 Located</span>}
-                  {files.length > 0 && <span className="rounded-full bg-card px-2 py-0.5 ring-1 ring-border">{files.length} file(s)</span>}
+                  {lat && lng && <span className="rounded bg-muted px-2 py-0.5 text-foreground">📍 Located</span>}
+                  {files.length > 0 && <span className="rounded bg-muted px-2 py-0.5 text-foreground">{files.length} file(s)</span>}
                 </div>
               </div>
 
