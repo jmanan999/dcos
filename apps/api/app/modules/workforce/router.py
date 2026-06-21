@@ -9,6 +9,7 @@ from app.core.dependencies import CurrentUser, RlsDbSession, require_permission
 from app.core.permissions import P
 from app.modules.workforce.schemas import (
     ClosureRequest,
+    EscalateRequest,
     GrievanceSummary,
     OfficerNoteCreate,
     OfficerNoteRead,
@@ -184,6 +185,27 @@ async def get_notes(
     await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
     svc = WorkforceService(session)
     return await svc.get_notes(grievance_id)
+
+
+@router.post("/grievances/{grievance_id}/escalate")
+async def escalate(
+    grievance_id: uuid.UUID,
+    body: EscalateRequest,
+    user: Annotated[object, Depends(require_permission(P.GRIEVANCE_ESCALATE))],
+    session: RlsDbSession,
+) -> dict:
+    """Manually escalate a grievance up the ladder (officer / nodal-triggered)."""
+    from sqlalchemy import text
+
+    from app.core.auth import TokenClaims
+
+    assert isinstance(user, TokenClaims)
+    await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+    svc = WorkforceService(session)
+    try:
+        return await svc.escalate(grievance_id, user, body.reason)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.post("/grievances/{grievance_id}/request-info")

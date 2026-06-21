@@ -261,6 +261,54 @@ async def test_handoff_reroutes_to_new_dept(http: AsyncClient) -> None:
         assert g.assigned_officer_id is None
 
 
+# ── Manual escalation ─────────────────────────────────────────────────────────
+
+
+async def test_escalate_requires_permission(http: AsyncClient) -> None:
+    gid, _ = await _create_enriched_grievance(http)
+    token = create_local_token(role="citizen")
+    r = await http.post(
+        f"/api/v1/workforce/grievances/{gid}/escalate",
+        json={"reason": "Citizen cannot escalate this case"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 403
+
+
+async def test_escalate_bumps_level_and_sets_status(http: AsyncClient) -> None:
+    from app.core.database import AsyncSessionLocal
+    from app.modules.intake.models import Grievance
+
+    gid, _ = await _create_enriched_grievance(http)
+
+    # Put it in an active, escalatable state
+    async with AsyncSessionLocal() as s:
+        await s.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+        await s.execute(
+            text("UPDATE grievances SET status = 'ASSIGNED', escalation_level = 0 WHERE id = :id"),
+            {"id": gid},
+        )
+        await s.commit()
+
+    token = create_local_token(role="dept_admin", department_id=str(uuid.uuid4()))
+    r = await http.post(
+        f"/api/v1/workforce/grievances/{gid}/escalate",
+        json={"reason": "No officer available, breaching soon — escalating to district"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["status"] == "ESCALATED"
+    assert body["escalation_level"] == 1
+
+    async with AsyncSessionLocal() as s:
+        await s.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+        g = await s.get(Grievance, uuid.UUID(gid))
+        assert g is not None
+        assert g.status == "ESCALATED"
+        assert g.escalation_level == 1
+
+
 # ── Proof geo validation ──────────────────────────────────────────────────────
 
 

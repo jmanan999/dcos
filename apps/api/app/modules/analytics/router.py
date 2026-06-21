@@ -9,14 +9,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.dependencies import get_db, require_permission
 from app.core.permissions import P
 from app.modules.analytics.schemas import (
+    AuditSample,
     CitizenJourney,
     DailyTrendPoint,
     DelhiRiskIndex,
     DeptLeaderboardRow,
+    EscalationPyramid,
     ExecutiveBrief,
     KPISnapshot,
     NLQueryRequest,
     NLQueryResponse,
+    PendencySnapshot,
+    RootCauseReport,
     WardHotspot,
 )
 from app.modules.analytics.service import AnalyticsService
@@ -110,6 +114,44 @@ async def citizen_journey(
 ) -> CitizenJourney | None:
     """Live citizen complaint journey for demo display."""
     return await svc.get_citizen_journey(tracking_id)
+
+
+@router.get("/pendency", response_model=PendencySnapshot)
+async def pendency(
+    dept_id: str | None = Query(default=None),
+    _: _AnalyticsAuth = None,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> PendencySnapshot:
+    """Open grievances bucketed by age (0–7 / 8–15 / 16–30 / 30+ days)."""
+    return await svc.get_pendency(dept_id)
+
+
+@router.get("/escalation-pyramid", response_model=EscalationPyramid)
+async def escalation_pyramid(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> EscalationPyramid:
+    """Live counts of active grievances at each escalation level (L0–L3)."""
+    return await svc.get_escalation_pyramid()
+
+
+@router.get("/root-cause", response_model=RootCauseReport)
+async def root_cause(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> RootCauseReport:
+    """Repeat clusters, category breach rates, and department staffing gaps."""
+    return await svc.get_root_cause()
+
+
+@router.get("/audit-sample", response_model=AuditSample)
+async def audit_sample(
+    limit: int = Query(default=20, le=100),
+    _: _AnalyticsAuth = None,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> AuditSample:
+    """Random sample of resolved/verified cases, re-checked for proof completeness."""
+    return await svc.get_audit_sample(limit=limit)
 
 
 @router.post("/refresh-views", status_code=200)

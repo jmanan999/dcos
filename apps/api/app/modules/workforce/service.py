@@ -248,6 +248,92 @@ class WorkforceService:
         await self._s.flush()
         return {"status": "info_requested"}
 
+    async def escalate(self, grievance_id: uuid.UUID, actor: TokenClaims, reason: str) -> dict:
+        """
+        Manually escalate a grievance up the ladder (officer/nodal-triggered).
+
+        Mirrors the SLA worker's auto-escalation: bumps escalation_level, sets
+        status=ESCALATED, writes a StatusEvent + EscalationRecord, emits the
+        grievance.escalated outbox event. Capped at level 3 (cm_cell).
+        """
+        from app.modules.sla.service import ESCALATION_ROLES
+
+        g = await self._s.get(Grievance, grievance_id)
+        if not g:
+            raise ValueError("Grievance not found")
+        terminal = {
+            GrievanceStatus.CLOSED.value,
+            GrievanceStatus.RESOLVED.value,
+            GrievanceStatus.VERIFIED.value,
+            GrievanceStatus.REJECTED_SPAM.value,
+        }
+        if g.status in terminal:
+            raise ValueError(f"Cannot escalate from status '{g.status}'")
+        if g.escalation_level >= 3:
+            raise ValueError("Already at the highest escalation level (cm_cell)")
+
+        next_level = g.escalation_level + 1
+        escalated_to_role = ESCALATION_ROLES.get(next_level, "cm_cell")
+        from_status = g.status
+
+        await self._s.execute(
+            text("""
+                UPDATE grievances SET
+                  escalation_level = :lvl,
+                  status = 'ESCALATED',
+                  updated_at = now()
+                WHERE id = :id
+            """),
+            {"lvl": next_level, "id": str(grievance_id)},
+        )
+
+        from app.modules.sla.models import EscalationRecord
+
+        self._s.add(
+            StatusEvent(
+                grievance_id=grievance_id,
+                from_status=from_status,
+                to_status=GrievanceStatus.ESCALATED.value,
+                actor_id=actor.user_id,
+                actor_role=actor.role,
+                note=f"Manually escalated to {escalated_to_role} (level {next_level}): {reason}",
+            )
+        )
+        self._s.add(
+            EscalationRecord(
+                grievance_id=grievance_id,
+                level=next_level,
+                escalated_to_role=escalated_to_role,
+                reason=f"Manual: {reason}",
+            )
+        )
+        await self._outbox.emit(
+            "grievance.escalated",
+            "grievance",
+            str(grievance_id),
+            {
+                "grievance_id": str(grievance_id),
+                "level": next_level,
+                "escalated_to_role": escalated_to_role,
+                "manual": True,
+                "actor_id": actor.user_id,
+            },
+        )
+        await self._audit.log(
+            action="grievance.escalated",
+            resource_type="grievance",
+            resource_id=str(grievance_id),
+            actor_id=actor.user_id,
+            actor_role=actor.role,
+        )
+        log.info(
+            "workforce.escalated",
+            grievance_id=str(grievance_id),
+            level=next_level,
+            actor=actor.user_id,
+        )
+        return {"status": "ESCALATED", "escalation_level": next_level, "to_role": escalated_to_role}
+
     async def get_notes(self, grievance_id: uuid.UUID) -> list[OfficerNoteRead]:
         res = await self._s.execute(
             select(OfficerNote)

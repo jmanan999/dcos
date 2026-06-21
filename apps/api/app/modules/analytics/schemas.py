@@ -40,6 +40,8 @@ class DeptLeaderboardRow(BaseModel):
     avg_csat: float | None
     reopen_rate: float | None
     rank: int
+    # Claim vs Truth: the SLA promise (target) next to the lived reality (avg_resolution_hours)
+    sla_target_hours: float | None = None
 
 
 class DailyTrendPoint(BaseModel):
@@ -104,3 +106,89 @@ class CitizenJourney(BaseModel):
     steps: list[CitizenJourneyStep]
     is_resolved: bool
     resolution_hours: float | None
+
+
+# ── Operations: pendency aging ───────────────────────────────────────────────
+
+
+class PendencyBucket(BaseModel):
+    label: str  # "0–7 days" | "8–15 days" | "16–30 days" | "30+ days"
+    min_days: int
+    max_days: int | None  # None = open-ended (30+)
+    count: int
+    breached: int  # of those, how many are past SLA
+
+
+class PendencySnapshot(BaseModel):
+    total_open: int
+    oldest_days: int | None
+    buckets: list[PendencyBucket]
+
+
+# ── Operations: escalation pyramid ───────────────────────────────────────────
+
+
+class EscalationLevelRow(BaseModel):
+    level: int  # 0–3
+    label: str  # "Field Officer" | "Dept Admin" | "District / HOD" | "CM Cell"
+    count: int
+    breached: int
+
+
+class EscalationPyramid(BaseModel):
+    levels: list[EscalationLevelRow]
+    total_escalated: int
+
+
+# ── Operations: root-cause ───────────────────────────────────────────────────
+
+
+class RepeatCluster(BaseModel):
+    cluster_id: str
+    category: str | None
+    ward_name: str | None
+    count: int
+    open_count: int
+
+
+class CategoryBreach(BaseModel):
+    category: str
+    total: int
+    breached: int
+    breach_rate: float  # %
+
+
+class StaffingGap(BaseModel):
+    department: str
+    open_load: int
+    available_officers: int
+    load_per_officer: float | None
+
+
+class RootCauseReport(BaseModel):
+    repeat_clusters: list[RepeatCluster]
+    category_breaches: list[CategoryBreach]
+    staffing_gaps: list[StaffingGap]
+
+
+# ── Operations: 5% quality audit ─────────────────────────────────────────────
+
+
+class AuditSampleRow(BaseModel):
+    grievance_id: str
+    tracking_id: str
+    category: str | None
+    department: str | None
+    status: str
+    resolution_hours: float | None
+    has_before_proof: bool
+    has_after_proof: bool
+    proof_complete: bool
+    flagged: bool  # closed without complete proof → suspicious
+    closed_at: str | None
+
+
+class AuditSample(BaseModel):
+    sample_size: int
+    flagged_count: int
+    rows: list[AuditSampleRow]

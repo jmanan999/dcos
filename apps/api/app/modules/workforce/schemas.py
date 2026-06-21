@@ -66,6 +66,10 @@ class RequestInfoRequest(BaseModel):
     message: str = Field(..., min_length=10, max_length=1000)
 
 
+class EscalateRequest(BaseModel):
+    reason: str = Field(..., min_length=5, max_length=1000)
+
+
 class WorkloadSummary(BaseModel):
     officer_id: uuid.UUID
     officer_name: str | None

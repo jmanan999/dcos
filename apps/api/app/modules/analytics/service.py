@@ -15,13 +15,23 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.modules.analytics.schemas import (
+    AuditSample,
+    AuditSampleRow,
+    CategoryBreach,
     DailyTrendPoint,
     DeptLeaderboardRow,
+    EscalationLevelRow,
+    EscalationPyramid,
     ExecutiveBrief,
     ExecutiveBriefSection,
     KPISnapshot,
     NLQueryRequest,
     NLQueryResponse,
+    PendencyBucket,
+    PendencySnapshot,
+    RepeatCluster,
+    RootCauseReport,
+    StaffingGap,
     WardHotspot,
 )
 
@@ -122,10 +132,19 @@ class AnalyticsService:
     async def get_dept_leaderboard(self) -> list[DeptLeaderboardRow]:
         result = await self._db.execute(
             text("""
-            SELECT department, total, resolved, open, sla_breaches,
-                   resolution_rate, avg_resolution_hours, avg_csat, reopen_rate
-            FROM mv_dept_stats
-            ORDER BY resolution_rate DESC NULLS LAST
+            SELECT s.department, s.total, s.resolved, s.open, s.sla_breaches,
+                   s.resolution_rate, s.avg_resolution_hours, s.avg_csat, s.reopen_rate,
+                   -- Claim: the SLA the dept promises (dept-level policy, else 72h default)
+                   COALESCE(
+                       (SELECT p.resolution_hours FROM sla_policies p
+                        JOIN departments d ON d.id = p.department_id
+                        WHERE d.name = s.department AND p.category IS NULL
+                          AND p.priority IS NULL AND p.is_active
+                        LIMIT 1),
+                       72
+                   ) AS sla_target_hours
+            FROM mv_dept_stats s
+            ORDER BY s.resolution_rate DESC NULLS LAST
         """)
         )
         rows = result.fetchall()
@@ -141,6 +160,7 @@ class AnalyticsService:
                 avg_csat=float(r[7]) if r[7] else None,
                 reopen_rate=float(r[8]) if r[8] else None,
                 rank=i + 1,
+                sla_target_hours=float(r[9]) if r[9] is not None else None,
             )
             for i, r in enumerate(rows)
         ]
@@ -550,6 +570,267 @@ Rules:
         )
 
     # ── Refresh materialized views ────────────────────────────────────────────
+
+    # ── Operations: pendency aging ───────────────────────────────────────────
+
+    async def get_pendency(self, dept_id: str | None = None) -> PendencySnapshot:
+        """Open grievances bucketed by age — the core government pendency metric."""
+        dept_filter = "AND department_id = :dept_id" if dept_id else ""
+        params: dict = {"dept_id": dept_id} if dept_id else {}
+        rows = (
+            await self._db.execute(
+                text(f"""
+                WITH open_g AS (
+                    SELECT
+                        EXTRACT(EPOCH FROM (now() - created_at)) / 86400 AS age_days,
+                        (sla_due_at < now()) AS breached
+                    FROM grievances
+                    WHERE status NOT IN ('CLOSED','RESOLVED','VERIFIED','REJECTED_SPAM')
+                    {dept_filter}
+                )
+                SELECT
+                    CASE
+                        WHEN age_days <= 7  THEN 0
+                        WHEN age_days <= 15 THEN 1
+                        WHEN age_days <= 30 THEN 2
+                        ELSE 3
+                    END AS bucket,
+                    COUNT(*) AS cnt,
+                    COUNT(*) FILTER (WHERE breached) AS breached_cnt
+                FROM open_g
+                GROUP BY bucket
+            """),
+                params,
+            )
+        ).fetchall()
+
+        oldest = (
+            await self._db.execute(
+                text(f"""
+                SELECT MAX(EXTRACT(EPOCH FROM (now() - created_at)) / 86400)
+                FROM grievances
+                WHERE status NOT IN ('CLOSED','RESOLVED','VERIFIED','REJECTED_SPAM')
+                {dept_filter}
+            """),
+                params,
+            )
+        ).scalar()
+
+        by_bucket = {int(r[0]): (int(r[1]), int(r[2])) for r in rows}
+        defs = [
+            ("0-7 days", 0, 7),
+            ("8-15 days", 8, 15),
+            ("16-30 days", 16, 30),
+            ("30+ days", 31, None),
+        ]
+        buckets = [
+            PendencyBucket(
+                label=label,
+                min_days=lo,
+                max_days=hi,
+                count=by_bucket.get(i, (0, 0))[0],
+                breached=by_bucket.get(i, (0, 0))[1],
+            )
+            for i, (label, lo, hi) in enumerate(defs)
+        ]
+        return PendencySnapshot(
+            total_open=sum(b.count for b in buckets),
+            oldest_days=int(oldest) if oldest is not None else None,
+            buckets=buckets,
+        )
+
+    # ── Operations: escalation pyramid ───────────────────────────────────────
+
+    async def get_escalation_pyramid(self) -> EscalationPyramid:
+        rows = (
+            await self._db.execute(
+                text("""
+                SELECT escalation_level,
+                       COUNT(*) AS cnt,
+                       COUNT(*) FILTER (WHERE sla_due_at < now()) AS breached
+                FROM grievances
+                WHERE status NOT IN ('CLOSED','RESOLVED','VERIFIED','REJECTED_SPAM')
+                GROUP BY escalation_level
+            """)
+            )
+        ).fetchall()
+        by_level = {int(r[0]): (int(r[1]), int(r[2])) for r in rows}
+        labels = {
+            0: "Field Officer",
+            1: "Dept Admin",
+            2: "District / HOD",
+            3: "CM Cell",
+        }
+        levels = [
+            EscalationLevelRow(
+                level=lvl,
+                label=labels[lvl],
+                count=by_level.get(lvl, (0, 0))[0],
+                breached=by_level.get(lvl, (0, 0))[1],
+            )
+            for lvl in (0, 1, 2, 3)
+        ]
+        return EscalationPyramid(
+            levels=levels,
+            total_escalated=sum(r.count for r in levels if r.level >= 1),
+        )
+
+    # ── Operations: root-cause ───────────────────────────────────────────────
+
+    async def get_root_cause(self) -> RootCauseReport:
+        # Repeat clusters — same issue filed many times (e.g. "12 complaints, one pothole")
+        cluster_rows = (
+            await self._db.execute(
+                text("""
+                SELECT g.cluster_id::text, g.category, w.name,
+                       COUNT(*) AS cnt,
+                       COUNT(*) FILTER (
+                           WHERE g.status NOT IN ('CLOSED','RESOLVED','VERIFIED','REJECTED_SPAM')
+                       ) AS open_cnt
+                FROM grievances g
+                LEFT JOIN wards w ON w.id = g.ward_id
+                WHERE g.cluster_id IS NOT NULL
+                GROUP BY g.cluster_id, g.category, w.name
+                HAVING COUNT(*) > 1
+                ORDER BY cnt DESC
+                LIMIT 8
+            """)
+            )
+        ).fetchall()
+        repeat_clusters = [
+            RepeatCluster(
+                cluster_id=r[0],
+                category=r[1],
+                ward_name=r[2],
+                count=int(r[3]),
+                open_count=int(r[4]),
+            )
+            for r in cluster_rows
+        ]
+
+        # Category breach rates — which kinds of complaints blow their SLA
+        cat_rows = (
+            await self._db.execute(
+                text("""
+                SELECT category,
+                       COUNT(*) AS total,
+                       COUNT(*) FILTER (
+                           WHERE sla_due_at < now()
+                             AND status NOT IN ('CLOSED','RESOLVED','VERIFIED','REJECTED_SPAM')
+                       ) AS breached
+                FROM grievances
+                WHERE category IS NOT NULL
+                GROUP BY category
+                HAVING COUNT(*) >= 3
+                ORDER BY breached DESC, total DESC
+                LIMIT 8
+            """)
+            )
+        ).fetchall()
+        category_breaches = [
+            CategoryBreach(
+                category=r[0],
+                total=int(r[1]),
+                breached=int(r[2]),
+                breach_rate=round(100.0 * int(r[2]) / int(r[1]), 1) if r[1] else 0.0,
+            )
+            for r in cat_rows
+        ]
+
+        # Staffing gaps — open load vs available officers per department
+        gap_rows = (
+            await self._db.execute(
+                text("""
+                SELECT d.name,
+                       COUNT(g.id) FILTER (
+                           WHERE g.status NOT IN ('CLOSED','RESOLVED','VERIFIED','REJECTED_SPAM')
+                       ) AS open_load,
+                       COUNT(DISTINCT o.id) FILTER (WHERE o.is_available) AS avail
+                FROM departments d
+                LEFT JOIN grievances g ON g.department_id = d.id
+                LEFT JOIN officers o ON o.department_id = d.id
+                GROUP BY d.name
+                HAVING COUNT(g.id) FILTER (
+                           WHERE g.status NOT IN ('CLOSED','RESOLVED','VERIFIED','REJECTED_SPAM')
+                       ) > 0
+                ORDER BY (
+                    COUNT(g.id) FILTER (
+                        WHERE g.status NOT IN ('CLOSED','RESOLVED','VERIFIED','REJECTED_SPAM')
+                    )::float / NULLIF(COUNT(DISTINCT o.id) FILTER (WHERE o.is_available), 0)
+                ) DESC NULLS FIRST
+                LIMIT 8
+            """)
+            )
+        ).fetchall()
+        staffing_gaps = [
+            StaffingGap(
+                department=r[0],
+                open_load=int(r[1]),
+                available_officers=int(r[2]),
+                load_per_officer=round(int(r[1]) / int(r[2]), 1) if r[2] else None,
+            )
+            for r in gap_rows
+        ]
+
+        return RootCauseReport(
+            repeat_clusters=repeat_clusters,
+            category_breaches=category_breaches,
+            staffing_gaps=staffing_gaps,
+        )
+
+    # ── Operations: 5% quality audit ─────────────────────────────────────────
+
+    async def get_audit_sample(self, limit: int = 20) -> AuditSample:
+        """Random sample of resolved/verified cases, re-checked for proof completeness."""
+        rows = (
+            await self._db.execute(
+                text("""
+                SELECT g.id::text, g.tracking_id, g.category, d.name, g.status,
+                       EXTRACT(EPOCH FROM (g.closed_at - g.created_at)) / 3600 AS res_hours,
+                       g.closed_at,
+                       EXISTS (
+                           SELECT 1 FROM attachments a
+                           WHERE a.grievance_id = g.id AND a.is_proof
+                             AND a.proof_type = 'before'
+                       ) AS has_before,
+                       EXISTS (
+                           SELECT 1 FROM attachments a
+                           WHERE a.grievance_id = g.id AND a.is_proof
+                             AND a.proof_type = 'after'
+                       ) AS has_after
+                FROM grievances g
+                LEFT JOIN departments d ON d.id = g.department_id
+                WHERE g.status IN ('RESOLVED','VERIFIED')
+                ORDER BY random()
+                LIMIT :lim
+            """),
+                {"lim": limit},
+            )
+        ).fetchall()
+        sample = []
+        flagged = 0
+        for r in rows:
+            has_before, has_after = bool(r[7]), bool(r[8])
+            complete = has_before and has_after
+            is_flagged = not complete
+            if is_flagged:
+                flagged += 1
+            sample.append(
+                AuditSampleRow(
+                    grievance_id=r[0],
+                    tracking_id=r[1],
+                    category=r[2],
+                    department=r[3],
+                    status=r[4],
+                    resolution_hours=round(float(r[5]), 1) if r[5] is not None else None,
+                    has_before_proof=has_before,
+                    has_after_proof=has_after,
+                    proof_complete=complete,
+                    flagged=is_flagged,
+                    closed_at=r[6].isoformat() if r[6] else None,
+                )
+            )
+        return AuditSample(sample_size=len(sample), flagged_count=flagged, rows=sample)
 
     async def refresh_views(self) -> dict[str, str]:
         """Called by the cron worker every 15 minutes."""
