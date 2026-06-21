@@ -166,9 +166,16 @@ async def relay_outbox(ctx: dict) -> dict[str, int]:
                 elif (
                     event_type
                     in (
+                        # Notify citizen at EVERY lifecycle event — no black holes
                         "grievance.assigned",
+                        "grievance.in_progress",
+                        "grievance.action_taken",
+                        "grievance.resolved",
                         "grievance.escalated",
                         "grievance.reopened",
+                        "grievance.closed",
+                        "grievance.info_requested",
+                        "grievance.handoff",
                     )
                     and queue
                 ):

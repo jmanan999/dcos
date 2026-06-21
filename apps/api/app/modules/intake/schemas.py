@@ -121,6 +121,15 @@ class GrievanceRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class CitizenRight(BaseModel):
+    category: str
+    sla_days: int
+    legal_basis: str
+    department: str
+    escalation_after_days: int
+    penalty_info: str
+
+
 class GrievanceCreateResponse(BaseModel):
     grievance_id: uuid.UUID
     tracking_id: str
@@ -128,6 +137,8 @@ class GrievanceCreateResponse(BaseModel):
     is_emergency: bool
     emergency_guidance: str | None = None
     message: str
+    # Citizen's legal rights for this type of complaint
+    citizen_right: CitizenRight | None = None
 
 
 class TrackingResponse(BaseModel):

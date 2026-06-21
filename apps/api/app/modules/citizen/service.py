@@ -228,15 +228,25 @@ class CitizenService:
         grievance_id: uuid.UUID,
     ) -> None:
         """
-        Look up grievance + citizen contact info, dispatch WhatsApp/SMS notification.
-        Called by the outbox relay worker.
+        Rich, context-aware WhatsApp/SMS notification to citizen on every status change.
+        Includes officer name, department, SLA deadline, and action prompts.
+        Called by the outbox relay worker for all lifecycle events.
         """
         result = await self._db.execute(
             text("""
-                SELECT g.tracking_id, g.status, g.language, g.citizen_phone,
-                       u.phone
+                SELECT
+                    g.tracking_id, g.status, g.language,
+                    g.citizen_phone, u.phone, g.category,
+                    -- Officer name and department
+                    o_user.name AS officer_name,
+                    d.name AS department_name,
+                    -- SLA deadline in human-readable form
+                    TO_CHAR(g.sla_due_at AT TIME ZONE 'Asia/Kolkata', 'DD Mon, HH12:MI AM') AS sla_due_str
                 FROM grievances g
                 LEFT JOIN users u ON u.id = g.citizen_id
+                LEFT JOIN officers o ON o.id = g.assigned_officer_id
+                LEFT JOIN users o_user ON o_user.id = o.user_id
+                LEFT JOIN departments d ON d.id = g.department_id
                 WHERE g.id = CAST(:id AS uuid)
             """),
             {"id": str(grievance_id)},
@@ -245,19 +255,40 @@ class CitizenService:
         if not row:
             return
 
-        tracking_id, status, language, citizen_phone, user_phone = row
-        phone = citizen_phone or user_phone
-        message = status_change_message(tracking_id, status, language or "en")
+        (
+            tracking_id,
+            status,
+            language,
+            citizen_phone,
+            user_phone,
+            category,
+            officer_name,
+            dept_name,
+            sla_due_str,
+        ) = row
 
-        if phone:
-            await dispatch_notification(
-                self._db,
-                user_id=None,
-                grievance_id=grievance_id,
-                channel="whatsapp",
-                message=message,
-                phone=phone,
-            )
+        phone = citizen_phone or user_phone
+        if not phone:
+            return
+
+        message = status_change_message(
+            tracking_id,
+            status,
+            language or "en",
+            officer_name=officer_name,
+            department=dept_name,
+            sla_due_at=sla_due_str,
+            category=category,
+        )
+
+        await dispatch_notification(
+            self._db,
+            user_id=None,
+            grievance_id=grievance_id,
+            channel="whatsapp",
+            message=message,
+            phone=phone,
+        )
 
     # ── Internal helpers ──────────────────────────────────────────────────────
 

@@ -19,10 +19,105 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth import TokenClaims
 from app.modules.intake.models import Attachment, Grievance, GrievanceStatus, StatusEvent
 from app.modules.intake.repository import GrievanceRepository
-from app.modules.intake.schemas import GrievanceCreate, GrievanceCreateResponse
+from app.modules.intake.schemas import CitizenRight, GrievanceCreate, GrievanceCreateResponse
 from app.modules.platform.repository import AuditRepository, OutboxRepository
 
 log = structlog.get_logger()
+
+# ── Citizen Rights Lookup Table ───────────────────────────────────────────────
+# Source: Delhi Right to Public Services Act 2011 + MCD/DJB/PWD service norms
+# Penalty: Delhi imposes ₹10/day max ₹200 (weakest in India — political reform needed)
+_CITIZEN_RIGHTS: dict[str, CitizenRight] = {
+    "Pothole / Road Damage": CitizenRight(
+        category="Pothole / Road Damage",
+        sla_days=7,
+        legal_basis="Delhi Right to Public Services Act 2011 — PWD Service Standard",
+        department="Public Works Department (PWD) / MCD",
+        escalation_after_days=8,
+        penalty_info="Officer liable to ₹10/day fine under Delhi RTPS Act 2011.",
+    ),
+    "Road Repair Required": CitizenRight(
+        category="Road Repair Required",
+        sla_days=7,
+        legal_basis="Delhi Right to Public Services Act 2011 — PWD Service Standard",
+        department="Public Works Department (PWD)",
+        escalation_after_days=8,
+        penalty_info="Officer liable to ₹10/day fine under Delhi RTPS Act 2011.",
+    ),
+    "No Water Supply": CitizenRight(
+        category="No Water Supply",
+        sla_days=2,
+        legal_basis="DJB Water Supply Standard — Delhi Right to Public Services Act 2011",
+        department="Delhi Jal Board (DJB)",
+        escalation_after_days=3,
+        penalty_info="DJB must restore supply within 48 hours. File RTI if unresolved.",
+    ),
+    "Sewage Overflow": CitizenRight(
+        category="Sewage Overflow",
+        sla_days=1,
+        legal_basis="Delhi Health Code — Public Health Emergency Standard",
+        department="Delhi Jal Board (DJB) / MCD",
+        escalation_after_days=2,
+        penalty_info="Health emergency — 24-hour resolution required. Escalate to DM if delayed.",
+    ),
+    "Power Outage": CitizenRight(
+        category="Power Outage",
+        sla_days=1,
+        legal_basis="Delhi Electricity Regulatory Commission (DERC) Supply Code 2017",
+        department="BSES Yamuna / BSES Rajdhani / Tata Power Delhi",
+        escalation_after_days=1,
+        penalty_info="Discom must restore within 4-8 hours. File complaint with DERC at derc.gov.in.",
+    ),
+    "Garbage Not Collected": CitizenRight(
+        category="Garbage Not Collected",
+        sla_days=1,
+        legal_basis="Solid Waste Management Rules 2016 — MCD Service Standard",
+        department="Municipal Corporation of Delhi (MCD)",
+        escalation_after_days=2,
+        penalty_info="Daily collection is mandatory. Persistent failure: approach MCD Ward Committee.",
+    ),
+    "Streetlight Not Working": CitizenRight(
+        category="Streetlight Not Working",
+        sla_days=3,
+        legal_basis="MCD Street Lighting Standard — Delhi Right to Public Services Act 2011",
+        department="Municipal Corporation of Delhi (MCD)",
+        escalation_after_days=4,
+        penalty_info="MCD must repair within 72 hours under service charter.",
+    ),
+    "Illegal Construction": CitizenRight(
+        category="Illegal Construction",
+        sla_days=7,
+        legal_basis="Delhi Municipal Corporation Act 1957 — Building Regulation",
+        department="Municipal Corporation of Delhi (MCD) — Building Department",
+        escalation_after_days=8,
+        penalty_info="MCD enforcement unit must act within 7 days. File RTI for action taken report.",
+    ),
+    "Traffic Signal Fault": CitizenRight(
+        category="Traffic Signal Fault",
+        sla_days=1,
+        legal_basis="Delhi Traffic Police Service Standard",
+        department="Delhi Traffic Police",
+        escalation_after_days=1,
+        penalty_info="Safety emergency — report also to Delhi Police Control Room: 112.",
+    ),
+    "Medicine Not Available": CitizenRight(
+        category="Medicine Not Available",
+        sla_days=1,
+        legal_basis="Delhi Healthcare Service Delivery Standard — GNCT Health Dept",
+        department="GNCT Department of Health & Family Welfare",
+        escalation_after_days=1,
+        penalty_info="Essential medicines must be available. Contact CMO directly if unresolved.",
+    ),
+}
+
+_DEFAULT_CITIZEN_RIGHT = CitizenRight(
+    category="General Civic Issue",
+    sla_days=7,
+    legal_basis="Delhi Right to Public Services Act 2011",
+    department="Concerned Government Department",
+    escalation_after_days=8,
+    penalty_info="Under Delhi RTPS Act 2011, you can escalate to First Appellate Authority after deadline.",
+)
 
 # ── Emergency keywords (Hindi + English) ─────────────────────────────────────
 _EMERGENCY_RE = re.compile(
@@ -173,6 +268,18 @@ class IntakeService:
             emergency=emergency,
         )
 
+        # Best-effort rights lookup before AI classification
+        # Keyword matching against raw text for immediate response
+        detected_right: CitizenRight | None = None
+        raw_lower = body.raw_text.lower()
+        for key, right in _CITIZEN_RIGHTS.items():
+            keywords = key.lower().split("/")
+            if any(kw.strip() in raw_lower for kw in keywords):
+                detected_right = right
+                break
+        if not detected_right:
+            detected_right = _DEFAULT_CITIZEN_RIGHT
+
         return GrievanceCreateResponse(
             grievance_id=grievance.id,
             tracking_id=tracking_id,
@@ -184,6 +291,7 @@ class IntakeService:
                 if emergency
                 else f"Filed successfully. Track at /track/{tracking_id}"
             ),
+            citizen_right=detected_right,
         )
 
     # ── Tracking ──────────────────────────────────────────────────────────────

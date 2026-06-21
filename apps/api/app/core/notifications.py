@@ -182,32 +182,123 @@ async def _send_push(user_id: str, message: str) -> tuple[str | None, str | None
     return None, "push not yet wired (needs subscription storage)"
 
 
-def status_change_message(tracking_id: str, new_status: str, language: str = "en") -> str:
-    """Generate a short status update notification message."""
-    labels: dict[str, dict[str, str]] = {
+def status_change_message(
+    tracking_id: str,
+    new_status: str,
+    language: str = "en",
+    *,
+    officer_name: str | None = None,
+    department: str | None = None,
+    sla_due_at: str | None = None,
+    category: str | None = None,
+) -> str:
+    """
+    Rich, context-aware status notification messages.
+    Includes officer name, department, SLA deadline, and action prompts.
+    Both English and Hindi — JanSetu brand voice.
+    """
+    officer = officer_name or "an officer"
+    dept = f" ({department})" if department else ""
+    sla = f" Expected resolution: {sla_due_at}." if sla_due_at else " SLA: 72 hours."
+    cat = f" [{category}]" if category else ""
+    track_url = f"https://dcos-ecru.vercel.app/track/{tracking_id}"
+
+    officer_hi = officer_name or "एक अधिकारी"
+    dept_hi = f" ({department})" if department else ""
+    sla_hi = f" अपेक्षित समाधान: {sla_due_at}।" if sla_due_at else " समयसीमा: 72 घंटे।"
+
+    templates: dict[str, dict[str, str]] = {
         "en": {
-            "CLASSIFIED": "Your complaint {tid} has been reviewed and categorised.",
-            "ASSIGNED": "Your complaint {tid} has been assigned to an officer.",
-            "IN_PROGRESS": "An officer is working on your complaint {tid}.",
-            "ACTION_TAKEN": "Action has been taken on complaint {tid}. Awaiting resolution.",
-            "RESOLVED": "Complaint {tid} has been marked resolved. Please confirm or reopen via: /track/{tid}",
-            "ESCALATED": "Your complaint {tid} has been escalated due to SLA breach.",
-            "CLOSED": "Complaint {tid} is now closed. Thank you for using DCOS.",
-            "REOPENED": "Complaint {tid} has been reopened and reassigned.",
+            "RECEIVED": (
+                f"✅ JanSetu: Your complaint {tracking_id}{cat} has been received. "
+                f"We will categorise and assign it within 2 hours. Track: {track_url}"
+            ),
+            "CLASSIFIED": (
+                f"🔍 JanSetu: Complaint {tracking_id} has been reviewed and categorised by AI. "
+                f"Being routed to the right department now. Track: {track_url}"
+            ),
+            "ASSIGNED": (
+                f"👮 JanSetu: Complaint {tracking_id} assigned to {officer}{dept}.{sla}"
+                f" You will be notified when work starts. Track: {track_url}"
+            ),
+            "IN_PROGRESS": (
+                f"🔧 JanSetu: Officer {officer}{dept} has started field work on your complaint {tracking_id}. "
+                f"Track live status: {track_url}"
+            ),
+            "ACTION_TAKEN": (
+                f"✔️ JanSetu: Field work completed on complaint {tracking_id}. "
+                f"Officer is uploading proof and preparing resolution note. "
+                f"You will receive a confirmation shortly. Track: {track_url}"
+            ),
+            "RESOLVED": (
+                f"🎉 JanSetu: Complaint {tracking_id} has been marked RESOLVED.\n\n"
+                f"Was the issue actually fixed? Please confirm:\n"
+                f"✅ YES → {track_url}/feedback\n"
+                f"❌ NO → {track_url}/reopen\n\n"
+                f"If we don't hear from you in 7 days, the case will auto-close."
+            ),
+            "ESCALATED": (
+                f"⚠️ JanSetu: Your complaint {tracking_id} has been escalated to a senior officer "
+                f"because the resolution deadline was missed. "
+                f"A supervisor will now handle this case. Track: {track_url}"
+            ),
+            "CLOSED": (
+                f"📋 JanSetu: Complaint {tracking_id} is now closed. "
+                f"Thank you for helping improve Delhi's civic services. "
+                f"Rate your experience: {track_url}"
+            ),
+            "REOPENED": (
+                f"🔄 JanSetu: Complaint {tracking_id} has been reopened and re-assigned "
+                f"based on your feedback. We apologise for the inconvenience. "
+                f"A new officer will handle this. Track: {track_url}"
+            ),
         },
         "hi": {
-            "CLASSIFIED": "आपकी शिकायत {tid} की समीक्षा की गई है।",
-            "ASSIGNED": "आपकी शिकायत {tid} एक अधिकारी को सौंप दी गई है।",
-            "IN_PROGRESS": "आपकी शिकायत {tid} पर कार्य जारी है।",
-            "ACTION_TAKEN": "शिकायत {tid} पर कार्रवाई की गई है।",
-            "RESOLVED": "शिकायत {tid} हल हो गई है। कृपया पुष्टि करें: /track/{tid}",
-            "ESCALATED": "शिकायत {tid} को वरिष्ठ अधिकारी को भेजा गया है।",
-            "CLOSED": "शिकायत {tid} बंद कर दी गई है। धन्यवाद।",
-            "REOPENED": "शिकायत {tid} पुनः खोली गई है।",
+            "RECEIVED": (
+                f"✅ जनसेतु: आपकी शिकायत {tracking_id}{cat} प्राप्त हो गई। "
+                f"2 घंटे में वर्गीकरण होगा। ट्रैक करें: {track_url}"
+            ),
+            "CLASSIFIED": (
+                f"🔍 जनसेतु: शिकायत {tracking_id} की AI समीक्षा हो गई। "
+                f"सही विभाग को भेजी जा रही है। ट्रैक करें: {track_url}"
+            ),
+            "ASSIGNED": (
+                f"👮 जनसेतु: शिकायत {tracking_id} को {officer_hi}{dept_hi} को सौंपा गया।{sla_hi}"
+                f" कार्य शुरू होने पर सूचना मिलेगी। ट्रैक करें: {track_url}"
+            ),
+            "IN_PROGRESS": (
+                f"🔧 जनसेतु: अधिकारी {officer_hi}{dept_hi} ने आपकी शिकायत {tracking_id} पर "
+                f"फील्ड कार्य शुरू कर दिया है। ट्रैक करें: {track_url}"
+            ),
+            "ACTION_TAKEN": (
+                f"✔️ जनसेतु: शिकायत {tracking_id} पर फील्ड कार्य पूरा हो गया। "
+                f"समाधान की पुष्टि जल्द होगी। ट्रैक करें: {track_url}"
+            ),
+            "RESOLVED": (
+                f"🎉 जनसेतु: शिकायत {tracking_id} हल हो गई!\n\n"
+                f"क्या समस्या सच में ठीक हो गई?\n"
+                f"✅ हाँ → {track_url}/feedback\n"
+                f"❌ नहीं → {track_url}/reopen\n\n"
+                f"7 दिन में जवाब न दें तो केस अपने आप बंद हो जाएगा।"
+            ),
+            "ESCALATED": (
+                f"⚠️ जनसेतु: शिकायत {tracking_id} की समयसीमा पार होने पर "
+                f"वरिष्ठ अधिकारी को भेजा गया है। ट्रैक करें: {track_url}"
+            ),
+            "CLOSED": (
+                f"📋 जनसेतु: शिकायत {tracking_id} बंद हो गई। दिल्ली की सेवाओं में "
+                f"सुधार के लिए आपका योगदान महत्वपूर्ण है। ट्रैक करें: {track_url}"
+            ),
+            "REOPENED": (
+                f"🔄 जनसेतु: आपकी प्रतिक्रिया पर शिकायत {tracking_id} पुनः खोली गई। "
+                f"नए अधिकारी को सौंपी जाएगी। ट्रैक करें: {track_url}"
+            ),
         },
     }
-    lang_map = labels.get(language, labels["en"])
-    template = lang_map.get(
-        new_status, "Your complaint {tid} status has been updated to " + new_status + "."
+
+    lang_map = templates.get(language, templates["en"])
+    message = lang_map.get(
+        new_status,
+        f"JanSetu: Your complaint {tracking_id} status updated to {new_status}. Track: {track_url}",
     )
-    return template.format(tid=tracking_id)
+    return message
