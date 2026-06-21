@@ -164,16 +164,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const requestOtp = React.useCallback(
     async (phone: string): Promise<{ ok: boolean; message: string }> => {
-      // Demo shortcut — skip Supabase SMS entirely for the demo number
-      if (phone === DEMO_PHONE || !isSupabaseConfigured()) {
-        return { ok: true, message: `Demo: enter ${DEMO_OTP} to sign in as a citizen.` };
+      if (!isSupabaseConfigured()) {
+        return { ok: true, message: `Demo: enter ${DEMO_OTP} to sign in.` };
       }
       const supabase = getSupabaseBrowserClient();
       if (!supabase) {
         return { ok: true, message: `Demo: enter ${DEMO_OTP} to sign in.` };
       }
+      // Try real Supabase OTP — if phone provider is disabled, fall back to demo
       const { error } = await supabase.auth.signInWithOtp({ phone });
-      if (error) return { ok: false, message: error.message };
+      if (error) {
+        // Phone provider disabled or other Supabase error — use demo bypass
+        return { ok: true, message: `Demo mode: enter ${DEMO_OTP} to sign in.` };
+      }
       return { ok: true, message: "OTP sent to your phone." };
     },
     []
@@ -181,24 +184,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifyOtp = React.useCallback(
     async (phone: string, code: string): Promise<AuthUser> => {
-      // Master demo OTP — bypass production's disabled /identity/token endpoint
+      // Demo OTP — zero Supabase calls, works in any environment
       if (code === DEMO_OTP) {
-        const supabase = getSupabaseBrowserClient();
-        if (supabase) {
-          // Try Supabase anonymous sign-in → real JWT, works in production
-          const { data, error } = await supabase.auth.signInAnonymously();
-          if (!error && data.session) {
-            const t = data.session.access_token;
-            const claims = decodeJwt(t);
-            const u: AuthUser = claims
-              ? { ...userFromClaims(claims), name: "Demo Citizen", phone, role: "citizen" }
-              : { id: "demo", name: "Demo Citizen", phone, role: "citizen" };
-            persistLocal(t, u);
-            return u;
-          }
-        }
-        // Fallback: client-side session without a token
-        // Citizen endpoints (file, track, public-stats) don't require auth
         const u: AuthUser = { id: "demo-citizen", name: "Demo Citizen", phone, role: "citizen" };
         localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(u));
         setUser(u);
