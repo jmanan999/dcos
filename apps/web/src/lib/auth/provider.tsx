@@ -168,12 +168,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifyOtp = React.useCallback(
     async (phone: string, code: string): Promise<AuthUser> => {
-      // Master demo OTP — always works regardless of Supabase config
-      if (code === DEMO_OTP || !isSupabaseConfigured()) {
-        return loginLocal("citizen", phone, "Demo Citizen");
+      // Master demo OTP — bypass production's disabled /identity/token endpoint
+      if (code === DEMO_OTP) {
+        const supabase = getSupabaseBrowserClient();
+        if (supabase) {
+          // Try Supabase anonymous sign-in → real JWT, works in production
+          const { data, error } = await supabase.auth.signInAnonymously();
+          if (!error && data.session) {
+            const t = data.session.access_token;
+            const claims = decodeJwt(t);
+            const u: AuthUser = claims
+              ? { ...userFromClaims(claims), name: "Demo Citizen", phone, role: "citizen" }
+              : { id: "demo", name: "Demo Citizen", phone, role: "citizen" };
+            persistLocal(t, u);
+            return u;
+          }
+        }
+        // Fallback: client-side session without a token
+        // Citizen endpoints (file, track, public-stats) don't require auth
+        const u: AuthUser = { id: "demo-citizen", name: "Demo Citizen", phone, role: "citizen" };
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(u));
+        setUser(u);
+        return u;
       }
+
       const supabase = getSupabaseBrowserClient();
-      if (!supabase) return loginLocal("citizen", phone);
+      if (!supabase) {
+        // Dev mode — local API token
+        return loginLocal("citizen", phone);
+      }
       const { data, error } = await supabase.auth.verifyOtp({ phone, token: code, type: "sms" });
       if (error || !data.session) throw new Error(error?.message ?? "OTP verification failed");
       const t = data.session.access_token;
