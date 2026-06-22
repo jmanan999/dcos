@@ -65,6 +65,11 @@ async def reopen_grievance(
 @router.get("/public-stats", response_model=PublicKPISnapshot)
 async def public_stats(db: AsyncSession = Depends(get_db)) -> PublicKPISnapshot:
     """Anonymized, real-time stats for the public transparency dashboard. No auth required."""
-    await db.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+    import logging
+    log = logging.getLogger(__name__)
+    try:
+        await db.execute(text("SELECT set_config('app.bypass_rls', 'on', true)"))
+    except Exception as exc:
+        log.warning("bypass_rls set_config failed (non-fatal): %s", exc)
     svc = CitizenService(db)
     return await svc.get_public_stats()

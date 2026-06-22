@@ -138,87 +138,107 @@ class CitizenService:
 
     async def get_public_stats(self) -> PublicKPISnapshot:
         """Return anonymized aggregated stats for the public transparency dashboard."""
-        totals = await self._db.execute(
-            text("""
-            SELECT
-                COUNT(*) AS total_filed,
-                COUNT(*) FILTER (WHERE status IN ('RESOLVED','VERIFIED','CLOSED')) AS total_resolved,
-                COUNT(*) FILTER (WHERE status NOT IN ('RESOLVED','VERIFIED','CLOSED','REJECTED_SPAM')) AS total_open,
-                ROUND(
-                    AVG(
-                        EXTRACT(EPOCH FROM (closed_at - created_at)) / 3600.0
-                    ) FILTER (WHERE closed_at IS NOT NULL),
-                2) AS avg_resolution_hours
-            FROM grievances
-        """)
-        )
-        t = totals.fetchone()
+        import logging
+        log = logging.getLogger(__name__)
 
-        by_cat = await self._db.execute(
-            text("""
-            SELECT category, COUNT(*) AS cnt
-            FROM grievances
-            WHERE category IS NOT NULL
-            GROUP BY category
-            ORDER BY cnt DESC
-            LIMIT 10
-        """)
-        )
+        # ── totals ───────────────────────────────────────────────────────────────
+        total_filed = total_resolved = total_open = 0
+        avg_hours: float | None = None
+        try:
+            r = await self._db.execute(text("""
+                SELECT
+                    COUNT(*) AS total_filed,
+                    COUNT(*) FILTER (WHERE status IN ('RESOLVED','VERIFIED','CLOSED')) AS total_resolved,
+                    COUNT(*) FILTER (WHERE status NOT IN ('RESOLVED','VERIFIED','CLOSED','REJECTED_SPAM')) AS total_open,
+                    ROUND(
+                        AVG(EXTRACT(EPOCH FROM (closed_at - created_at)) / 3600.0)
+                        FILTER (WHERE closed_at IS NOT NULL), 2
+                    ) AS avg_resolution_hours
+                FROM grievances
+            """))
+            t = r.fetchone()
+            if t:
+                total_filed = int(t[0] or 0)
+                total_resolved = int(t[1] or 0)
+                total_open = int(t[2] or 0)
+                avg_hours = float(t[3]) if t[3] is not None else None
+        except Exception as exc:
+            log.error("public_stats totals query failed: %s", exc)
 
-        by_dept = await self._db.execute(
-            text("""
-            SELECT COALESCE(d.name, 'Other'), COUNT(*) AS total,
-                   COUNT(*) FILTER (WHERE g.status IN ('RESOLVED','VERIFIED','CLOSED')) AS resolved
-            FROM grievances g
-            LEFT JOIN departments d ON d.id = g.department_id
-            GROUP BY d.name
-            ORDER BY total DESC
-            LIMIT 10
-        """)
-        )
+        # ── by_category ──────────────────────────────────────────────────────────
+        categories: list[CategoryStat] = []
+        try:
+            r = await self._db.execute(text("""
+                SELECT category, COUNT(*) AS cnt
+                FROM grievances
+                WHERE category IS NOT NULL
+                GROUP BY category ORDER BY cnt DESC LIMIT 10
+            """))
+            categories = [CategoryStat(category=row[0], count=int(row[1])) for row in r.fetchall()]
+        except Exception as exc:
+            log.error("public_stats category query failed: %s", exc)
 
-        hotspots = await self._db.execute(
-            text("""
-            SELECT w.name, w.centroid_lat, w.centroid_lng,
-                   COUNT(*) FILTER (WHERE g.status NOT IN ('RESOLVED','VERIFIED','CLOSED','REJECTED_SPAM')) AS open_count,
-                   COUNT(*) AS total_count
-            FROM grievances g
-            JOIN wards w ON w.id = g.ward_id
-            GROUP BY w.id, w.name, w.centroid_lat, w.centroid_lng
-            HAVING COUNT(*) > 0
-            ORDER BY open_count DESC
-            LIMIT 50
-        """)
-        )
+        # ── by_department ────────────────────────────────────────────────────────
+        departments: list[DeptStat] = []
+        try:
+            r = await self._db.execute(text("""
+                SELECT COALESCE(d.name, 'Other') AS dept_name,
+                       COUNT(*) AS total,
+                       COUNT(*) FILTER (WHERE g.status IN ('RESOLVED','VERIFIED','CLOSED')) AS resolved
+                FROM grievances g
+                LEFT JOIN departments d ON d.id = g.department_id
+                GROUP BY 1 ORDER BY total DESC LIMIT 10
+            """))
+            departments = [
+                DeptStat(
+                    department=row[0],
+                    total=int(row[1]),
+                    resolved=int(row[2]),
+                    resolution_rate=round(row[2] / row[1] * 100, 1) if row[1] > 0 else 0.0,
+                )
+                for row in r.fetchall()
+            ]
+        except Exception as exc:
+            log.error("public_stats dept query failed: %s", exc)
 
-        dept_rows = by_dept.fetchall()
+        # ── hotspots ─────────────────────────────────────────────────────────────
+        hotspots: list[HotspotPoint] = []
+        try:
+            r = await self._db.execute(text("""
+                SELECT w.name,
+                       w.centroid_lat,
+                       w.centroid_lng,
+                       COUNT(*) FILTER (WHERE g.status NOT IN
+                           ('RESOLVED','VERIFIED','CLOSED','REJECTED_SPAM')) AS open_count,
+                       COUNT(*) AS total_count
+                FROM grievances g
+                JOIN wards w ON w.id = g.ward_id
+                WHERE w.centroid_lat IS NOT NULL AND w.centroid_lng IS NOT NULL
+                GROUP BY w.id, w.name, w.centroid_lat, w.centroid_lng
+                HAVING COUNT(*) > 0
+                ORDER BY open_count DESC LIMIT 50
+            """))
+            hotspots = [
+                HotspotPoint(
+                    ward_name=row[0],
+                    lat=float(row[1]),
+                    lng=float(row[2]),
+                    open_count=int(row[3] or 0),
+                    total_count=int(row[4] or 0),
+                )
+                for row in r.fetchall()
+            ]
+        except Exception as exc:
+            log.error("public_stats hotspots query failed: %s", exc)
 
         return PublicKPISnapshot(
-            total_filed=t[0] or 0,
-            total_resolved=t[1] or 0,
-            total_open=t[2] or 0,
-            avg_resolution_hours=float(t[3]) if t[3] else None,
-            by_category=[CategoryStat(category=r[0], count=r[1]) for r in by_cat.fetchall()],
-            by_department=[
-                DeptStat(
-                    department=r[0],
-                    total=r[1],
-                    resolved=r[2],
-                    resolution_rate=round(r[2] / r[1] * 100, 1) if r[1] > 0 else 0.0,
-                )
-                for r in dept_rows
-            ],
-            hotspots=[
-                HotspotPoint(
-                    ward_name=r[0],
-                    lat=float(r[1]) if r[1] else 0,
-                    lng=float(r[2]) if r[2] else 0,
-                    open_count=r[3] or 0,
-                    total_count=r[4] or 0,
-                )
-                for r in hotspots.fetchall()
-                if r[1] is not None and r[2] is not None
-            ],
+            total_filed=total_filed,
+            total_resolved=total_resolved,
+            total_open=total_open,
+            avg_resolution_hours=avg_hours,
+            by_category=categories,
+            by_department=departments,
+            hotspots=hotspots,
         )
 
     # ── Notification helpers (called by worker) ────────────────────────────────
