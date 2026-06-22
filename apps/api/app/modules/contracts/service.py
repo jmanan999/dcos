@@ -148,9 +148,7 @@ class ContractsService:
         await self._db.execute(
             text(
                 f"UPDATE contracts SET {set_clauses}, updated_at = now() WHERE id = :id"
-            ).bindparams(
-                **updates
-            )
+            ).bindparams(**updates)
         )
         return await self.get_contract(contract_id)
 
