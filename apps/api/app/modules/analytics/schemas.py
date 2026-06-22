@@ -319,3 +319,143 @@ class GovernanceScorecard(BaseModel):
     resolution_rate_7d: float
     # Recommendation
     chief_secretary_action_items: list[str]
+
+
+# ── Epic 4: Predictive Governance ────────────────────────────────────────────
+
+
+class EnhancedPredictiveAlert(BaseModel):
+    ward_name: str
+    district_name: str | None
+    category: str
+    current_weekly_rate: float
+    predicted_weekly_rate: float
+    predicted_spike_pct: float
+    confidence_low: float
+    confidence_high: float
+    confidence_pct: int
+    days_until_peak: int
+    estimated_complaints_30d: int
+    economic_impact_if_ignored_lakh: float
+    seasonal_factor: float
+    urgency: str
+    recommended_action: str
+
+
+class EnhancedPredictiveReport(BaseModel):
+    alerts: list[EnhancedPredictiveAlert]
+    total_wards_at_risk: int
+    highest_risk_category: str
+    total_economic_risk_lakh: float
+    monsoon_risk_score: int
+    current_season: str
+    pre_emptive_budget_recommendation_lakh: float
+
+
+class OfficerBurnoutScore(BaseModel):
+    officer_id: str
+    officer_name: str | None
+    department: str | None
+    open_cases: int
+    breach_rate_pct: float
+    avg_csat: float | None
+    csat_decline_pct: float | None
+    burnout_score: float
+    risk_level: str
+    computed_at: datetime
+    recommended_action: str | None
+
+
+class BurnoutReport(BaseModel):
+    officers: list[OfficerBurnoutScore]
+    high_risk_count: int
+    medium_risk_count: int
+    total_officers: int
+    top_overloaded_dept: str | None
+
+
+class WPITrendPoint(BaseModel):
+    snapshot_date: str
+    wpi: float
+    wpi_grade: str
+    total_complaints: int
+    open_complaints: int
+    resolution_rate: float
+
+
+class WardEarlyWarning(BaseModel):
+    ward_id: str
+    ward_name: str
+    district_name: str | None
+    current_wpi: float
+    current_wpi_grade: str
+    wpi_4w_ago: float | None
+    wpi_change: float | None
+    consecutive_declining_weeks: int
+    severity: str
+    trajectory: list[WPITrendPoint]
+    recommended_action: str
+
+
+class EarlyWarningReport(BaseModel):
+    watch_wards: list[WardEarlyWarning]
+    warning_wards: list[WardEarlyWarning]
+    crisis_wards: list[WardEarlyWarning]
+    total_flagged: int
+    computed_at: datetime
+
+
+class SimulationDeptInput(BaseModel):
+    dept_id: str
+    dept_name: str
+    current_crore: float
+    proposed_crore: float
+
+
+class SimulationDeptResult(BaseModel):
+    dept_name: str
+    current_crore: float
+    proposed_crore: float
+    change_crore: float
+    change_pct: float
+    elasticity: float
+    projected_complaint_change_pct: float
+    projected_daily_drag_change_inr: float
+    confidence: str
+
+
+class SimulationRequest(BaseModel):
+    departments: list[SimulationDeptInput]
+    horizon_days: int = 90
+
+
+class SimulationResult(BaseModel):
+    horizon_days: int
+    total_budget_shift_crore: float
+    projected_complaint_change_pct: float
+    projected_daily_drag_change_inr: float
+    net_economic_benefit_lakh: float
+    roi_pct: float
+    roi_grade: str
+    confidence: str
+    best_case_benefit_lakh: float
+    worst_case_benefit_lakh: float
+    by_department: list[SimulationDeptResult]
+
+
+class PreemptiveAlertWard(BaseModel):
+    ward_id: str
+    ward_name: str
+    district_name: str | None
+    at_risk_category: str
+    risk_score: float
+    eligible_citizens: int
+    last_sent_at: str | None
+
+
+class PreemptiveAlertReport(BaseModel):
+    at_risk_wards: list[PreemptiveAlertWard]
+    total_eligible_citizens: int
+    monsoon_risk_score: int
+    current_month: int
+    season: str

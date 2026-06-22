@@ -537,3 +537,149 @@ export const useWardReps = (party?: string) =>
     swrFetcher,
     { refreshInterval: 300_000 }
   );
+
+// ── Epic 4: Predictive Governance ────────────────────────────────────────────
+
+export interface EnhancedPredictiveAlert {
+  ward_name: string;
+  district_name: string | null;
+  category: string;
+  current_weekly_rate: number;
+  predicted_weekly_rate: number;
+  predicted_spike_pct: number;
+  confidence_low: number;
+  confidence_high: number;
+  confidence_pct: number;
+  days_until_peak: number;
+  estimated_complaints_30d: number;
+  economic_impact_if_ignored_lakh: number;
+  seasonal_factor: number;
+  urgency: string;
+  recommended_action: string;
+}
+
+export interface EnhancedPredictiveReport {
+  alerts: EnhancedPredictiveAlert[];
+  total_wards_at_risk: number;
+  highest_risk_category: string;
+  total_economic_risk_lakh: number;
+  monsoon_risk_score: number;
+  current_season: string;
+  pre_emptive_budget_recommendation_lakh: number;
+}
+
+export const useEnhancedPredictions = () =>
+  useSWR<EnhancedPredictiveReport>("/analytics/predictions/enhanced", swrFetcher, REFRESH);
+
+export interface OfficerBurnoutScore {
+  officer_id: string;
+  officer_name: string | null;
+  department: string | null;
+  open_cases: number;
+  breach_rate_pct: number;
+  avg_csat: number | null;
+  csat_decline_pct: number | null;
+  burnout_score: number;
+  risk_level: "HIGH" | "MEDIUM" | "LOW";
+  computed_at: string;
+  recommended_action: string | null;
+}
+
+export interface BurnoutReport {
+  officers: OfficerBurnoutScore[];
+  high_risk_count: number;
+  medium_risk_count: number;
+  total_officers: number;
+  top_overloaded_dept: string | null;
+}
+
+export const useBurnoutScores = () =>
+  useSWR<BurnoutReport>("/analytics/burnout-scores", swrFetcher, { refreshInterval: 120_000 });
+
+export interface WPITrendPoint {
+  snapshot_date: string;
+  wpi: number;
+  wpi_grade: string;
+  total_complaints: number;
+  open_complaints: number;
+  resolution_rate: number;
+}
+
+export interface WardEarlyWarning {
+  ward_id: string;
+  ward_name: string;
+  district_name: string | null;
+  current_wpi: number;
+  current_wpi_grade: string;
+  wpi_4w_ago: number | null;
+  wpi_change: number | null;
+  consecutive_declining_weeks: number;
+  severity: "watch" | "warning" | "crisis";
+  trajectory: WPITrendPoint[];
+  recommended_action: string;
+}
+
+export interface EarlyWarningReport {
+  watch_wards: WardEarlyWarning[];
+  warning_wards: WardEarlyWarning[];
+  crisis_wards: WardEarlyWarning[];
+  total_flagged: number;
+  computed_at: string;
+}
+
+export const useEarlyWarning = () =>
+  useSWR<EarlyWarningReport>("/analytics/early-warning", swrFetcher, REFRESH);
+
+export interface SimulationDeptInput {
+  dept_id: string;
+  dept_name: string;
+  current_crore: number;
+  proposed_crore: number;
+}
+
+export interface SimulationDeptResult {
+  dept_name: string;
+  current_crore: number;
+  proposed_crore: number;
+  change_crore: number;
+  change_pct: number;
+  elasticity: number;
+  projected_complaint_change_pct: number;
+  projected_daily_drag_change_inr: number;
+  confidence: string;
+}
+
+export interface SimulationResult {
+  horizon_days: number;
+  total_budget_shift_crore: number;
+  projected_complaint_change_pct: number;
+  projected_daily_drag_change_inr: number;
+  net_economic_benefit_lakh: number;
+  roi_pct: number;
+  roi_grade: string;
+  confidence: string;
+  best_case_benefit_lakh: number;
+  worst_case_benefit_lakh: number;
+  by_department: SimulationDeptResult[];
+}
+
+export interface PreemptiveAlertWard {
+  ward_id: string;
+  ward_name: string;
+  district_name: string | null;
+  at_risk_category: string;
+  risk_score: number;
+  eligible_citizens: number;
+  last_sent_at: string | null;
+}
+
+export interface PreemptiveAlertReport {
+  at_risk_wards: PreemptiveAlertWard[];
+  total_eligible_citizens: number;
+  monsoon_risk_score: number;
+  current_month: number;
+  season: string;
+}
+
+export const usePreemptiveWards = () =>
+  useSWR<PreemptiveAlertReport>("/analytics/preemptive-wards", swrFetcher, REFRESH);

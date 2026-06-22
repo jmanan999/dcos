@@ -12,6 +12,8 @@ import {
   ShieldCheck,
   Briefcase,
   PieChart,
+  TrendingUp,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 
@@ -59,6 +61,8 @@ export const CM_NAV: NavSection[] = [
       { href: "/cm/departments", label: "Departments", icon: Building2 },
       { href: "/cm/contractors", label: "Contractors", icon: Briefcase },
       { href: "/cm/intelligence", label: "Budget Intelligence", icon: PieChart },
+      { href: "/cm/simulate", label: "Policy Simulator", icon: TrendingUp },
+      { href: "/cm/predict", label: "Predict & Alert", icon: Bell },
       { href: "/cm/analytics", label: "AI Chief Secretary", icon: LayoutDashboard },
       { href: "/cm/reports", label: "Reports", icon: FileText },
     ],

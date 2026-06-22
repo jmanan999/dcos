@@ -10,12 +10,15 @@ from app.core.dependencies import get_db, require_permission
 from app.core.permissions import P
 from app.modules.analytics.schemas import (
     AuditSample,
+    BurnoutReport,
     CitizenJourney,
     ContractorIntelligenceReport,
     DailyTrendPoint,
     DelhiRiskIndex,
     DeptLeaderboardRow,
+    EarlyWarningReport,
     EconomicDragReport,
+    EnhancedPredictiveReport,
     EscalationPyramid,
     ExecutiveBrief,
     GovernanceScorecard,
@@ -23,8 +26,11 @@ from app.modules.analytics.schemas import (
     NLQueryRequest,
     NLQueryResponse,
     PendencySnapshot,
+    PreemptiveAlertReport,
     PredictiveReport,
     RootCauseReport,
+    SimulationRequest,
+    SimulationResult,
     WardHotspot,
     WardIndexReport,
 )
@@ -211,3 +217,52 @@ async def refresh_views(
 ) -> dict[str, str]:
     """Manually trigger materialized view refresh (normally done by cron worker)."""
     return await svc.refresh_views()
+
+
+# ── Epic 4: Predictive Governance ────────────────────────────────────────────
+
+
+@router.get("/predictions/enhanced", response_model=EnhancedPredictiveReport)
+async def enhanced_predictions(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> EnhancedPredictiveReport:
+    """Enhanced ML predictions — exponential smoothing + Delhi seasonal factors + confidence intervals."""
+    return await svc.get_enhanced_predictions()
+
+
+@router.get("/burnout-scores", response_model=BurnoutReport)
+async def burnout_scores(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> BurnoutReport:
+    """Officer burnout risk computed from caseload + breach rate + CSAT decline."""
+    return await svc.compute_burnout_scores()
+
+
+@router.get("/early-warning", response_model=EarlyWarningReport)
+async def early_warning(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> EarlyWarningReport:
+    """Wards declining in WPI for 3+ consecutive weeks — watch / warning / crisis."""
+    return await svc.get_early_warning()
+
+
+@router.post("/simulate", response_model=SimulationResult)
+async def simulate_policy(
+    payload: SimulationRequest,
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> SimulationResult:
+    """Policy simulator — model budget reallocation impact on complaint volume and economic drag."""
+    return await svc.simulate_policy(payload)
+
+
+@router.get("/preemptive-wards", response_model=PreemptiveAlertReport)
+async def preemptive_wards(
+    _: _AnalyticsAuth,
+    svc: AnalyticsService = Depends(_get_svc),
+) -> PreemptiveAlertReport:
+    """At-risk wards for pre-emptive citizen alerts (monsoon / seasonal)."""
+    return await svc.get_preemptive_at_risk_wards()

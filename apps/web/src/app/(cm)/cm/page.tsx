@@ -1,14 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   IndianRupee,
   TrendingUp,
   TrendingDown,
   AlertTriangle,
   Zap,
-  BarChart3,
   ArrowRight,
   Shield,
   Brain,
@@ -22,6 +20,8 @@ import {
   useWardIndex,
   usePredictions,
   useGovernanceScorecard,
+  useEarlyWarning,
+  useEnhancedPredictions,
 } from "@/lib/hooks";
 
 // ── Formatting helpers ─────────────────────────────────────────────────────────
@@ -40,15 +40,6 @@ function gradeColor(grade: string) {
          grade === "D" ? "text-orange-600" : "text-destructive";
 }
 
-function wpiBar(wpi: number) {
-  const color = wpi >= 65 ? "bg-success" : wpi >= 50 ? "bg-primary" : wpi >= 35 ? "bg-warning" : "bg-destructive";
-  return (
-    <div className="h-1.5 w-full bg-secondary/40 mt-1.5">
-      <div className={`h-full ${color}`} style={{ width: `${wpi}%` }} />
-    </div>
-  );
-}
-
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function IntelligenceOS() {
@@ -56,8 +47,9 @@ export default function IntelligenceOS() {
   const { data: drag, isLoading: dragLoading } = useEconomicDrag();
   const { data: wardIdx, isLoading: wardLoading } = useWardIndex();
   const { data: predictions } = usePredictions();
+  const { data: enhanced } = useEnhancedPredictions();
+  const { data: earlyWarning } = useEarlyWarning();
   const { data: scorecard } = useGovernanceScorecard();
-  const router = useRouter();
 
   return (
     <div className="space-y-0 divide-y divide-border">
@@ -81,9 +73,8 @@ export default function IntelligenceOS() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href="/wards">
+            <Link href="/transparency/wards">
               <button className="flex items-center gap-2 border border-outline-variant bg-white px-4 py-2 text-label-caps text-primary hover:bg-surface-dim transition-all">
-                <BarChart3 className="h-3.5 w-3.5" />
                 Ward Index
                 <ChevronRight className="h-3 w-3" />
               </button>
@@ -239,6 +230,79 @@ export default function IntelligenceOS() {
         </div>
       </section>
 
+      {/* ── EARLY WARNING SYSTEM ─────────────────────────────────────────── */}
+      {earlyWarning && earlyWarning.total_flagged > 0 && (
+        <section className="px-8 py-6 bg-white">
+          <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4 text-warning" />
+              <h2 className="text-sm font-semibold text-foreground">Early Warning System</h2>
+              <span className="label-caps text-muted-foreground">— WPI decline detected</span>
+            </div>
+            <Link href="/cm/simulate">
+              <button className="text-label-caps text-primary hover:underline flex items-center gap-1">
+                Simulate budget intervention <ArrowRight className="h-3 w-3" />
+              </button>
+            </Link>
+          </div>
+
+          {/* Crisis + Warning strips */}
+          {earlyWarning.crisis_wards.length > 0 && (
+            <div className="mb-3 border border-destructive/40 bg-destructive/5 divide-y divide-destructive/20">
+              <div className="px-4 py-2 flex items-center gap-2">
+                <span className="label-caps text-destructive font-bold">CRISIS — WPI &lt; 30</span>
+                <span className="label-caps text-destructive">({earlyWarning.crisis_wards.length} wards)</span>
+              </div>
+              {earlyWarning.crisis_wards.map((w) => (
+                <div key={w.ward_id} className="px-4 py-3 flex items-center justify-between gap-4">
+                  <div>
+                    <span className="text-sm font-semibold text-on-surface">{w.ward_name}</span>
+                    {w.district_name && <span className="text-label-caps text-on-surface-variant ml-2">{w.district_name}</span>}
+                    <p className="text-xs text-on-surface-variant mt-0.5">{w.recommended_action}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-lg font-black text-destructive">{w.current_wpi.toFixed(0)}</p>
+                    <p className="label-caps text-destructive">
+                      {w.wpi_change !== null && w.wpi_change < 0 ? `${w.wpi_change.toFixed(1)}` : ""} ({w.consecutive_declining_weeks}w ↓)
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {earlyWarning.warning_wards.length > 0 && (
+            <div className="mb-3 border border-warning/40 bg-warning/5 divide-y divide-warning/20">
+              <div className="px-4 py-2 flex items-center gap-2">
+                <span className="label-caps text-warning font-bold">WARNING — Declining 3+ weeks</span>
+                <span className="label-caps text-warning">({earlyWarning.warning_wards.length} wards)</span>
+              </div>
+              {earlyWarning.warning_wards.slice(0, 4).map((w) => (
+                <div key={w.ward_id} className="px-4 py-2.5 flex items-center justify-between gap-4">
+                  <span className="text-sm text-on-surface">{w.ward_name}</span>
+                  <div className="text-right shrink-0 flex items-center gap-3">
+                    <span className="text-sm font-bold text-warning">{w.current_wpi.toFixed(0)} WPI</span>
+                    <span className="label-caps text-on-surface-variant">{w.consecutive_declining_weeks}w ↓</span>
+                  </div>
+                </div>
+              ))}
+              {earlyWarning.warning_wards.length > 4 && (
+                <div className="px-4 py-2 text-label-caps text-on-surface-variant">
+                  +{earlyWarning.warning_wards.length - 4} more warning wards
+                </div>
+              )}
+            </div>
+          )}
+
+          {earlyWarning.watch_wards.length > 0 && (
+            <p className="text-label-caps text-on-surface-variant">
+              Also watching: {earlyWarning.watch_wards.slice(0, 5).map((w) => w.ward_name).join(", ")}
+              {earlyWarning.watch_wards.length > 5 ? ` +${earlyWarning.watch_wards.length - 5} more` : ""}
+            </p>
+          )}
+        </section>
+      )}
+
       {/* ── PREDICTIVE INTELLIGENCE ───────────────────────────────────────── */}
       <section className="px-8 py-6 bg-white">
         <div className="flex items-center justify-between mb-4">
@@ -268,25 +332,43 @@ export default function IntelligenceOS() {
           )}
         </div>
 
-        {predictions && predictions.alerts.length > 0 ? (
+        {(enhanced?.alerts.length ?? 0) > 0 || (predictions?.alerts.length ?? 0) > 0 ? (
           <div className="border border-outline-variant divide-y divide-outline-variant">
-            {predictions.alerts.slice(0, 6).map((alert, i) => (
-              <div key={i} className="px-4 py-3 flex items-center gap-4">
-                <span className={cn(
-                  "label-caps px-2 py-1 shrink-0",
-                  alert.urgency === "CRITICAL" ? "bg-destructive/10 text-destructive" :
-                  alert.urgency === "HIGH" ? "bg-warning/10 text-warning" : "bg-muted text-muted-foreground"
-                )}>{alert.urgency}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-foreground"><span className="font-medium">{alert.ward_name}</span> — {alert.category}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{alert.recommended_action}</p>
+            {(enhanced?.alerts ?? predictions?.alerts ?? []).slice(0, 6).map((alert, i) => {
+              const isEnhanced = "confidence_low" in alert;
+              return (
+                <div key={i} className="px-4 py-3 flex items-center gap-4">
+                  <span className={cn(
+                    "label-caps px-2 py-1 shrink-0",
+                    alert.urgency === "CRITICAL" ? "bg-destructive/10 text-destructive" :
+                    alert.urgency === "HIGH" ? "bg-warning/10 text-warning" : "bg-surface-container text-on-surface-variant"
+                  )}>{alert.urgency}</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-foreground">
+                      <span className="font-medium">{alert.ward_name}</span> — {alert.category}
+                    </p>
+                    <p className="text-xs text-on-surface-variant mt-0.5">{alert.recommended_action}</p>
+                    {isEnhanced && (alert as import("@/lib/hooks").EnhancedPredictiveAlert).seasonal_factor > 1.2 && (
+                      <p className="text-label-caps text-primary mt-0.5">
+                        ×{(alert as import("@/lib/hooks").EnhancedPredictiveAlert).seasonal_factor.toFixed(1)} seasonal boost ·{" "}
+                        {(alert as import("@/lib/hooks").EnhancedPredictiveAlert).confidence_pct}% confidence
+                      </p>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-destructive">
+                      +{"predicted_spike_pct" in alert ? (alert as { predicted_spike_pct: number }).predicted_spike_pct.toFixed(0) : 0}%
+                    </p>
+                    {isEnhanced && (
+                      <p className="text-label-caps text-on-surface-variant">
+                        {(alert as import("@/lib/hooks").EnhancedPredictiveAlert).estimated_complaints_30d} est./30d
+                      </p>
+                    )}
+                    <p className="label-caps text-on-surface-variant">{alert.days_until_peak}d to peak</p>
+                  </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-bold text-destructive">+{alert.predicted_spike_pct}%</p>
-                  <p className="label-caps text-muted-foreground">{alert.days_until_peak}d to peak</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="border border-outline-variant p-6 text-center">
@@ -357,10 +439,10 @@ export default function IntelligenceOS() {
       <section className="px-8 py-5 bg-white">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
-            { href: "/wards",            label: "Ward Index",        sub: "272 wards ranked",  icon: BarChart3 },
-            { href: "/cm/hotspots",      label: "Hotspot Map",       sub: "GIS intelligence",  icon: Target },
-            { href: "/cm/departments",   label: "Departments",       sub: "Performance audit", icon: Shield },
-            { href: "/cm/reports",       label: "Export & Reports",  sub: "Data downloads",    icon: TrendingUp },
+            { href: "/transparency/wards",  label: "Ward Index",        sub: "272 wards ranked",    icon: Target },
+            { href: "/cm/simulate",         label: "Policy Simulator",  sub: "Budget impact model",  icon: TrendingUp },
+            { href: "/cm/predict",          label: "Predict & Alert",   sub: "Pre-emptive alerts",   icon: Zap },
+            { href: "/cm/departments",      label: "Departments",       sub: "Performance audit",    icon: Shield },
           ].map((l) => {
             const Icon = l.icon;
             return (

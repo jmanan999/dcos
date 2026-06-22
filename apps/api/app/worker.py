@@ -215,6 +215,63 @@ async def correlate_contractors(ctx: dict) -> dict[str, Any]:
     return {"contracts_processed": count}
 
 
+# ── E4.4: Weekly WPI snapshot ─────────────────────────────────────────────────
+
+
+async def snapshot_wpi(ctx: dict) -> dict[str, Any]:
+    """Weekly: store current WPI per ward in ward_wpi_history for trend detection."""
+    setup_logging()
+    from app.modules.analytics.service import AnalyticsService
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+        svc = AnalyticsService(session)
+        count = await svc.snapshot_current_wpi()
+        await session.commit()
+
+    log.info("worker.wpi.snapshot.done", wards_snapshotted=count)
+    return {"wards_snapshotted": count}
+
+
+# ── E4.2: Weekly officer burnout computation ──────────────────────────────────
+
+
+async def compute_burnout_scores(ctx: dict) -> dict[str, Any]:
+    """Weekly: compute officer burnout risk scores and flag HIGH-risk officers."""
+    setup_logging()
+    from app.modules.analytics.service import AnalyticsService
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+        svc = AnalyticsService(session)
+        report = await svc.compute_burnout_scores()
+        await session.commit()
+
+        # Fire alert for each HIGH-risk officer that hasn't been alerted this week
+        high_risk = [o for o in report.officers if o.risk_level == "HIGH"]
+        if high_risk:
+            await session.execute(
+                text("""
+                    INSERT INTO outbox_events (id, event_type, aggregate_id, payload, created_at)
+                    SELECT uuid_generate_v4(), 'burnout.high_risk_detected',
+                           gen_random_uuid()::text,
+                           jsonb_build_object(
+                               'high_risk_count', :cnt,
+                               'top_overloaded_dept', :dept
+                           ),
+                           now()
+                """).bindparams(cnt=len(high_risk), dept=report.top_overloaded_dept or "")
+            )
+            await session.commit()
+
+    log.info(
+        "worker.burnout.computed",
+        total=report.total_officers,
+        high_risk=report.high_risk_count,
+    )
+    return {"total_officers": report.total_officers, "high_risk": report.high_risk_count}
+
+
 # ── Arq worker settings ───────────────────────────────────────────────────────
 
 
@@ -227,6 +284,8 @@ class WorkerSettings:
         notify_citizen,
         relay_outbox,
         correlate_contractors,
+        snapshot_wpi,
+        compute_burnout_scores,
     ]
     max_jobs = 20
     job_timeout = 120
@@ -240,8 +299,12 @@ class WorkerSettings:
         cron(check_sla_breaches, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
         # Analytics materialized view refresh every 15 minutes
         cron(refresh_analytics_views, minute={0, 15, 30, 45}),
-        # Contractor performance correlation — weekly Sunday 02:00 IST
+        # Contractor performance correlation — weekly Sunday 02:00 IST (20:30 UTC Sat)
         cron(correlate_contractors, weekday=6, hour=20, minute=30),
+        # WPI snapshot — weekly Sunday 01:00 IST (19:30 UTC Sat)
+        cron(snapshot_wpi, weekday=6, hour=19, minute=30),
+        # Officer burnout scores — weekly Monday 07:00 IST (01:30 UTC Mon)
+        cron(compute_burnout_scores, weekday=0, hour=1, minute=30),
     ]
 
 

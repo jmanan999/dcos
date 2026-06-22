@@ -305,7 +305,7 @@ Rules:
 
             result = await self._db.execute(text(sql))
             cols = list(result.keys())
-            rows = [dict(zip(cols, r)) for r in result.fetchall()]  # noqa: B905
+            rows = [dict(zip(cols, r)) for r in result.fetchall()]
             return NLQueryResponse(question=req.question, sql=sql, results=rows)
 
         except Exception as exc:
@@ -1382,3 +1382,659 @@ Rules:
         except Exception as exc:
             log.error("analytics.views.refresh.failed", error=str(exc))
             return {"status": "failed", "error": str(exc)}
+
+    # ── E4.1: Enhanced Predictive Alerts (exp-smoothing + seasonal) ───────────
+
+    # Delhi seasonal multipliers (month → complaint volume index)
+    _SEASONAL: dict[int, float] = {
+        1: 0.75,
+        2: 0.75,
+        3: 0.90,
+        4: 1.10,
+        5: 1.25,
+        6: 1.55,
+        7: 1.85,
+        8: 1.90,
+        9: 1.60,
+        10: 1.05,
+        11: 0.85,
+        12: 0.75,
+    }
+    # Category-specific seasonal boosts (month → extra multiplier, additive)
+    _CAT_SEASONAL: dict[str, dict[int, float]] = {
+        "Sewage Overflow": {6: 1.5, 7: 2.0, 8: 1.8, 9: 1.5},
+        "No Water Supply": {4: 1.3, 5: 1.6, 6: 1.8, 10: 0.8},
+        "Pothole / Road Damage": {7: 1.3, 8: 1.3},
+        "Waterlogging": {6: 2.0, 7: 2.8, 8: 2.5, 9: 2.0},
+        "Garbage Not Collected": {7: 1.2, 8: 1.2},
+    }
+    _SEASON_NAMES: dict[int, str] = {
+        **{m: "Winter" for m in (12, 1, 2)},
+        **{m: "Spring" for m in (3, 4)},
+        **{m: "Summer" for m in (5, 6)},
+        **{m: "Monsoon" for m in (7, 8, 9)},
+        **{m: "Post-Monsoon" for m in (10, 11)},
+    }
+
+    async def get_enhanced_predictions(self) -> "EnhancedPredictiveReport":
+        from app.modules.analytics.schemas import (
+            EnhancedPredictiveAlert,
+            EnhancedPredictiveReport,
+        )
+
+        current_month = datetime.now(UTC).month
+        base_seasonal = self._SEASONAL.get(current_month, 1.0)
+        next_month = (current_month % 12) + 1
+        next_seasonal = self._SEASONAL.get(next_month, 1.0)
+
+        # Daily complaint counts per ward×category for last 84 days (12 weeks)
+        rows = (
+            await self._db.execute(
+                text("""
+                    SELECT
+                        COALESCE(w.name, 'Unknown') AS ward_name,
+                        COALESCE(d.name, 'Unknown') AS district_name,
+                        COALESCE(g.category, 'Uncategorised') AS category,
+                        DATE_TRUNC('week', g.created_at AT TIME ZONE 'Asia/Kolkata')::date AS week_start,
+                        COUNT(*) AS cnt
+                    FROM grievances g
+                    LEFT JOIN wards w ON w.id = g.ward_id
+                    LEFT JOIN districts d ON d.id = w.district_id
+                    WHERE g.created_at >= now() - interval '84 days'
+                      AND g.ward_id IS NOT NULL
+                    GROUP BY ward_name, district_name, category, week_start
+                    ORDER BY ward_name, category, week_start
+                """)
+            )
+        ).fetchall()
+
+        # Build series: (ward, category) → list of weekly counts (12 weeks)
+        from collections import defaultdict
+
+        series: dict[tuple[str, str, str], list[int]] = defaultdict(lambda: [0] * 12)
+        week_keys: dict[tuple[str, str, str], dict] = defaultdict(dict)
+        for r in rows:
+            key = (str(r[0]), str(r[1]) if r[1] else None, str(r[2]))
+            week_keys[key][str(r[3])] = int(r[4])
+
+        # Sort weeks and fill 12-slot series
+        all_weeks = sorted({str(r[3]) for r in rows})[-12:]
+        for key, wmap in week_keys.items():
+            vals = [wmap.get(w, 0) for w in all_weeks]
+            series[key] = vals
+
+        alerts: list[EnhancedPredictiveAlert] = []
+        total_risk = 0.0
+
+        for (ward_name, district_name, category), values in series.items():
+            if len(values) < 4 or sum(values) < 5:
+                continue
+
+            # Exponential smoothing (alpha=0.4, more weight on recent)
+            alpha = 0.4
+            smoothed = values[0]
+            for v in values[1:]:
+                smoothed = alpha * v + (1 - alpha) * smoothed
+
+            # Trend: slope over last 8 weeks using least-squares
+            recent = values[-8:] if len(values) >= 8 else values
+            n = len(recent)
+            x_mean = (n - 1) / 2
+            y_mean = sum(recent) / n
+            num = sum((i - x_mean) * (v - y_mean) for i, v in enumerate(recent))
+            den = sum((i - x_mean) ** 2 for i in range(n))
+            trend_per_week = num / den if den else 0
+
+            # Project 4 weeks ahead
+            projected_base = smoothed + trend_per_week * 4
+
+            # Apply seasonal multiplier
+            cat_boost = self._CAT_SEASONAL.get(category, {}).get(next_month, 1.0)
+            seasonal_factor = round(next_seasonal * cat_boost, 2)
+            predicted_weekly = max(0.0, projected_base * seasonal_factor)
+
+            # Spike % vs current (last 2 weeks average)
+            current_rate = sum(values[-2:]) / 2 if len(values) >= 2 else values[-1]
+            if current_rate < 1:
+                continue
+            spike_pct = ((predicted_weekly - current_rate) / current_rate) * 100
+            if spike_pct < 20:
+                continue
+
+            # Confidence interval (±1 std dev of last 8 weeks)
+            std = (sum((v - y_mean) ** 2 for v in recent) / n) ** 0.5
+            low = max(0.0, predicted_weekly - std)
+            high = predicted_weekly + std
+
+            # Economic impact
+            cost = self.ECONOMIC_COST.get(category, self.DEFAULT_ECONOMIC_COST)
+            estimated_30d = int(predicted_weekly * 4.3)
+            impact_lakh = round((estimated_30d - int(current_rate * 4.3)) * cost * 30 / 100_000, 1)
+
+            urgency = "CRITICAL" if spike_pct > 100 else "HIGH" if spike_pct > 50 else "MEDIUM"
+            confidence_pct = min(90, 55 + int(sum(values) / 2))
+
+            action = (
+                f"Pre-position resources for {category.split('/')[0].strip()} in {ward_name}. "
+                f"Predicted +{spike_pct:.0f}% spike with ₹{impact_lakh}L economic impact if ignored."
+            )
+
+            alerts.append(
+                EnhancedPredictiveAlert(
+                    ward_name=ward_name,
+                    district_name=district_name,
+                    category=category,
+                    current_weekly_rate=round(current_rate, 2),
+                    predicted_weekly_rate=round(predicted_weekly, 2),
+                    predicted_spike_pct=round(spike_pct, 1),
+                    confidence_low=round(low, 2),
+                    confidence_high=round(high, 2),
+                    confidence_pct=confidence_pct,
+                    days_until_peak=max(7, 28 - int(spike_pct / 15)),
+                    estimated_complaints_30d=estimated_30d,
+                    economic_impact_if_ignored_lakh=max(0.0, impact_lakh),
+                    seasonal_factor=seasonal_factor,
+                    urgency=urgency,
+                    recommended_action=action,
+                )
+            )
+            total_risk += max(0.0, impact_lakh)
+
+        alerts.sort(key=lambda a: a.predicted_spike_pct, reverse=True)
+        monsoon_risk = 85 if 6 <= current_month <= 9 else (65 if current_month in (5, 10) else 20)
+        top_cat = alerts[0].category if alerts else "—"
+
+        return EnhancedPredictiveReport(
+            alerts=alerts[:12],
+            total_wards_at_risk=len({a.ward_name for a in alerts}),
+            highest_risk_category=top_cat,
+            total_economic_risk_lakh=round(total_risk, 1),
+            monsoon_risk_score=monsoon_risk,
+            current_season=self._SEASON_NAMES.get(current_month, "—"),
+            pre_emptive_budget_recommendation_lakh=round(total_risk * 0.15, 1),
+        )
+
+    # ── E4.2: Officer Burnout Scoring ─────────────────────────────────────────
+
+    async def compute_burnout_scores(self) -> "BurnoutReport":
+        from app.modules.analytics.schemas import BurnoutReport, OfficerBurnoutScore
+
+        rows = (
+            await self._db.execute(
+                text("""
+                    WITH officer_load AS (
+                        SELECT
+                            o.id::text AS officer_id,
+                            u.name AS officer_name,
+                            d.name AS dept_name,
+                            o.department_id,
+                            COUNT(g.id) FILTER (
+                                WHERE g.status NOT IN
+                                    ('RESOLVED','VERIFIED','CLOSED','REJECTED_SPAM')
+                            ) AS open_cases,
+                            COUNT(g.id) FILTER (
+                                WHERE g.sla_due_at < now()
+                                  AND g.status NOT IN
+                                    ('RESOLVED','VERIFIED','CLOSED','REJECTED_SPAM')
+                            ) AS breached_cases,
+                            COUNT(g.id) FILTER (WHERE g.closed_at IS NOT NULL) AS closed_total,
+                            AVG(f.rating) FILTER (
+                                WHERE g.closed_at >= now() - interval '30 days'
+                            ) AS csat_recent,
+                            AVG(f.rating) FILTER (
+                                WHERE g.closed_at >= now() - interval '90 days'
+                                  AND g.closed_at < now() - interval '30 days'
+                            ) AS csat_prev
+                        FROM officers o
+                        LEFT JOIN users u ON u.id = o.user_id
+                        LEFT JOIN departments d ON d.id = o.department_id
+                        LEFT JOIN grievances g ON g.assigned_officer_id = o.id
+                        LEFT JOIN feedback f ON f.grievance_id = g.id
+                        WHERE o.is_available = true
+                        GROUP BY o.id, u.name, d.name, o.department_id
+                    )
+                    SELECT
+                        officer_id,
+                        officer_name,
+                        dept_name,
+                        department_id::text,
+                        open_cases,
+                        CASE WHEN open_cases > 0
+                            THEN ROUND((breached_cases::numeric / GREATEST(open_cases,1)) * 100, 2)
+                            ELSE 0
+                        END AS breach_rate_pct,
+                        ROUND(csat_recent::numeric, 2) AS avg_csat,
+                        CASE WHEN csat_recent IS NOT NULL AND csat_prev IS NOT NULL
+                            THEN ROUND(((csat_prev - csat_recent) / GREATEST(csat_prev, 0.1)) * 100, 2)
+                            ELSE NULL
+                        END AS csat_decline_pct
+                    FROM officer_load
+                    ORDER BY open_cases DESC
+                """)
+            )
+        ).fetchall()
+
+        scores: list[OfficerBurnoutScore] = []
+        dept_load: dict[str, int] = {}
+
+        for r in rows:
+            officer_id, name, dept, dept_id = str(r[0]), r[1], r[2], r[3]
+            open_cases, breach_rate = int(r[4] or 0), float(r[5] or 0)
+            avg_csat = float(r[6]) if r[6] is not None else None
+            csat_decline = float(r[7]) if r[7] is not None else None
+
+            # Burnout formula
+            oc_norm = min(open_cases / 20.0, 1.0) * 100
+            csat_inv = ((5 - (avg_csat or 3.5)) / 4.0) * 100 if avg_csat else 50.0
+            decline_factor = (
+                min(csat_decline or 0, 50) / 50 * 30 if csat_decline and csat_decline > 0 else 0
+            )
+            score = round(oc_norm * 0.3 + breach_rate * 0.4 + (csat_inv + decline_factor) * 0.3, 1)
+
+            risk_level = "HIGH" if score > 70 else "MEDIUM" if score > 40 else "LOW"
+
+            action = None
+            if risk_level == "HIGH":
+                action = f"Immediately redistribute {max(1, open_cases // 3)} cases to lower-load officers. Consider leave rotation."
+            elif risk_level == "MEDIUM":
+                action = "Monitor weekly. Avoid adding more than 2 new cases."
+
+            if dept:
+                dept_load[dept] = dept_load.get(dept, 0) + open_cases
+
+            scores.append(
+                OfficerBurnoutScore(
+                    officer_id=officer_id,
+                    officer_name=name,
+                    department=dept,
+                    open_cases=open_cases,
+                    breach_rate_pct=breach_rate,
+                    avg_csat=avg_csat,
+                    csat_decline_pct=csat_decline,
+                    burnout_score=score,
+                    risk_level=risk_level,
+                    computed_at=datetime.now(UTC),
+                    recommended_action=action,
+                )
+            )
+
+        # Upsert to officer_burnout_scores table
+        for s in scores:
+            await self._db.execute(
+                text("""
+                    INSERT INTO officer_burnout_scores
+                        (id, officer_id, computed_at, open_cases, breach_rate_pct,
+                         avg_csat, csat_decline_pct, burnout_score, risk_level, alert_sent)
+                    VALUES (uuid_generate_v4(), :oid, now(), :oc, :br, :csat, :cd, :score, :rl, false)
+                """).bindparams(
+                    oid=s.officer_id,
+                    oc=s.open_cases,
+                    br=s.breach_rate_pct,
+                    csat=s.avg_csat,
+                    cd=s.csat_decline_pct,
+                    score=s.burnout_score,
+                    rl=s.risk_level,
+                )
+            )
+
+        top_dept = max(dept_load, key=dept_load.get) if dept_load else None  # type: ignore[arg-type]
+        return BurnoutReport(
+            officers=scores,
+            high_risk_count=sum(1 for s in scores if s.risk_level == "HIGH"),
+            medium_risk_count=sum(1 for s in scores if s.risk_level == "MEDIUM"),
+            total_officers=len(scores),
+            top_overloaded_dept=top_dept,
+        )
+
+    # ── E4.4: Ward Early Warning System ──────────────────────────────────────
+
+    async def get_early_warning(self) -> "EarlyWarningReport":
+        from app.modules.analytics.schemas import (
+            EarlyWarningReport,
+            WardEarlyWarning,
+            WPITrendPoint,
+        )
+
+        rows = (
+            await self._db.execute(
+                text("""
+                    SELECT
+                        w.id::text,
+                        w.name,
+                        d.name AS district_name,
+                        h.snapshot_date::text,
+                        h.wpi,
+                        h.wpi_grade,
+                        h.total_complaints,
+                        h.open_complaints,
+                        h.resolution_rate,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY h.ward_id
+                            ORDER BY h.snapshot_date DESC
+                        ) AS rn
+                    FROM ward_wpi_history h
+                    JOIN wards w ON w.id = h.ward_id
+                    LEFT JOIN districts d ON d.id = w.district_id
+                    WHERE h.snapshot_date >= now() - interval '12 weeks'
+                    ORDER BY w.id, h.snapshot_date DESC
+                """)
+            )
+        ).fetchall()
+
+        from collections import defaultdict
+
+        ward_history: dict[str, list] = defaultdict(list)
+        ward_meta: dict[str, tuple] = {}
+        for r in rows:
+            wid = str(r[0])
+            ward_meta[wid] = (r[1], r[2])
+            ward_history[wid].append(
+                {
+                    "snapshot_date": str(r[3]),
+                    "wpi": float(r[4]),
+                    "wpi_grade": str(r[5]),
+                    "total_complaints": int(r[6] or 0),
+                    "open_complaints": int(r[7] or 0),
+                    "resolution_rate": float(r[8] or 0),
+                }
+            )
+
+        watch_wards: list[WardEarlyWarning] = []
+        warning_wards: list[WardEarlyWarning] = []
+        crisis_wards: list[WardEarlyWarning] = []
+
+        for ward_id, history in ward_history.items():
+            if len(history) < 3:
+                continue
+            history_sorted = sorted(history, key=lambda x: x["snapshot_date"])
+            wpis = [h["wpi"] for h in history_sorted]
+            current_wpi = wpis[-1]
+            wpi_4w = wpis[-5] if len(wpis) >= 5 else wpis[0]
+
+            # Count consecutive declining weeks
+            consec = 0
+            for i in range(len(wpis) - 1, 0, -1):
+                if wpis[i] < wpis[i - 1]:
+                    consec += 1
+                else:
+                    break
+
+            if current_wpi >= 45 and consec < 2:
+                continue
+
+            wpi_change = round(current_wpi - wpi_4w, 1)
+            current_grade = history_sorted[-1]["wpi_grade"]
+            ward_name, district_name = ward_meta[ward_id]
+
+            if current_wpi < 30:
+                severity = "crisis"
+                action = f"{ward_name} is in governance crisis (WPI {current_wpi:.0f}). Emergency review with CM cell required within 48 hours."
+            elif current_wpi < 40:
+                severity = "warning"
+                action = f"{ward_name} declining for {consec} weeks. Nodal officer review + officer reassignment needed within 7 days."
+            else:
+                severity = "watch"
+                action = f"{ward_name} trending down for {consec} consecutive weeks. Monitor closely and prepare intervention plan."
+
+            trend = [
+                WPITrendPoint(
+                    snapshot_date=h["snapshot_date"],
+                    wpi=h["wpi"],
+                    wpi_grade=h["wpi_grade"],
+                    total_complaints=h["total_complaints"],
+                    open_complaints=h["open_complaints"],
+                    resolution_rate=h["resolution_rate"],
+                )
+                for h in history_sorted[-8:]
+            ]
+
+            ew = WardEarlyWarning(
+                ward_id=ward_id,
+                ward_name=str(ward_name),
+                district_name=str(district_name) if district_name else None,
+                current_wpi=round(current_wpi, 1),
+                current_wpi_grade=current_grade,
+                wpi_4w_ago=round(wpi_4w, 1),
+                wpi_change=wpi_change,
+                consecutive_declining_weeks=consec,
+                severity=severity,
+                trajectory=trend,
+                recommended_action=action,
+            )
+
+            if severity == "crisis":
+                crisis_wards.append(ew)
+            elif severity == "warning":
+                warning_wards.append(ew)
+            else:
+                watch_wards.append(ew)
+
+        return EarlyWarningReport(
+            watch_wards=sorted(watch_wards, key=lambda w: w.current_wpi),
+            warning_wards=sorted(warning_wards, key=lambda w: w.current_wpi),
+            crisis_wards=sorted(crisis_wards, key=lambda w: w.current_wpi),
+            total_flagged=len(watch_wards) + len(warning_wards) + len(crisis_wards),
+            computed_at=datetime.now(UTC),
+        )
+
+    # ── E4.3: Policy Simulator ────────────────────────────────────────────────
+
+    async def simulate_policy(self, request: "SimulationRequest") -> "SimulationResult":
+        from app.modules.analytics.schemas import (
+            SimulationDeptResult,
+            SimulationResult,
+        )
+
+        # Default elasticity: 10% more budget → 8% fewer complaints (NIPFP estimate)
+        DEFAULT_ELASTICITY = -0.8
+
+        dept_results: list[SimulationDeptResult] = []
+        total_drag_change = 0.0
+        total_budget_shift = 0.0
+
+        for dept in request.departments:
+            change_crore = dept.proposed_crore - dept.current_crore
+            if dept.current_crore > 0:
+                change_pct = (change_crore / dept.current_crore) * 100
+            else:
+                change_pct = 0.0
+
+            # Try to get actual elasticity from budget_allocations vs complaint data
+            elasticity_row = (
+                await self._db.execute(
+                    text("""
+                        SELECT
+                            ba.amount_crore,
+                            COUNT(g.id) AS complaints
+                        FROM budget_allocations ba
+                        LEFT JOIN grievances g
+                            ON g.department_id = ba.department_id
+                           AND g.created_at >= '2024-04-01'
+                           AND g.created_at < '2025-04-01'
+                        WHERE ba.department_id = CAST(:dept_id AS uuid)
+                          AND ba.fiscal_year = '2024-25'
+                        GROUP BY ba.amount_crore
+                        LIMIT 1
+                    """).bindparams(dept_id=dept.dept_id)
+                )
+            ).fetchone()
+
+            elasticity = DEFAULT_ELASTICITY
+            if elasticity_row and float(elasticity_row[0] or 0) > 0:
+                budget = float(elasticity_row[0])
+                complaints = int(elasticity_row[1] or 1)
+                elasticity = min(-0.2, max(-1.5, -complaints / (budget * 100)))
+
+            complaint_change_pct = change_pct * elasticity
+            daily_drag_change = (
+                complaint_change_pct / 100 * self.DEFAULT_ECONOMIC_COST * 365 / 100_000
+            )
+
+            total_drag_change += daily_drag_change
+            total_budget_shift += abs(change_crore)
+
+            dept_results.append(
+                SimulationDeptResult(
+                    dept_name=dept.dept_name,
+                    current_crore=dept.current_crore,
+                    proposed_crore=dept.proposed_crore,
+                    change_crore=round(change_crore, 2),
+                    change_pct=round(change_pct, 1),
+                    elasticity=round(elasticity, 2),
+                    projected_complaint_change_pct=round(complaint_change_pct, 1),
+                    projected_daily_drag_change_inr=round(daily_drag_change * 100_000, 0),
+                    confidence="medium" if elasticity_row else "low",
+                )
+            )
+
+        avg_complaint_change = (
+            sum(d.projected_complaint_change_pct for d in dept_results) / len(dept_results)
+            if dept_results
+            else 0.0
+        )
+        benefit_lakh = (
+            abs(total_drag_change) * request.horizon_days if total_drag_change < 0 else 0.0
+        )
+        roi_pct = (
+            (benefit_lakh / max(total_budget_shift * 10, 0.01)) * 100 if total_budget_shift else 0.0
+        )
+
+        roi_grade = (
+            "A"
+            if roi_pct > 500
+            else "B"
+            if roi_pct > 200
+            else "C"
+            if roi_pct > 50
+            else "D"
+            if roi_pct > 0
+            else "F"
+        )
+
+        return SimulationResult(
+            horizon_days=request.horizon_days,
+            total_budget_shift_crore=round(total_budget_shift, 2),
+            projected_complaint_change_pct=round(avg_complaint_change, 1),
+            projected_daily_drag_change_inr=round(total_drag_change * 100_000, 0),
+            net_economic_benefit_lakh=round(benefit_lakh, 1),
+            roi_pct=round(roi_pct, 1),
+            roi_grade=roi_grade,
+            confidence="medium" if any(d.confidence == "medium" for d in dept_results) else "low",
+            best_case_benefit_lakh=round(benefit_lakh * 1.5, 1),
+            worst_case_benefit_lakh=round(benefit_lakh * 0.5, 1),
+            by_department=dept_results,
+        )
+
+    # ── E4.5: Pre-emptive Alert Segmentation ─────────────────────────────────
+
+    async def get_preemptive_at_risk_wards(self) -> "PreemptiveAlertReport":
+        from app.modules.analytics.schemas import (
+            PreemptiveAlertReport,
+            PreemptiveAlertWard,
+        )
+
+        current_month = datetime.now(UTC).month
+        monsoon_risk = 85 if 6 <= current_month <= 9 else (60 if current_month in (5, 10) else 15)
+        season = self._SEASON_NAMES.get(current_month, "—")
+
+        at_risk_categories = (
+            ["Sewage Overflow", "Waterlogging", "No Water Supply"]
+            if 5 <= current_month <= 9
+            else ["Pothole / Road Damage", "Road Repair Required"]
+        )
+
+        rows = (
+            await self._db.execute(
+                text("""
+                    SELECT
+                        w.id::text,
+                        w.name,
+                        d.name,
+                        COALESCE(g.category, 'Uncategorised') AS category,
+                        COUNT(DISTINCT g.id) AS complaint_count,
+                        COUNT(DISTINCT g.citizen_id) FILTER (WHERE g.citizen_id IS NOT NULL) AS eligible_citizens
+                    FROM grievances g
+                    JOIN wards w ON w.id = g.ward_id
+                    LEFT JOIN districts d ON d.id = w.district_id
+                    WHERE g.category = ANY(:cats)
+                      AND g.created_at >= now() - interval '180 days'
+                    GROUP BY w.id, w.name, d.name, g.category
+                    HAVING COUNT(DISTINCT g.id) >= 3
+                    ORDER BY complaint_count DESC
+                    LIMIT 30
+                """).bindparams(cats=at_risk_categories)
+            )
+        ).fetchall()
+
+        wards: list[PreemptiveAlertWard] = []
+        total_citizens = 0
+        for r in rows:
+            count = int(r[4] or 0)
+            citizens = int(r[5] or 0)
+            seasonal = self._CAT_SEASONAL.get(str(r[3]), {}).get(current_month, 1.0)
+            risk_score = min(100.0, count * seasonal * 3)
+            total_citizens += citizens
+            wards.append(
+                PreemptiveAlertWard(
+                    ward_id=str(r[0]),
+                    ward_name=str(r[1]),
+                    district_name=str(r[2]) if r[2] else None,
+                    at_risk_category=str(r[3]),
+                    risk_score=round(risk_score, 1),
+                    eligible_citizens=citizens,
+                    last_sent_at=None,
+                )
+            )
+
+        wards.sort(key=lambda w: w.risk_score, reverse=True)
+        return PreemptiveAlertReport(
+            at_risk_wards=wards,
+            total_eligible_citizens=total_citizens,
+            monsoon_risk_score=monsoon_risk,
+            current_month=current_month,
+            season=season,
+        )
+
+    # ── E4.2: Snapshot WPI for history table ─────────────────────────────────
+
+    async def snapshot_current_wpi(self) -> int:
+        """Called by weekly cron. Computes current WPI and stores in ward_wpi_history."""
+        ward_index = await self.get_ward_index()
+        today = datetime.now(UTC).date()
+        count = 0
+        for ward in ward_index.wards:
+            ward_id_row = (
+                await self._db.execute(
+                    text("SELECT id FROM wards WHERE name = :name LIMIT 1").bindparams(
+                        name=ward.ward_name
+                    )
+                )
+            ).fetchone()
+            if not ward_id_row:
+                continue
+            await self._db.execute(
+                text("""
+                    INSERT INTO ward_wpi_history
+                        (id, ward_id, snapshot_date, wpi, wpi_grade, total_complaints,
+                         open_complaints, resolution_rate, sla_compliance_rate, avg_resolution_hours)
+                    VALUES (uuid_generate_v4(), :wid, :snap, :wpi, :grade, :total,
+                            :open, :res, :sla, :hrs)
+                    ON CONFLICT (ward_id, snapshot_date) DO UPDATE
+                        SET wpi = EXCLUDED.wpi,
+                            wpi_grade = EXCLUDED.wpi_grade,
+                            resolution_rate = EXCLUDED.resolution_rate,
+                            sla_compliance_rate = EXCLUDED.sla_compliance_rate
+                """).bindparams(
+                    wid=ward_id_row[0],
+                    snap=today,
+                    wpi=ward.wpi,
+                    grade=ward.wpi_grade,
+                    total=ward.total_complaints,
+                    open=ward.open_complaints,
+                    res=ward.resolution_rate,
+                    sla=ward.sla_compliance_rate,
+                    hrs=ward.avg_resolution_hours if ward.avg_resolution_hours > 0 else None,
+                )
+            )
+            count += 1
+        return count

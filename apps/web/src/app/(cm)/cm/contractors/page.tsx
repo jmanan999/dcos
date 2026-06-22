@@ -7,14 +7,13 @@ import {
   Briefcase,
   AlertTriangle,
   CheckCircle2,
-  Clock,
   TrendingUp,
   TrendingDown,
   ChevronDown,
   ChevronRight,
   Download,
 } from "lucide-react";
-import { Skeleton, Badge } from "@dcos/ui";
+import { Skeleton } from "@dcos/ui";
 import { useContracts, type ContractRead } from "@/lib/hooks";
 import { apiFetch } from "@/lib/api";
 
