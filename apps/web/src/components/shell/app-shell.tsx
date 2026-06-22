@@ -7,6 +7,7 @@ import { ChevronRight } from "lucide-react";
 import { cn } from "@dcos/ui";
 import { Topbar } from "./topbar";
 import { MobileNav } from "./mobile-nav";
+import { LanguageProvider } from "@/lib/i18n";
 import type { NavSection } from "./nav-config";
 
 const STORAGE_KEY = "jansetu_sidebar_expanded";
@@ -47,6 +48,7 @@ export function AppShell({
   const allItems = sections.flatMap((s) => s.items);
 
   return (
+    <LanguageProvider>
     <div className="flex min-h-screen bg-[#FAFAFA]">
 
       {/* ── Sidebar — IC Bold: jet black, amber active ───────── */}
@@ -148,5 +150,6 @@ export function AppShell({
         </main>
       </div>
     </div>
+    </LanguageProvider>
   );
 }
