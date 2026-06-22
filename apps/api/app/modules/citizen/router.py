@@ -69,7 +69,7 @@ async def reopen_grievance(
 async def public_stats(db: AsyncSession = Depends(get_db)) -> PublicKPISnapshot:
     """Anonymized, real-time stats for the public transparency dashboard. No auth required."""
     try:
-        await db.execute(text("SELECT set_config('app.bypass_rls', 'on', true)"))
+        await db.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
     except Exception as exc:
         log.warning("bypass_rls_failed", error=str(exc))
     svc = CitizenService(db)
