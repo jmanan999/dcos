@@ -62,7 +62,7 @@ export default function IntelligenceOS() {
               <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
               <span className="label-caps text-muted-foreground">Delhi Governance Intelligence Platform · Live</span>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="text-2xl font-black tracking-tight text-foreground font-grotesk">
               State Control Room
             </h1>
             <p className="text-sm text-muted-foreground mt-0.5">
@@ -114,12 +114,12 @@ export default function IntelligenceOS() {
             </div>
             <div className="p-6">
               <p className="label-caps text-muted-foreground">Monthly Projection</p>
-              <p className="text-3xl font-bold text-foreground mt-2 tabular-nums">{formatInr(drag.total_monthly_projection_inr)}</p>
+              <p className="text-3xl font-black text-foreground font-grotesk mt-2 tabular-nums">{formatInr(drag.total_monthly_projection_inr)}</p>
               <p className="label-caps text-muted-foreground mt-2">at current rate</p>
             </div>
             <div className="p-6">
               <p className="label-caps text-muted-foreground">Annual Projection</p>
-              <p className="text-3xl font-bold text-foreground mt-2 tabular-nums">{formatInr(drag.total_annual_projection_inr)}</p>
+              <p className="text-3xl font-black text-foreground font-grotesk mt-2 tabular-nums">{formatInr(drag.total_annual_projection_inr)}</p>
               <p className="label-caps text-muted-foreground mt-2">if nothing changes</p>
             </div>
             <div className="p-6">
@@ -221,7 +221,7 @@ export default function IntelligenceOS() {
               ].map((k) => (
                 <div key={k.label} className="bg-white p-5">
                   <p className="label-caps text-muted-foreground">{k.label}</p>
-                  <p className={cn("text-3xl font-bold tabular-nums mt-2", k.accent)}>{k.value ?? "—"}</p>
+                  <p className={cn("text-3xl font-black font-grotesk tabular-nums mt-2", k.accent)}>{k.value ?? "—"}</p>
                   <p className="label-caps text-muted-foreground mt-1">{k.sub}</p>
                 </div>
               ))}

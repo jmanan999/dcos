@@ -11,11 +11,11 @@ export default function PrivacyPage() {
   return (
     <div className="container max-w-3xl py-12">
       <div className="mb-8 flex items-center gap-3">
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+        <span className="flex h-10 w-10 items-center justify-center rounded-none bg-primary text-primary-foreground">
           <ShieldCheck className="h-5 w-5" />
         </span>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Privacy Policy</h1>
+          <h1 className="text-2xl font-black text-foreground font-grotesk">Privacy Policy</h1>
           <p className="text-sm text-muted-foreground">JanSetu — Delhi Grievance Portal</p>
         </div>
       </div>
@@ -137,7 +137,7 @@ export default function PrivacyPage() {
           </p>
         </section>
 
-        <section className="rounded-lg border border-border bg-muted/30 p-4">
+        <section className="rounded-none border border-border bg-muted/30 p-4">
           <p className="text-xs text-muted-foreground">
             This privacy policy applies to the JanSetu web portal (
             <Link href="https://dcos-ecru.vercel.app" className="text-primary underline">

@@ -49,7 +49,7 @@ export default function SignupPage() {
   return (
     <div className="space-y-7">
       <div className="space-y-1.5">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Create your account</h1>
+        <h1 className="text-2xl font-black tracking-tight text-foreground font-grotesk">Create your account</h1>
         <p className="text-sm text-muted-foreground">
           Register with your mobile number to file and track complaints.
         </p>

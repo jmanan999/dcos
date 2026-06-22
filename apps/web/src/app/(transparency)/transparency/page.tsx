@@ -34,10 +34,10 @@ export default function TransparencyOverview() {
       <div className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[0, 1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-28 rounded-xl" />
+            <Skeleton key={i} className="h-28 rounded-none" />
           ))}
         </div>
-        <Skeleton className="h-80 rounded-xl" />
+        <Skeleton className="h-80 rounded-none" />
       </div>
     );
   }
@@ -130,7 +130,7 @@ export default function TransparencyOverview() {
               {data.hotspots.slice(0, 9).map((h) => (
                 <div
                   key={h.ward_name}
-                  className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2.5"
+                  className="flex items-center justify-between rounded-none border border-border bg-muted/30 px-3 py-2.5"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">{h.ward_name}</p>

@@ -1,23 +1,32 @@
 import * as React from "react";
 import { cn } from "./utils";
 
+/* IC Bold: 1px border, no shadow, no radius, pure white */
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={cn("border border-border bg-card text-card-foreground", className)}
+      className={cn("border border-border bg-card text-card-foreground rounded-none", className)}
       {...props}
     />
   );
 }
 
 export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col gap-1 px-6 py-4 border-b border-border", className)} {...props} />;
+  return (
+    <div
+      className={cn("flex flex-col gap-1 px-6 py-4 border-b border-border", className)}
+      {...props}
+    />
+  );
 }
 
 export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h3
-      className={cn("text-base font-semibold leading-none tracking-tight", className)}
+      className={cn(
+        "text-base font-bold leading-none tracking-tight font-grotesk",
+        className
+      )}
       {...props}
     />
   );

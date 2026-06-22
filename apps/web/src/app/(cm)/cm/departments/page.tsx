@@ -67,7 +67,7 @@ export default function CMDepartments() {
         }
       />
       {isLoading ? (
-        <Skeleton className="h-96 rounded-xl" />
+        <Skeleton className="h-96 rounded-none" />
       ) : !data || data.length === 0 ? (
         <Card>
           <CardContent>

@@ -134,15 +134,15 @@ export default function FilePage() {
         )}
         <Card>
           <CardContent className="space-y-5 py-8 text-center">
-            <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success/10 text-success">
+            <span className="mx-auto flex h-14 w-14 items-center justify-center bg-success/10 border-2 border-success/30 text-success">
               <CheckCircle2 className="h-7 w-7" />
             </span>
             <div>
-              <h1 className="text-xl font-bold text-foreground">{t("file.success_title")}</h1>
+              <h1 className="text-xl font-black text-foreground font-grotesk">{t("file.success_title")}</h1>
               <p className="mt-1 text-sm text-muted-foreground">{result.message}</p>
             </div>
-            <div className="mx-auto flex items-center gap-2 rounded-lg border border-border bg-muted/40 px-4 py-2.5">
-              <span className="font-mono text-sm font-bold text-primary">{result.tracking_id}</span>
+            <div className="mx-auto flex items-center gap-2 border border-border bg-muted/40 px-4 py-2.5">
+              <span className="font-mono text-sm font-bold text-accent">{result.tracking_id}</span>
               <button
                 onClick={() => {
                   navigator.clipboard.writeText(result.tracking_id);
@@ -174,7 +174,7 @@ export default function FilePage() {
         {/* ── Cluster Alert — you're not alone ── */}
         {result.cluster_size != null && result.cluster_size >= 4 && (
           <div className="border border-warning/40 bg-warning/5 p-3 flex items-start gap-2.5">
-            <div className="h-2 w-2 rounded-full bg-warning mt-1.5 shrink-0 animate-pulse" />
+            <div className="h-2 w-2 bg-warning mt-1.5 shrink-0 animate-pulse" />
             <div>
               <p className="text-sm font-semibold text-foreground">
                 You are 1 of {result.cluster_size + 1} citizens reporting this issue
@@ -188,10 +188,10 @@ export default function FilePage() {
 
         {/* ── Citizen Rights Card — what the law guarantees you ── */}
         {right && (
-          <div className="border border-primary/20 bg-primary/5 p-4 space-y-2.5">
+          <div className="border border-accent/30 bg-accent/5 p-4 space-y-2.5">
             <div className="flex items-center gap-2">
-              <div className="h-2 w-2 rounded-full bg-primary" />
-              <p className="text-xs font-bold uppercase tracking-wider text-primary">
+              <div className="h-2 w-2 bg-accent" />
+              <p className="text-xs font-bold uppercase tracking-wider text-accent">
                 आपके कानूनी अधिकार · Your Legal Rights
               </p>
             </div>
@@ -207,7 +207,7 @@ export default function FilePage() {
                 <p className="text-xs text-muted-foreground">First Appellate Authority</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground border-l-2 border-primary/30 pl-2">
+            <p className="text-xs text-muted-foreground border-l-2 border-accent/30 pl-2">
               {right.legal_basis}
             </p>
             <p className="text-xs text-muted-foreground">{right.penalty_info}</p>
@@ -225,7 +225,7 @@ export default function FilePage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("file.title")}</h1>
+        <h1 className="text-2xl font-black tracking-tight text-foreground font-grotesk">{t("file.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("file.subtitle")}</p>
       </div>
 
@@ -240,9 +240,9 @@ export default function FilePage() {
               <div className="flex flex-col items-center gap-1.5">
                 <span
                   className={cn(
-                    "flex h-9 w-9 items-center justify-center rounded-full border-2 transition-colors",
-                    done && "border-primary bg-primary text-primary-foreground",
-                    active && "border-primary bg-primary/10 text-primary",
+                    "flex h-9 w-9 items-center justify-center border-2 transition-colors",
+                    done && "border-foreground bg-foreground text-background",
+                    active && "border-accent bg-accent/10 text-accent",
                     !done && !active && "border-border bg-card text-muted-foreground"
                   )}
                 >
@@ -253,7 +253,7 @@ export default function FilePage() {
                 </span>
               </div>
               {i < STEPS.length - 1 && (
-                <div className={cn("mx-2 h-0.5 flex-1 rounded-full", done ? "bg-primary" : "bg-border")} />
+                <div className={cn("mx-2 h-0.5 flex-1", done ? "bg-foreground" : "bg-border")} />
               )}
             </div>
           );
@@ -312,7 +312,7 @@ export default function FilePage() {
                     </span>
                   )}
                 </div>
-                <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
+                <div className="flex h-40 items-center justify-center rounded-none border border-dashed border-border bg-muted/30 text-sm text-muted-foreground">
                   {lat && lng ? `📍 ${t("file.location_pinned")}` : t("file.map_placeholder")}
                 </div>
               </div>
@@ -320,7 +320,7 @@ export default function FilePage() {
                 <Label>{t("file.photo_label")}</Label>
                 <button
                   onClick={() => fileRef.current?.click()}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border py-6 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
+                  className="flex w-full items-center justify-center gap-2 rounded-none border-2 border-dashed border-border py-6 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
                 >
                   <Camera className="h-5 w-5" /> {t("file.photo_tap")}
                 </button>
@@ -338,7 +338,7 @@ export default function FilePage() {
           {/* Step 3 — Review & contact */}
           {step === 2 && (
             <div className="space-y-5 animate-fade-in">
-              <div className="rounded-lg border border-border bg-muted/30 p-4">
+              <div className="rounded-none border border-border bg-muted/30 p-4">
                 <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">{t("file.your_complaint")}</p>
                 <p className="mt-1.5 text-sm text-foreground line-clamp-4">{text}</p>
                 <div className="mt-3 flex flex-wrap gap-2 text-2xs text-muted-foreground">

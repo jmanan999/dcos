@@ -34,8 +34,8 @@ export default function TrackPage() {
   if (loading) {
     return (
       <div className="mx-auto max-w-xl space-y-4">
-        <Skeleton className="h-36 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-36 rounded-none" />
+        <Skeleton className="h-64 rounded-none" />
       </div>
     );
   }

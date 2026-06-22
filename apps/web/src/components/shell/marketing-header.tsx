@@ -15,27 +15,33 @@ export function MarketingHeader() {
     { href: "/file",         label: t("nav.services") },
     { href: "/track",        label: t("nav.tracking") },
     { href: "/transparency", label: t("nav.transparency") },
+    { href: "/wards",        label: "Wards" },
   ];
 
   return (
-    <nav className="fixed top-0 w-full h-[56px] bg-surface border-b border-outline-variant z-50 flex items-center justify-between px-margin-desktop">
-      {/* Left: wordmark + nav */}
-      <div className="flex items-center gap-gutter">
-        <Link href="/">
-          <span className="text-headline-lg font-bold text-on-surface tracking-tight">
-            JanSetu Delhi
+    <nav className="fixed top-0 w-full h-[60px] bg-[#FAFAFA] border-b-2 border-[#080808] z-50 flex items-center justify-between px-16">
+      {/* Left: wordmark */}
+      <div className="flex items-center gap-12">
+        <Link href="/" className="flex items-center gap-2.5">
+          {/* Amber mark */}
+          <span className="flex h-7 w-7 items-center justify-center bg-[#E8920A] text-[#080808] text-[10px] font-black font-grotesk">
+            JS
+          </span>
+          <span className="text-[18px] font-black text-[#080808] tracking-tight font-grotesk leading-none">
+            JanSetu
           </span>
         </Link>
 
-        <div className="hidden md:flex items-center gap-8 ml-12">
+        {/* Desktop nav links */}
+        <div className="hidden md:flex items-center gap-8">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               className={
                 pathname.startsWith(l.href)
-                  ? "text-label-caps text-primary border-b-2 border-primary py-1"
-                  : "text-label-caps text-on-surface-variant hover:text-primary transition-colors py-1"
+                  ? "label-caps text-[#080808] border-b-2 border-[#E8920A] pb-0.5"
+                  : "label-caps text-[#6B7280] hover:text-[#080808] transition-colors pb-0.5"
               }
             >
               {l.label}
@@ -45,15 +51,17 @@ export function MarketingHeader() {
       </div>
 
       {/* Right: language + sign in */}
-      <div className="hidden md:flex items-center gap-4">
+      <div className="hidden md:flex items-center gap-3">
+        {/* Language toggle */}
         <button
           onClick={() => setLang(lang === "en" ? "hi" : "en")}
-          className="text-label-caps text-on-surface-variant hover:text-primary transition-colors"
+          className="label-caps text-[#6B7280] hover:text-[#080808] transition-colors border border-[#E5E7EB] px-3 py-1.5 hover:border-[#080808]"
         >
           {lang === "en" ? "हिंदी" : "English"}
         </button>
+
         <Link href="/login">
-          <button className="bg-primary text-white px-6 py-2 text-label-caps rounded-none hover:bg-primary-container transition-all">
+          <button className="bg-[#080808] text-white px-6 py-2.5 label-caps hover:bg-[#E8920A] transition-colors rounded-none">
             Sign In
           </button>
         </Link>
@@ -61,7 +69,7 @@ export function MarketingHeader() {
 
       {/* Mobile hamburger */}
       <button
-        className="md:hidden text-on-surface-variant hover:text-on-surface"
+        className="md:hidden text-[#080808]"
         onClick={() => setOpen(!open)}
         aria-label="Menu"
       >
@@ -70,22 +78,30 @@ export function MarketingHeader() {
 
       {/* Mobile menu */}
       {open && (
-        <div className="absolute top-[56px] left-0 w-full bg-surface border-b border-outline-variant py-4 px-margin-mobile md:hidden z-50">
+        <div className="absolute top-[60px] left-0 w-full bg-[#080808] border-b-2 border-[#E8920A] py-4 px-6 md:hidden z-50">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className="block py-3 text-label-caps text-on-surface-variant hover:text-primary"
+              className="block py-3 label-caps text-white/60 hover:text-white border-b border-white/10 last:border-0"
             >
               {l.label}
             </Link>
           ))}
-          <Link href="/login" onClick={() => setOpen(false)}>
-            <button className="mt-3 w-full bg-primary text-white py-3 text-label-caps">
-              Sign In
+          <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/10">
+            <button
+              onClick={() => setLang(lang === "en" ? "hi" : "en")}
+              className="label-caps text-white/50 hover:text-white"
+            >
+              {lang === "en" ? "हिंदी" : "English"}
             </button>
-          </Link>
+            <Link href="/login" onClick={() => setOpen(false)} className="ml-auto">
+              <button className="bg-[#E8920A] text-[#080808] px-5 py-2 label-caps font-black">
+                Sign In
+              </button>
+            </Link>
+          </div>
         </div>
       )}
     </nav>

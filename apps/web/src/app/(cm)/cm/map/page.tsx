@@ -38,7 +38,7 @@ export default function CMMap() {
         {/* Map — takes 3/4 width */}
         <div className="lg:col-span-3">
           {isLoading ? (
-            <Skeleton className="h-full w-full rounded-xl" />
+            <Skeleton className="h-full w-full rounded-none" />
           ) : (
             <GisMap
               wards={(data ?? [])
@@ -60,7 +60,7 @@ export default function CMMap() {
             {isLoading ? (
               <div className="space-y-2 p-4">
                 {[...Array(8)].map((_, i) => (
-                  <Skeleton key={i} className="h-12 rounded-lg" />
+                  <Skeleton key={i} className="h-12 rounded-none" />
                 ))}
               </div>
             ) : (

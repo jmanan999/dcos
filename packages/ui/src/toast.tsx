@@ -52,13 +52,17 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             key={t.id}
             onOpenChange={(open) => !open && remove(t.id)}
             className={cn(
-              "flex items-start gap-3 rounded-lg border border-border bg-card p-4 shadow-lg",
-              "data-[state=open]:animate-slide-up data-[swipe=end]:animate-fade-in"
+              "flex items-start gap-3 rounded-none border border-foreground bg-card p-4 border-l-[3px]",
+              "data-[state=open]:animate-slide-up data-[swipe=end]:animate-fade-in",
+              t.variant === "success" && "border-l-success",
+              t.variant === "error" && "border-l-destructive",
+              t.variant === "warning" && "border-l-yellow-500",
+              t.variant === "info" && "border-l-foreground"
             )}
           >
             <span className="mt-0.5 shrink-0">{ICONS[t.variant]}</span>
             <div className="flex-1 space-y-0.5">
-              <ToastPrimitive.Title className="text-sm font-semibold text-foreground">
+              <ToastPrimitive.Title className="text-[11px] font-black tracking-[0.1em] uppercase text-foreground font-grotesk">
                 {t.title}
               </ToastPrimitive.Title>
               {t.description && (
@@ -67,7 +71,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 </ToastPrimitive.Description>
               )}
             </div>
-            <ToastPrimitive.Close className="shrink-0 rounded-md p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+            <ToastPrimitive.Close className="shrink-0 rounded-none p-0.5 text-muted-foreground hover:text-foreground transition-colors">
               <X className="h-4 w-4" />
             </ToastPrimitive.Close>
           </ToastPrimitive.Root>

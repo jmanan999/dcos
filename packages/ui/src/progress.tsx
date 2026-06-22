@@ -12,10 +12,10 @@ export function Progress({
 }) {
   const pct = Math.max(0, Math.min(100, value));
   return (
-    <div className={cn("h-2 w-full overflow-hidden rounded-full bg-muted", className)}>
+    <div className={cn("h-[3px] w-full overflow-hidden rounded-none bg-border", className)}>
       <div
-        className={cn("h-full rounded-full bg-primary transition-all", indicatorClassName)}
-        style={{ inlineSize: `${pct}%` }}
+        className={cn("h-full rounded-none bg-accent transition-all duration-500", indicatorClassName)}
+        style={{ width: `${pct}%` }}
       />
     </div>
   );

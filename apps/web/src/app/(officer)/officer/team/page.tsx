@@ -84,7 +84,7 @@ export default function OfficerTeamPage() {
       <PageHeader title="Team Workload" description="Department officer summary, sorted by SLA risk." />
 
       {isLoading ? (
-        <Skeleton className="h-80 rounded-xl" />
+        <Skeleton className="h-80 rounded-none" />
       ) : !data || data.length === 0 ? (
         <Card>
           <CardContent>

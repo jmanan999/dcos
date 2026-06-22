@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { Globe, ShieldCheck, BadgeCheck } from "lucide-react";
 import { useLanguage } from "@/lib/i18n";
 
 export function Footer() {
@@ -38,49 +37,50 @@ export function Footer() {
   ];
 
   return (
-    <footer className="bg-surface border-t border-outline-variant py-16">
-      <div className="max-w-container-max mx-auto px-margin-desktop">
-        <div className="grid gap-10 md:grid-cols-4">
+    <footer className="bg-[#080808] border-t-2 border-[#1f1f1f] py-14">
+      <div className="max-w-[1280px] mx-auto px-16">
+        <div className="grid gap-10 md:grid-cols-4 pb-10 border-b border-[#1f1f1f]">
           {/* Brand */}
           <div>
-            <p className="text-sm font-bold text-on-surface">JanSetu Delhi</p>
-            <p className="label-caps text-on-surface-variant mt-1">{t("footer.description")}</p>
-            <p className="mt-4 text-xs leading-relaxed text-on-surface-variant">
-              {t("footer.brand_desc")}
-            </p>
+            <div className="flex items-center gap-2.5 mb-4">
+              <span className="flex h-7 w-7 items-center justify-center bg-[#E8920A] text-[#080808] text-[10px] font-black font-grotesk">
+                JS
+              </span>
+              <p className="text-sm font-black text-white font-grotesk tracking-tight">JanSetu Delhi</p>
+            </div>
+            <p className="label-caps text-white/30 mb-3">{t("footer.description")}</p>
+            <p className="text-xs leading-relaxed text-white/35">{t("footer.brand_desc")}</p>
           </div>
 
           {COLS.map((col) => (
             <div key={col.title}>
-              <p className="label-caps text-on-surface mb-4">{col.title}</p>
+              <p className="label-caps text-white/40 mb-4">{col.title}</p>
               <ul className="space-y-2.5">
                 {col.links.map((l) => (
                   <li key={l.label}>
                     <Link
                       href={l.href}
-                      className="text-sm text-on-surface-variant transition-colors hover:text-primary"
+                      className="text-sm text-white/50 transition-colors hover:text-[#E8920A]"
                     >
                       {l.label}
                     </Link>
                   </li>
                 ))}
                 {col.info?.map((line) => (
-                  <li key={line} className="text-sm text-on-surface-variant">{line}</li>
+                  <li key={line} className="text-sm text-white/40">{line}</li>
                 ))}
               </ul>
             </div>
           ))}
         </div>
 
-        <div className="mt-10 flex flex-col items-start justify-between gap-2 border-t border-outline-variant pt-6 sm:flex-row sm:items-center">
-          <p className="text-xs text-on-surface-variant">
+        <div className="flex flex-col items-start justify-between gap-2 pt-6 sm:flex-row sm:items-center">
+          <p className="text-xs text-white/25">
             © {new Date().getFullYear()} {t("footer.copyright")}
           </p>
-          <div className="flex gap-5">
-            <Globe className="h-4 w-4 text-on-surface-variant hover:text-primary transition-colors cursor-pointer" aria-hidden="true" />
-            <ShieldCheck className="h-4 w-4 text-on-surface-variant hover:text-primary transition-colors cursor-pointer" aria-hidden="true" />
-            <BadgeCheck className="h-4 w-4 text-on-surface-variant hover:text-primary transition-colors cursor-pointer" aria-hidden="true" />
-          </div>
+          <p className="text-xs text-white/20 font-grotesk tracking-wide">
+            DPDP Act 2023 Compliant · Built in India
+          </p>
         </div>
       </div>
     </footer>

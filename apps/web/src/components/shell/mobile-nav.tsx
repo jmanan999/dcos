@@ -3,17 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, ShieldCheck } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { cn } from "@dcos/ui";
 import type { NavSection } from "./nav-config";
 
-export function MobileNav({
-  sections,
-  brandTitle,
-}: {
-  sections: NavSection[];
-  brandTitle: string;
-}) {
+export function MobileNav({ sections, brandTitle }: { sections: NavSection[]; brandTitle: string }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -21,7 +15,7 @@ export function MobileNav({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted lg:hidden"
+        className="flex h-9 w-9 items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted lg:hidden rounded-none border border-transparent hover:border-border"
         aria-label="Open menu"
       >
         <Menu className="h-5 w-5" />
@@ -29,22 +23,35 @@ export function MobileNav({
 
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={() => setOpen(false)} />
-          <div className="absolute left-0 top-0 h-full w-72 bg-sidebar p-4 animate-fade-in">
-            <div className="flex items-center justify-between px-1 py-2">
-              <div className="flex items-center gap-2">
-                <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-accent text-white">
-                  <ShieldCheck className="h-4 w-4" />
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-[#080808]/70"
+            onClick={() => setOpen(false)}
+          />
+          {/* Drawer */}
+          <div className="absolute left-0 top-0 h-full w-72 bg-[#080808] border-r border-[#1f1f1f] animate-fade-in flex flex-col">
+            {/* Brand */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f1f1f]">
+              <div className="flex items-center gap-3">
+                <span className="flex h-8 w-8 items-center justify-center bg-[#E8920A] text-[#080808] text-[10px] font-black font-grotesk">
+                  JS
                 </span>
-                <span className="text-sm font-bold text-white">{brandTitle}</span>
+                <span className="text-sm font-black text-white font-grotesk tracking-tight">{brandTitle}</span>
               </div>
-              <button onClick={() => setOpen(false)} className="text-sidebar-muted hover:text-white">
+              <button
+                onClick={() => setOpen(false)}
+                className="text-white/40 hover:text-white transition-colors"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="mt-4 space-y-1">
+
+            {/* Nav items */}
+            <nav className="flex-1 overflow-y-auto py-3">
               {sections.flatMap((s) => s.items).map((item) => {
-                const active = pathname === item.href || (item.href !== "/cm" && item.href !== "/officer" && pathname.startsWith(item.href));
+                const active =
+                  pathname === item.href ||
+                  (item.href !== "/cm" && item.href !== "/officer" && pathname.startsWith(item.href));
                 const Icon = item.icon;
                 return (
                   <Link
@@ -52,18 +59,22 @@ export function MobileNav({
                     href={item.href}
                     onClick={() => setOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
+                      "flex items-center gap-3 px-5 py-3 text-sm font-semibold border-l-[3px] transition-colors",
                       active
-                        ? "bg-sidebar-accent/15 text-white"
-                        : "text-sidebar-foreground hover:bg-white/5 hover:text-white"
+                        ? "border-[#E8920A] bg-white/8 text-white"
+                        : "border-transparent text-white/40 hover:bg-white/5 hover:text-white/80"
                     )}
                   >
-                    <Icon className="h-[18px] w-[18px]" />
+                    <Icon className="h-[17px] w-[17px] shrink-0" />
                     {item.label}
                   </Link>
                 );
               })}
             </nav>
+
+            <div className="px-5 pb-5 border-t border-[#1f1f1f] pt-3">
+              <p className="text-[10px] text-white/20 uppercase tracking-[0.12em] font-grotesk">v1 · NCT Delhi</p>
+            </div>
           </div>
         </div>
       )}

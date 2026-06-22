@@ -5,10 +5,10 @@ import { LanguageProvider } from "@/lib/i18n";
 export default function CitizenLayout({ children }: { children: React.ReactNode }) {
   return (
     <LanguageProvider>
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col bg-[#FAFAFA]">
         <MarketingHeader />
-        <main className="flex-1">
-          <div className="container py-8 lg:py-10">{children}</div>
+        <main className="flex-1 pt-[60px]">
+          <div className="max-w-[1280px] mx-auto px-16 py-10">{children}</div>
         </main>
         <Footer />
       </div>

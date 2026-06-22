@@ -9,6 +9,7 @@ export interface Column<T> {
   render: (row: T, index: number) => React.ReactNode;
 }
 
+/* IC Bold: black header, thin row dividers, no radius, amber hover */
 export function DataTable<T>({
   columns,
   rows,
@@ -28,16 +29,16 @@ export function DataTable<T>({
     a === "right" ? "text-right" : a === "center" ? "text-center" : "text-left";
 
   return (
-    <div className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}>
+    <div className={cn("overflow-hidden rounded-none border border-border bg-card", className)}>
       <div className="overflow-x-auto scrollbar-thin">
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/40">
+            <tr className="bg-foreground">
               {columns.map((col) => (
                 <th
                   key={col.key}
                   className={cn(
-                    "whitespace-nowrap px-4 py-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground",
+                    "whitespace-nowrap px-4 py-3 text-[10px] font-black tracking-[0.12em] uppercase text-background font-grotesk",
                     alignClass(col.align)
                   )}
                 >
@@ -49,7 +50,10 @@ export function DataTable<T>({
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center text-muted-foreground">
+                <td
+                  colSpan={columns.length}
+                  className="px-4 py-12 text-center text-sm text-muted-foreground"
+                >
                   {empty ?? "No records found."}
                 </td>
               </tr>
@@ -59,8 +63,8 @@ export function DataTable<T>({
                   key={rowKey(row, i)}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   className={cn(
-                    "border-b border-border/60 last:border-0 transition-colors",
-                    onRowClick && "cursor-pointer hover:bg-muted/50"
+                    "border-b border-border last:border-0 transition-colors",
+                    onRowClick && "cursor-pointer hover:bg-accent/5"
                   )}
                 >
                   {columns.map((col) => (

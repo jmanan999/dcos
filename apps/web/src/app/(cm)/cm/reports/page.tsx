@@ -64,7 +64,7 @@ export default function CMReports() {
             {loading ? (
               <div className="space-y-3">
                 {[0, 1, 2].map((i) => (
-                  <Skeleton key={i} className="h-16 rounded-lg" />
+                  <Skeleton key={i} className="h-16 rounded-none" />
                 ))}
               </div>
             ) : brief ? (
@@ -102,7 +102,7 @@ export default function CMReports() {
                 href={e.href}
                 target="_blank"
                 rel="noopener"
-                className="flex items-center justify-between rounded-lg border border-border px-4 py-3 transition-colors hover:bg-muted/50"
+                className="flex items-center justify-between rounded-none border border-border px-4 py-3 transition-colors hover:bg-muted/50"
               >
                 <span className="text-sm font-medium text-foreground">{e.label}</span>
                 <Download className="h-4 w-4 text-muted-foreground" />

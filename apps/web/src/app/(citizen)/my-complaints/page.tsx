@@ -44,7 +44,7 @@ export default function MyComplaintsPage() {
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex items-center justify-between">
         <div className="space-y-0.5">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("my.title")}</h1>
+          <h1 className="text-2xl font-black tracking-tight text-foreground font-grotesk">{t("my.title")}</h1>
           <p className="text-sm text-muted-foreground">{t("my.subtitle")}</p>
         </div>
         <Link href="/file">

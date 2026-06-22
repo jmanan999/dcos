@@ -119,7 +119,7 @@ export default function WardIndexPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="label-caps text-white/60 mb-2">Delhi Governance Intelligence · Public</p>
-              <h1 className="text-3xl font-bold text-white tracking-tight">
+              <h1 className="text-3xl font-black font-grotesk text-white tracking-tight">
                 Ward Productivity Index
               </h1>
               <p className="text-white/70 mt-2 max-w-xl">

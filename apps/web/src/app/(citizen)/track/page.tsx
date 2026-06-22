@@ -18,7 +18,7 @@ export default function TrackLookupPage() {
   return (
     <div className="mx-auto max-w-md space-y-6">
       <div className="space-y-1 text-center">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("track.title")}</h1>
+        <h1 className="text-2xl font-black tracking-tight text-foreground font-grotesk">{t("track.title")}</h1>
         <p className="text-sm text-muted-foreground">{t("track.subtitle")}</p>
       </div>
 

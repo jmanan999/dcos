@@ -14,18 +14,18 @@ export const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
   <DialogPrimitive.Portal>
-    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-foreground/40 backdrop-blur-sm data-[state=open]:animate-fade-in" />
+    <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-foreground/60 data-[state=open]:animate-fade-in" />
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
         "fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2",
-        "rounded-xl border border-border bg-card p-6 shadow-lg data-[state=open]:animate-slide-up",
+        "rounded-none border border-border bg-card data-[state=open]:animate-slide-up overflow-hidden",
         className
       )}
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+      <DialogPrimitive.Close className="absolute right-4 top-4 p-1 text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-none">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -35,7 +35,7 @@ export const DialogContent = React.forwardRef<
 DialogContent.displayName = "DialogContent";
 
 export function DialogHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("mb-4 space-y-1", className)} {...props} />;
+  return <div className={cn("border-b border-border bg-foreground px-6 py-4 mb-0 space-y-1", className)} {...props} />;
 }
 
 export const DialogTitle = React.forwardRef<
@@ -44,7 +44,7 @@ export const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
-    className={cn("text-lg font-semibold text-foreground", className)}
+    className={cn("text-base font-black tracking-tight text-background font-grotesk", className)}
     {...props}
   />
 ));

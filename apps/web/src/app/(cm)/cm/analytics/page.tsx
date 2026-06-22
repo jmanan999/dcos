@@ -98,7 +98,7 @@ export default function CMAnalytics() {
               ) : (
                 <>
                   {result.sql && (
-                    <details className="rounded-lg border border-border bg-muted/30 p-3">
+                    <details className="rounded-none border border-border bg-muted/30 p-3">
                       <summary className="cursor-pointer text-xs font-medium text-muted-foreground">
                         Generated SQL
                       </summary>
@@ -106,7 +106,7 @@ export default function CMAnalytics() {
                     </details>
                   )}
                   {result.results.length > 0 ? (
-                    <div className="overflow-x-auto rounded-lg border border-border scrollbar-thin">
+                    <div className="overflow-x-auto rounded-none border border-border scrollbar-thin">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b border-border bg-muted/40">

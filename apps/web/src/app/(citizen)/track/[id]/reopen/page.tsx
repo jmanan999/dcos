@@ -40,7 +40,7 @@ export default function ReopenPage() {
             <span className="mx-auto flex h-16 w-16 items-center justify-center bg-warning/10 text-warning">
               <RotateCcw className="h-8 w-8" />
             </span>
-            <h1 className="text-xl font-bold text-foreground">{t("reopen.done_heading")}</h1>
+            <h1 className="text-xl font-black text-foreground font-grotesk">{t("reopen.done_heading")}</h1>
             <p className="text-sm text-muted-foreground">{t("reopen.done_sub")}</p>
             <Link href={`/track/${id}`}>
               <Button className="w-full min-h-[52px]">{t("track.timeline")}</Button>
@@ -54,7 +54,7 @@ export default function ReopenPage() {
   return (
     <div className="mx-auto max-w-md space-y-5">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("reopen.heading")}</h1>
+        <h1 className="text-2xl font-black tracking-tight text-foreground font-grotesk">{t("reopen.heading")}</h1>
         <p className="text-sm text-muted-foreground">
           <span className="font-mono font-medium text-foreground">{id}</span>{" "}
           {t("reopen.sub")}

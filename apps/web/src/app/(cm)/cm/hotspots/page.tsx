@@ -58,7 +58,7 @@ export default function CMHotspots() {
         description="Wards ranked by open complaint load — surface emerging problem areas early."
       />
       {isLoading ? (
-        <Skeleton className="h-96 rounded-xl" />
+        <Skeleton className="h-96 rounded-none" />
       ) : !data || data.length === 0 ? (
         <Card>
           <CardContent>

@@ -102,7 +102,7 @@ export default function OfficerQueue() {
               key={f.key}
               onClick={() => setFilter(f.key)}
               className={cn(
-                "inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
+                "inline-flex items-center gap-2 rounded-none px-3 py-1.5 text-sm font-medium transition-colors",
                 filter === f.key
                   ? "bg-primary text-primary-foreground"
                   : "bg-card text-muted-foreground ring-1 ring-border hover:bg-muted"
@@ -118,7 +118,7 @@ export default function OfficerQueue() {
       </div>
 
       {isLoading ? (
-        <Skeleton className="h-96 rounded-xl" />
+        <Skeleton className="h-96 rounded-none" />
       ) : rows.length === 0 ? (
         <Card>
           <CardContent>

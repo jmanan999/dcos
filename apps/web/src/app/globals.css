@@ -3,73 +3,70 @@
 @tailwind utilities;
 
 /*
-  JanSetu — Global Sovereign Design System
-  Inspired by high-stakes governance and national administration.
-
-  Philosophy:
-  - Surface: #faf8ff (blue-tinted, NOT pure white — institutional feel)
-  - Primary: #002652 (very deep navy — permanence and authority)
-  - Zero shadows — only 1px hairline borders for depth
-  - 4px radius — authoritative, not bubbly
-  - label-caps everywhere for metadata: 12px, 700, letter-spacing 0.1em
-  - Tables and data grids are the primary UI component
+  JanSetu — IC Bold Design System
+  Philosophy: Space Grotesk + near-black + off-white + amber accent.
+  Typography IS the design. Zero decoration. Zero shadows. Zero radius.
+  Every border is intentional. Every number is large. Every label is caps.
 */
 
 @layer base {
   :root {
-    /* ── Surfaces ───────────────────────────────────────────────────────── */
-    --background:  240 100% 99%;       /* #faf8ff — blue-tinted canvas */
-    --foreground:  222 42% 13%;        /* #131b2e — near-black */
-    --card:        0 0% 100%;          /* #ffffff — content cards */
-    --card-foreground: 222 42% 13%;
-    --popover:     0 0% 100%;
-    --popover-foreground: 222 42% 13%;
+    /* ── Surfaces ────────────────────────────────────────────────────── */
+    --background:        0 0% 98%;          /* #FAFAFA — off-white canvas */
+    --foreground:        0 0% 3%;           /* #080808 — near-black */
+    --card:              0 0% 100%;         /* #FFFFFF — pure white cards */
+    --card-foreground:   0 0% 3%;
+    --popover:           0 0% 100%;
+    --popover-foreground: 0 0% 3%;
 
-    /* ── Primary — institutional deep navy ─────────────────────────────── */
-    --primary:     215 100% 14%;       /* #002652 */
+    /* ── Primary — near-black ────────────────────────────────────────── */
+    --primary:           0 0% 3%;           /* #080808 */
     --primary-foreground: 0 0% 100%;
-    --primary-hover: 215 100% 18%;     /* #003b7a */
+    --primary-hover:     0 0% 10%;          /* #1A1A1A */
 
-    /* ── Secondary/Muted — surface-dim tones ───────────────────────────── */
-    --secondary:   229 51% 89%;        /* #d2d9f4 surface-dim */
-    --secondary-foreground: 222 42% 13%;
-    --muted:       231 100% 97%;       /* #f2f3ff surface-container-low */
-    --muted-foreground: 222 11% 30%;   /* #434750 on-surface-variant */
-    --accent:      229 51% 89%;
-    --accent-foreground: 215 100% 14%;
+    /* ── Accent — amber / saffron ────────────────────────────────────── */
+    --accent:            33 90% 48%;        /* #E8920A */
+    --accent-foreground: 0 0% 100%;
+    --accent-hover:      33 90% 40%;        /* #C07808 */
+    --accent-light:      38 100% 96%;       /* #FFF8EE */
 
-    /* ── Borders — blue-tinted hairlines ───────────────────────────────── */
-    --border:      222 23% 79%;        /* #c3c6d2 outline-variant */
-    --input:       222 23% 79%;
-    --ring:        215 100% 14%;
+    /* ── Secondary / Muted ───────────────────────────────────────────── */
+    --secondary:         0 0% 96%;          /* #F5F5F5 */
+    --secondary-foreground: 0 0% 3%;
+    --muted:             0 0% 96%;          /* #F5F5F5 */
+    --muted-foreground:  220 9% 46%;        /* #6B7280 */
 
-    /* ── Status ─────────────────────────────────────────────────────────── */
-    --destructive: 0 77% 41%;          /* #ba1a1a */
+    /* ── Borders ─────────────────────────────────────────────────────── */
+    --border:            220 13% 91%;       /* #E5E7EB — soft border */
+    --border-strong:     0 0% 3%;           /* #080808 — emphasis border */
+    --input:             220 13% 91%;
+    --ring:              33 90% 48%;        /* amber focus ring */
+
+    /* ── Status ──────────────────────────────────────────────────────── */
+    --destructive:       0 72% 51%;         /* #DC2626 */
     --destructive-foreground: 0 0% 100%;
-    --success:     158 89% 26%;        /* #059669 */
+    --success:           142 71% 45%;       /* #22C55E -- lighter green for IC bold */
     --success-foreground: 0 0% 100%;
-    --warning:     38 90% 38%;
+    --warning:           33 90% 48%;        /* amber = warning in this system */
     --warning-foreground: 0 0% 100%;
-    --info:        215 88% 44%;
-    --info-foreground: 0 0% 100%;
-    --saffron:     28 100% 52%;
-    --saffron-foreground: 0 0% 100%;
+    --info:              217 91% 60%;       /* #3B82F6 */
+    --info-foreground:   0 0% 100%;
 
-    /* ── Severity ────────────────────────────────────────────────────────── */
-    --severity-critical: 0 77% 41%;
-    --severity-high:     25 90% 45%;
-    --severity-medium:   38 90% 38%;
-    --severity-low:      158 89% 26%;
+    /* ── Severity ────────────────────────────────────────────────────── */
+    --severity-critical: 0 72% 51%;         /* #DC2626 */
+    --severity-high:     33 90% 48%;        /* amber */
+    --severity-medium:   45 93% 47%;        /* #EAB308 */
+    --severity-low:      142 71% 45%;       /* green */
 
-    /* ── Sidebar — solid primary navy ──────────────────────────────────── */
-    --sidebar:          215 100% 14%;  /* #002652 */
-    --sidebar-foreground: 218 42% 77%;
-    --sidebar-muted:    218 20% 55%;
-    --sidebar-accent:   218 100% 83%;  /* #aac7ff */
-    --sidebar-border:   215 60% 20%;
+    /* ── Sidebar — jet black ─────────────────────────────────────────── */
+    --sidebar:           0 0% 3%;           /* #080808 */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-muted:     0 0% 45%;          /* #737373 */
+    --sidebar-accent:    33 90% 48%;        /* amber active */
+    --sidebar-border:    0 0% 12%;          /* #1F1F1F */
 
-    /* ── Radius — sharp institutional (4px, not 6px) ───────────────────── */
-    --radius: 0.25rem;
+    /* ── Radius — ZERO. Everything sharp. ───────────────────────────── */
+    --radius: 0rem;
   }
 }
 
@@ -82,37 +79,58 @@
     -webkit-font-smoothing: antialiased;
     text-rendering: optimizeLegibility;
   }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-space-grotesk), "Space Grotesk", system-ui, sans-serif;
+  }
 }
 
 @layer utilities {
-  /* Institutional grid — subtle, for hero sections */
-  .bg-institutional-grid {
+  /* IC Bold grid — subtle rule lines for hero sections */
+  .bg-ic-grid {
     background-image:
-      linear-gradient(to right, hsl(var(--border) / 0.2) 1px, transparent 1px),
-      linear-gradient(to bottom, hsl(var(--border) / 0.2) 1px, transparent 1px);
-    background-size: 48px 48px;
+      linear-gradient(to right, hsl(var(--border) / 0.5) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--border) / 0.5) 1px, transparent 1px);
+    background-size: 64px 64px;
   }
 
-  /* Surface-dim — blue-tinted secondary surface */
-  .bg-surface-dim { background-color: hsl(229 51% 89%); }
-  .bg-surface-container { background-color: hsl(231 100% 95%); }
+  /* amber accent left-border — IC signature */
+  .border-accent-left {
+    border-left: 3px solid hsl(var(--accent));
+    padding-left: 1rem;
+  }
 
-  /* label-caps — the institutional metadata typography */
+  /* label-caps — the IC metadata typography */
   .label-caps {
+    font-family: var(--font-space-grotesk), "Space Grotesk", system-ui, sans-serif;
     font-size: 0.6875rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    font-weight: 800;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
     line-height: 1rem;
   }
 
+  /* giant-num — for hero stat numbers */
+  .giant-num {
+    font-family: var(--font-space-grotesk), "Space Grotesk", system-ui, sans-serif;
+    font-size: clamp(3rem, 8vw, 6rem);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1;
+  }
+
   .text-balance { text-wrap: balance; }
-  .tracking-editorial { letter-spacing: -0.02em; }
+  .tracking-tight-xl { letter-spacing: -0.03em; }
+  .tracking-tight-lg { letter-spacing: -0.02em; }
 
   .scrollbar-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
   }
+
+  /* Strong 2px border for emphasis sections */
+  .border-strong { border-color: hsl(var(--border-strong)); }
+  .border-b-strong { border-bottom: 2px solid hsl(var(--border-strong)); }
+  .border-t-strong { border-top: 2px solid hsl(var(--border-strong)); }
 }
 
 /* MapLibre */
@@ -123,4 +141,14 @@
   from { opacity: 0; transform: translateY(4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-.animate-fade-in { animation: fade-in 0.3s ease-out; }
+.animate-fade-in { animation: fade-in 0.25s ease-out; }
+
+@keyframes amber-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}
+.animate-amber-pulse { animation: amber-pulse 1.8s ease-in-out infinite; }
+
+/* Recharts IC palette override */
+.recharts-cartesian-axis-tick text { fill: hsl(var(--muted-foreground)); font-size: 11px; }
+.recharts-cartesian-grid line { stroke: hsl(var(--border)); }

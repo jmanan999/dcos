@@ -185,8 +185,8 @@ export default function GrievanceDetailPage() {
   if (!grievance) {
     return (
       <div className="mx-auto max-w-3xl space-y-4">
-        <Skeleton className="h-40 rounded-xl" />
-        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-40 rounded-none" />
+        <Skeleton className="h-64 rounded-none" />
       </div>
     );
   }
@@ -204,7 +204,7 @@ export default function GrievanceDetailPage() {
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="font-mono text-xs text-muted-foreground">{grievance.tracking_id}</p>
-              <h1 className="mt-0.5 text-xl font-bold text-foreground">
+              <h1 className="mt-0.5 text-xl font-black text-foreground font-grotesk">
                 {grievance.category ?? "Uncategorised"}
                 {grievance.subcategory && (
                   <span className="ml-2 text-sm font-normal text-muted-foreground">
@@ -281,7 +281,7 @@ export default function GrievanceDetailPage() {
                   <p className="text-sm text-muted-foreground">No notes yet.</p>
                 ) : (
                   notes.map((n) => (
-                    <div key={n.id} className="rounded-lg border border-border bg-muted/30 p-3">
+                    <div key={n.id} className="rounded-none border border-border bg-muted/30 p-3">
                       {n.is_handoff && (
                         <span className="mb-1.5 inline-block rounded bg-warning/10 px-2 py-0.5 text-2xs font-medium text-warning">
                           Department handoff
@@ -368,7 +368,7 @@ export default function GrievanceDetailPage() {
                       <div
                         key={pt}
                         className={cn(
-                          "rounded-xl border-2 p-4 text-center transition-colors",
+                          "rounded-none border-2 p-4 text-center transition-colors",
                           has ? "border-success/40 bg-success/5" : "border-dashed border-border"
                         )}
                       >

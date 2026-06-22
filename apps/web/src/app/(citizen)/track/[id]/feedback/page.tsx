@@ -52,7 +52,7 @@ export default function FeedbackPage() {
             <span className="mx-auto flex h-16 w-16 items-center justify-center bg-success/10 text-success">
               <CheckCircle2 className="h-8 w-8" />
             </span>
-            <h1 className="text-xl font-bold text-foreground">{t("feedback.done_title")}</h1>
+            <h1 className="text-xl font-black text-foreground font-grotesk">{t("feedback.done_title")}</h1>
             <p className="text-sm text-muted-foreground">
               {rating && rating >= 3 ? t("feedback.closed_msg") : t("feedback.reopened_msg2")}
             </p>
@@ -70,7 +70,7 @@ export default function FeedbackPage() {
   return (
     <div className="mx-auto max-w-md space-y-5">
       <div className="space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">{t("feedback.rate_title")}</h1>
+        <h1 className="text-2xl font-black tracking-tight text-foreground font-grotesk">{t("feedback.rate_title")}</h1>
         <p className="text-sm text-muted-foreground">
           {t("feedback.rate_question")}
         </p>
