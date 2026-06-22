@@ -399,3 +399,141 @@ export interface GovernanceScorecard {
 }
 export const useGovernanceScorecard = () =>
   useSWR<GovernanceScorecard>("/analytics/governance-scorecard", swrFetcher, REFRESH);
+
+// ── Epic 3: Contractor Accountability & Budget Intelligence ───────────────────
+
+export interface ContractProject {
+  contract_id: string;
+  department: string;
+  contract_type: string;
+  value_lakh: number;
+  start_date: string;
+  end_date: string | null;
+  spike_pct: number | null;
+  is_flagged: boolean;
+  economic_waste_lakh: number | null;
+}
+
+export interface ContractorScorecardRow {
+  contractor_name: string;
+  gst_number: string | null;
+  total_contracts: number;
+  total_value_lakh: number;
+  avg_spike_pct: number | null;
+  max_spike_pct: number | null;
+  flagged_contracts: number;
+  total_economic_waste_lakh: number;
+  risk_level: "green" | "yellow" | "red";
+  projects: ContractProject[];
+}
+
+export interface ContractorScorecardReport {
+  contractors: ContractorScorecardRow[];
+  total_contractors: number;
+  flagged_contractors: number;
+  total_estimated_waste_lakh: number;
+  computed_at: string;
+}
+
+export const useContractorScorecard = () =>
+  useSWR<ContractorScorecardReport>("/contracts/scorecard/public", swrFetcher, {
+    refreshInterval: 300_000,
+  });
+
+export interface ContractRead {
+  id: string;
+  contractor_name: string;
+  gst_number: string | null;
+  department_id: string;
+  department_name: string | null;
+  ward_ids: string[];
+  contract_type: string;
+  value_lakh: number;
+  tender_id: string | null;
+  start_date: string;
+  end_date: string | null;
+  status: string;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  performance: {
+    spike_pct: number | null;
+    is_flagged: boolean;
+    economic_waste_lakh: number | null;
+    baseline_weekly_rate: number | null;
+    post_work_weekly_rate: number | null;
+  } | null;
+}
+
+export const useContracts = (status?: string) =>
+  useSWR<ContractRead[]>(
+    status ? `/contracts?status=${status}` : "/contracts",
+    swrFetcher,
+    { refreshInterval: 60_000 }
+  );
+
+export interface BudgetAllocationRead {
+  id: string;
+  department_id: string;
+  department_name: string | null;
+  fiscal_year: string;
+  period: string;
+  amount_crore: number;
+  notes: string | null;
+  created_at: string;
+}
+
+export const useBudgetAllocations = (fiscalYear?: string) =>
+  useSWR<BudgetAllocationRead[]>(
+    fiscalYear ? `/contracts/budget/allocations?fiscal_year=${fiscalYear}` : "/contracts/budget/allocations",
+    swrFetcher,
+    { refreshInterval: 60_000 }
+  );
+
+export interface BudgetOutcomeRow {
+  department: string;
+  department_id: string;
+  budget_allocated_crore: number | null;
+  complaints_before: number;
+  complaints_after: number;
+  change_pct: number | null;
+  economic_drag_before_lakh: number | null;
+  economic_drag_after_lakh: number | null;
+  roi_grade: string;
+}
+
+export interface BudgetOutcomeReport {
+  fiscal_year: string;
+  period: string;
+  rows: BudgetOutcomeRow[];
+  total_budget_crore: number;
+  avg_complaint_change_pct: number | null;
+  computed_at: string;
+}
+
+export const useBudgetOutcomes = (fiscalYear = "2024-25", period = "Annual") =>
+  useSWR<BudgetOutcomeReport>(
+    `/contracts/budget/outcomes?fiscal_year=${fiscalYear}&period=${period}`,
+    swrFetcher,
+    { refreshInterval: 300_000 }
+  );
+
+export interface WardRepresentativeRead {
+  id: string;
+  ward_id: string;
+  ward_name: string | null;
+  ward_number: number | null;
+  representative_name: string;
+  party: string;
+  constituency: string | null;
+  term_start: string;
+  term_end: string | null;
+  is_current: boolean;
+}
+
+export const useWardReps = (party?: string) =>
+  useSWR<WardRepresentativeRead[]>(
+    party ? `/contracts/ward-reps?party=${party}` : "/contracts/ward-reps",
+    swrFetcher,
+    { refreshInterval: 300_000 }
+  );

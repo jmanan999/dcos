@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, TrendingUp, TrendingDown, AlertTriangle, Award, ChevronUp, ChevronDown } from "lucide-react";
-import { Skeleton, Badge } from "@dcos/ui";
-import { useWardIndex, type WardIntelligence } from "@/lib/hooks";
+import { Search, TrendingUp, TrendingDown, AlertTriangle, Award, ChevronUp, ChevronDown, User } from "lucide-react";
+import { Skeleton } from "@dcos/ui";
+import { useWardIndex, useWardReps, type WardIntelligence } from "@/lib/hooks";
 
 const GRADE_CONFIG = {
   A: { label: "A — Excellent",  bg: "bg-success/10",     text: "text-success",     border: "border-success/30" },
@@ -12,6 +12,22 @@ const GRADE_CONFIG = {
   D: { label: "D — Poor",       bg: "bg-orange-50",      text: "text-orange-600",  border: "border-orange-200" },
   F: { label: "F — Critical",   bg: "bg-destructive/8",  text: "text-destructive", border: "border-destructive/20" },
 };
+
+const PARTY_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  AAP:         { bg: "bg-[#0070c0]/10", text: "text-[#0070c0]", border: "border-[#0070c0]/30" },
+  BJP:         { bg: "bg-orange-50",    text: "text-orange-700", border: "border-orange-200" },
+  INC:         { bg: "bg-green-50",     text: "text-green-700",  border: "border-green-200" },
+  Independent: { bg: "bg-surface-container", text: "text-on-surface-variant", border: "border-outline-variant" },
+};
+
+function PartyBadge({ party }: { party: string }) {
+  const cfg = PARTY_COLORS[party] ?? PARTY_COLORS.Independent;
+  return (
+    <span className={`text-label-caps px-1.5 py-0.5 border font-bold ${cfg.bg} ${cfg.text} ${cfg.border}`}>
+      {party}
+    </span>
+  );
+}
 
 function WPIBadge({ grade }: { grade: string }) {
   const cfg = GRADE_CONFIG[grade as keyof typeof GRADE_CONFIG] ?? GRADE_CONFIG.F;
@@ -32,23 +48,58 @@ type SortKey = "wpi_rank" | "wpi" | "resolution_rate" | "economic_drag_daily_inr
 
 export default function WardIndexPage() {
   const { data, isLoading } = useWardIndex();
+  const { data: reps } = useWardReps();
   const [search, setSearch] = useState("");
   const [gradeFilter, setGradeFilter] = useState<string>("ALL");
+  const [partyFilter, setPartyFilter] = useState<string>("ALL");
   const [sortKey, setSortKey] = useState<SortKey>("wpi_rank");
   const [sortAsc, setSortAsc] = useState(true);
+
+  // Build ward_name → rep lookup
+  const repByWard = useMemo(() => {
+    const map: Record<string, { name: string; party: string; constituency: string | null }> = {};
+    reps?.forEach((r) => {
+      if (r.ward_name) map[r.ward_name] = { name: r.representative_name, party: r.party, constituency: r.constituency };
+    });
+    return map;
+  }, [reps]);
 
   const wards = useMemo(() => {
     if (!data?.wards) return [];
     let list = data.wards;
-    if (search) list = list.filter((w) => w.ward_name.toLowerCase().includes(search.toLowerCase()) || (w.district_name ?? "").toLowerCase().includes(search.toLowerCase()));
+    if (search) {
+      const q = search.toLowerCase();
+      list = list.filter(
+        (w) => w.ward_name.toLowerCase().includes(q) ||
+               (w.district_name ?? "").toLowerCase().includes(q) ||
+               (repByWard[w.ward_name]?.name ?? "").toLowerCase().includes(q)
+      );
+    }
     if (gradeFilter !== "ALL") list = list.filter((w) => w.wpi_grade === gradeFilter);
+    if (partyFilter !== "ALL") list = list.filter((w) => repByWard[w.ward_name]?.party === partyFilter);
     list = [...list].sort((a, b) => {
       const va = a[sortKey] as number;
       const vb = b[sortKey] as number;
       return sortAsc ? va - vb : vb - va;
     });
     return list;
-  }, [data, search, gradeFilter, sortKey, sortAsc]);
+  }, [data, search, gradeFilter, partyFilter, sortKey, sortAsc, repByWard]);
+
+  // Party WPI averages for the political comparison line
+  const partyStats = useMemo(() => {
+    if (!data?.wards || !reps?.length) return null;
+    const partySums: Record<string, { sum: number; count: number }> = {};
+    data.wards.forEach((w) => {
+      const party = repByWard[w.ward_name]?.party ?? "Unknown";
+      if (!partySums[party]) partySums[party] = { sum: 0, count: 0 };
+      partySums[party].sum += w.wpi;
+      partySums[party].count += 1;
+    });
+    return Object.entries(partySums)
+      .filter(([p]) => p !== "Unknown")
+      .map(([party, s]) => ({ party, avg: Math.round(s.sum / s.count), count: s.count }))
+      .sort((a, b) => b.avg - a.avg);
+  }, [data, reps, repByWard]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortAsc((v) => !v);
@@ -72,9 +123,7 @@ export default function WardIndexPage() {
                 Ward Productivity Index
               </h1>
               <p className="text-white/70 mt-2 max-w-xl">
-                Every Delhi ward ranked 0–100 by governance quality.
-                Updated weekly. Based on complaint resolution, SLA compliance,
-                officer response, and citizen re-complaint rate.
+                Every Delhi ward ranked 0–100 by governance quality, linked to its elected councillor.
                 <strong className="text-white"> No spin. Just data.</strong>
               </p>
             </div>
@@ -85,7 +134,7 @@ export default function WardIndexPage() {
                   <p className="label-caps text-white/60">City Avg WPI</p>
                 </div>
                 <div className="border border-white/20 bg-white/10 px-4 py-3">
-                  <p className="text-2xl font-bold text-destructive-foreground text-white">{data.wards_in_crisis}</p>
+                  <p className="text-2xl font-bold text-white">{data.wards_in_crisis}</p>
                   <p className="label-caps text-white/60">In Crisis</p>
                 </div>
                 <div className="border border-white/20 bg-white/10 px-4 py-3">
@@ -128,12 +177,12 @@ export default function WardIndexPage() {
 
       {/* Top/Bottom spotlight */}
       {data && (
-        <div className="border-b border-outline-variant bg-card px-6 py-4 sm:px-margin-desktop">
+        <div className="border-b border-outline-variant bg-white px-6 py-4 sm:px-margin-desktop">
           <div className="max-w-container-max mx-auto grid gap-4 sm:grid-cols-2">
             <div>
               <div className="flex items-center gap-1.5 mb-2">
                 <Award className="h-3.5 w-3.5 text-success" />
-                <p className="label-caps text-success">Top Performers — Wards Setting the Standard</p>
+                <p className="label-caps text-success">Top Performers</p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {data.top_5.map((w) => (
@@ -156,31 +205,64 @@ export default function WardIndexPage() {
         </div>
       )}
 
+      {/* Party WPI comparison — the accountability signal */}
+      {partyStats && partyStats.length > 0 && (
+        <div className="border-b border-outline-variant bg-surface-container px-6 py-4 sm:px-margin-desktop">
+          <div className="max-w-container-max mx-auto">
+            <p className="label-caps text-on-surface-variant mb-3">
+              Average WPI by Party — governance performance by political affiliation
+            </p>
+            <div className="flex flex-wrap gap-4">
+              {partyStats.map((ps) => {
+                const cfg = PARTY_COLORS[ps.party] ?? PARTY_COLORS.Independent;
+                return (
+                  <button
+                    key={ps.party}
+                    onClick={() => setPartyFilter(partyFilter === ps.party ? "ALL" : ps.party)}
+                    className={`flex items-center gap-2 border px-3 py-2 transition-colors ${
+                      partyFilter === ps.party
+                        ? `${cfg.bg} ${cfg.border} ${cfg.text}`
+                        : "border-outline-variant bg-white text-on-surface hover:bg-surface-container"
+                    }`}
+                  >
+                    <span className="text-xl font-black">{ps.avg}</span>
+                    <div className="text-left">
+                      <p className={`text-sm font-bold ${partyFilter === ps.party ? cfg.text : "text-on-surface"}`}>{ps.party}</p>
+                      <p className="label-caps text-on-surface-variant">{ps.count} wards</p>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Controls */}
       <div className="border-b border-outline-variant bg-white px-6 py-3 sm:px-margin-desktop sticky top-14 z-20">
         <div className="max-w-container-max mx-auto flex flex-wrap gap-3 items-center justify-between">
           <div className="relative flex-1 min-w-[200px] max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant pointer-events-none" />
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search ward or district…"
-              className="w-full h-9 border border-outline-variant bg-white pl-9 pr-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              placeholder="Search ward, district, or councillor…"
+              className="w-full h-9 border border-outline-variant bg-white pl-9 pr-3 text-sm text-on-surface focus:outline-none focus:border-primary"
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1">
             {["ALL", "A", "B", "C", "D", "F"].map((g) => (
               <button
                 key={g}
                 onClick={() => setGradeFilter(g)}
-                className={`px-3 py-1.5 label-caps transition-all ${gradeFilter === g ? "bg-primary text-white" : "border border-outline-variant text-muted-foreground hover:text-foreground"}`}
+                className={`px-3 py-1.5 label-caps transition-all ${gradeFilter === g ? "bg-primary text-white" : "border border-outline-variant text-on-surface-variant hover:text-on-surface"}`}
               >
                 {g}
               </button>
             ))}
           </div>
-          <p className="label-caps text-muted-foreground shrink-0">{wards.length} wards</p>
+          <p className="label-caps text-on-surface-variant shrink-0">{wards.length} wards</p>
         </div>
       </div>
 
@@ -201,6 +283,7 @@ export default function WardIndexPage() {
                         Rank <SortIcon k="wpi_rank" />
                       </th>
                       <th className="px-4 py-3 label-caps text-on-surface-variant">Ward</th>
+                      <th className="px-4 py-3 label-caps text-on-surface-variant">Councillor</th>
                       <th className="px-4 py-3 label-caps text-on-surface-variant cursor-pointer hover:text-primary" onClick={() => toggleSort("wpi")}>
                         WPI <SortIcon k="wpi" />
                       </th>
@@ -218,11 +301,15 @@ export default function WardIndexPage() {
                   </thead>
                   <tbody className="divide-y divide-outline-variant">
                     {wards.map((w) => (
-                      <WardRow key={w.ward_name} ward={w} />
+                      <WardRow
+                        key={w.ward_name}
+                        ward={w}
+                        rep={repByWard[w.ward_name] ?? null}
+                      />
                     ))}
                     {wards.length === 0 && (
                       <tr>
-                        <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                        <td colSpan={8} className="px-4 py-10 text-center text-sm text-on-surface-variant">
                           No wards match your filter.
                         </td>
                       </tr>
@@ -233,9 +320,9 @@ export default function WardIndexPage() {
             </div>
           )}
 
-          <p className="mt-4 text-xs text-muted-foreground text-center">
+          <p className="mt-4 text-xs text-on-surface-variant text-center">
             WPI = Resolution Rate (35%) + SLA Compliance (25%) + Response Speed (20%) + Citizen Confidence (20%).
-            Data from JanSetu complaint system. Updated weekly. All ward names use official MCD nomenclature.
+            Councillor data: Delhi MCD elections, December 2022. Term ends 2027.
           </p>
         </div>
       </div>
@@ -243,23 +330,42 @@ export default function WardIndexPage() {
   );
 }
 
-function WardRow({ ward: w }: { ward: WardIntelligence }) {
+function WardRow({
+  ward: w,
+  rep,
+}: {
+  ward: WardIntelligence;
+  rep: { name: string; party: string; constituency: string | null } | null;
+}) {
   const improving = w.wpi_change_30d > 0;
   const declining = w.wpi_change_30d < 0;
 
   return (
     <tr className="hover:bg-surface-dim/30 transition-colors">
-      <td className="px-4 py-3 text-muted-foreground text-sm font-mono tabular-nums">#{w.wpi_rank}</td>
+      <td className="px-4 py-3 text-on-surface-variant text-sm font-mono tabular-nums">#{w.wpi_rank}</td>
       <td className="px-4 py-3">
         <p className="text-sm font-medium text-on-surface">{w.ward_name}</p>
         {w.district_name && <p className="label-caps text-on-surface-variant">{w.district_name}</p>}
+      </td>
+      <td className="px-4 py-3">
+        {rep ? (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              <User className="h-3 w-3 text-on-surface-variant shrink-0" />
+              <span className="text-sm text-on-surface truncate max-w-[120px]">{rep.name}</span>
+            </div>
+            <PartyBadge party={rep.party} />
+          </div>
+        ) : (
+          <span className="text-on-surface-variant text-sm">—</span>
+        )}
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <WPIBadge grade={w.wpi_grade} />
           <div>
             <p className="text-sm font-bold tabular-nums">{w.wpi}</p>
-            <div className="w-16 h-1 bg-secondary/40 mt-0.5">
+            <div className="w-16 h-1 bg-surface-container mt-0.5">
               <div
                 className={w.wpi >= 65 ? "h-full bg-success" : w.wpi >= 50 ? "h-full bg-primary" : w.wpi >= 35 ? "h-full bg-warning" : "h-full bg-destructive"}
                 style={{ width: `${w.wpi}%` }}
@@ -281,7 +387,7 @@ function WardRow({ ward: w }: { ward: WardIntelligence }) {
         </span>
       </td>
       <td className="px-4 py-3 hidden md:table-cell">
-        <span className={`text-sm font-medium tabular-nums ${w.open_complaints >= 20 ? "text-destructive" : w.open_complaints >= 10 ? "text-warning" : "text-foreground"}`}>
+        <span className={`text-sm font-medium tabular-nums ${w.open_complaints >= 20 ? "text-destructive" : w.open_complaints >= 10 ? "text-warning" : "text-on-surface"}`}>
           {w.open_complaints}
         </span>
       </td>

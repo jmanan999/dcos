@@ -10,6 +10,8 @@ import {
   Hourglass,
   TriangleAlert,
   ShieldCheck,
+  Briefcase,
+  PieChart,
   type LucideIcon,
 } from "lucide-react";
 
@@ -55,6 +57,8 @@ export const CM_NAV: NavSection[] = [
       { href: "/cm/map", label: "Ward Heatmap", icon: Map },
       { href: "/cm/hotspots", label: "Hotspots", icon: Flame },
       { href: "/cm/departments", label: "Departments", icon: Building2 },
+      { href: "/cm/contractors", label: "Contractors", icon: Briefcase },
+      { href: "/cm/intelligence", label: "Budget Intelligence", icon: PieChart },
       { href: "/cm/analytics", label: "AI Chief Secretary", icon: LayoutDashboard },
       { href: "/cm/reports", label: "Reports", icon: FileText },
     ],

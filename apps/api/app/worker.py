@@ -28,7 +28,7 @@ import app.modules.identity.models
 import app.modules.intake.models
 import app.modules.platform.models
 import app.modules.sla.models
-import app.modules.workforce.models  # noqa: F401
+import app.modules.workforce.models
 from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.logging import setup_logging
@@ -194,6 +194,27 @@ async def relay_outbox(ctx: dict) -> dict[str, int]:
     return {"dispatched": dispatched}
 
 
+# ── E3.2: Weekly contractor performance correlation ───────────────────────────
+
+
+async def correlate_contractors(ctx: dict) -> dict[str, Any]:
+    """
+    Weekly: for all completed contracts without fresh performance data,
+    compute baseline vs post-work complaint rate and flag bad contractors.
+    """
+    setup_logging()
+    from app.modules.contracts.service import ContractsService
+
+    async with AsyncSessionLocal() as session:
+        await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+        svc = ContractsService(session)
+        count = await svc.correlate_all_completed()
+        await session.commit()
+
+    log.info("worker.contracts.correlate.done", contracts_processed=count)
+    return {"contracts_processed": count}
+
+
 # ── Arq worker settings ───────────────────────────────────────────────────────
 
 
@@ -205,6 +226,7 @@ class WorkerSettings:
         refresh_analytics_views,
         notify_citizen,
         relay_outbox,
+        correlate_contractors,
     ]
     max_jobs = 20
     job_timeout = 120
@@ -218,6 +240,8 @@ class WorkerSettings:
         cron(check_sla_breaches, minute={0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55}),
         # Analytics materialized view refresh every 15 minutes
         cron(refresh_analytics_views, minute={0, 15, 30, 45}),
+        # Contractor performance correlation — weekly Sunday 02:00 IST
+        cron(correlate_contractors, weekday=6, hour=20, minute=30),
     ]
 
 
