@@ -1,8 +1,8 @@
 # JanSetu — Context & Architecture Reference
 
-> **Read this first in every conversation about JanSetu.**  
-> Project was previously called DCOS. All references in code use the new name.  
-> Tracking ID prefix changed from `DCOS-` to `JS-`.
+> **Read this first in every conversation about JanSetu.**
+> Project was previously called DCOS. All code references use `dcos` (repo name unchanged).
+> Tracking ID prefix: `JS-YYYYMMDD-XXXXXXXX`.
 
 ---
 
@@ -10,10 +10,10 @@
 
 | Item | Value |
 |---|---|
-| **Project name** | **JanSetu** (People's Bridge) — Delhi Grievance Portal |
+| **Project name** | **JanSetu** (People's Bridge) — Delhi Governance Intelligence Platform |
 | Project root | `/Users/manan/dcos/` (git repo stays named `dcos`) |
-| Live frontend | https://dcos-ecru.vercel.app (alias: https://dcos-delhi.vercel.app) |
-| Live API | https://dcos.onrender.com |
+| Live frontend | https://dcos-ecru.vercel.app |
+| Live API | https://jansetu-api.onrender.com |
 | GitHub | https://github.com/jmanan999/dcos |
 | Stack | FastAPI 0.115 (Python 3.12) + Next.js 15 + Postgres 17 + Redis + Supabase + Groq AI + WhatsApp |
 | Monorepo | Turborepo + pnpm workspaces |
@@ -31,143 +31,219 @@
 | Email | Password | Role |
 |---|---|---|
 | `cm@delhi.gov.in` | `Dcos2026Admin!` | cm_cell → `/cm` |
-| `admin@mcd.gov.in` | `Dcos2026Admin!` | dept_admin → `/officer` |
+| `admin@mcd.gov.in` | `Dcos2026Admin!` | dept_admin → `/dept` |
 | `officer@mcd.gov.in` | `Dcos2026Field!` | field_officer → `/officer` |
+| Any phone (demo) | OTP: `000000` | citizen → `/file`, `/track` |
 
 ---
 
-## Epic status
+## EPICS.md — execution status
 
 | Epic | Title | Status |
 |---|---|---|
-| **1** | Foundation & DX — monorepo, Docker, CI | ✅ Done |
-| **2** | Data model, migrations, Delhi seed | ✅ Done |
-| **3** | Identity, RBAC, RLS | ✅ Done |
-| **4** | Intake & channels (web form, WhatsApp, IVR) | ✅ Done |
-| **5** | AI complaint engine (Groq Llama 3.3 70B) | ✅ Done |
-| **6** | Routing, assignment, SLA engine | ✅ Done |
-| **7** | Officer console & field app | ✅ Done |
-| **8** | Citizen transparency & notifications | ✅ Done |
-| **9** | GIS command center & analytics | ✅ Done |
-| **10** | Hardening, compliance, observability | ✅ Done (core) |
-| **FE** | Modern GovTech design system + bilingual (EN/हिं) | ✅ Done |
-| **i18n** | Hindi/English auto-translation via Groq | ✅ Done |
-| **GIS** | MapLibre ward heatmap (CM + transparency) | ✅ Done |
-| **Chatbot** | JanSetu Assistant — FAQ + Groq AI fallback, bilingual EN/हिं | ✅ Done |
-| **WhatsApp** | Interactive intake — lang select, menu, guided flow, reports, Redis state | ✅ Done |
-| **WhatsApp** | Full interactive intake — language/menu/guided flow/reports | ✅ Done |
+| **1** | Citizen Experience Revolution | ✅ Done |
+| **2** | Field Operations Intelligence | ✅ Done |
+| **3** | Contractor Accountability & Budget Intelligence | ✅ Done |
+| **4** | Predictive Governance & Policy Simulation | 🔵 Pending |
+| **5** | Open Government Platform | 🔵 Pending |
+
+### Epic 1 — what was built
+- DPDP Act 2023 consent checkbox blocks submission; consent logged
+- Citizen legal rights shown at filing success screen (law + deadline)
+- SLA breach alert on `/track/[id]` with direct links to CPGRAMS + Lokayukta escalation
+- Complaint cluster notification ("You are 1 of 9 — escalated")
+
+### Epic 2 — what was built
+- `GET /workforce/route-plan` — greedy 1.2km geo-clustering, Google Maps deep-links, time savings estimate
+- `GET /workforce/my-scorecard` — resolution rate, CSAT, false-closure %, dept rank (#N of M), A–F grade
+- `GET /workforce/grievances/{id}/full-case` — audit trail + handoff department trail
+- `GET|POST /workforce/grievances/{id}/checklist` — 23 steps across 6 categories; resolution blocked until complete
+- `attachments.file_hash` (MD5) — duplicate proof rejected 409; `complaint_checklists` + `checklist_completions` tables
+- Migration 0007
+
+### Epic 3 — what was built
+- `contracts` table + CRUD (`/contracts`) — contractor, dept, ward_ids, type, value, dates, status
+- `contractor_performance` table — baseline vs post-work complaint rate, spike %, economic waste estimate
+- `budget_allocations` table — dept × fiscal_year × period × amount_crore
+- `ward_representatives` table — 272 Delhi MCD councillors seeded from 2022 elections
+- `POST /contracts/{id}/correlate` — trigger correlation; weekly Arq cron runs automatically
+- `GET /contracts/scorecard/public` — public contractor scorecard, ranked by spike %
+- `GET /contracts/budget/outcomes` — ROI grade A–F per department for budget period
+- `GET /contracts/ward-reps` — public, party-filterable ward councillor data
+- `/transparency/contractors` — public page + CSV download (India's first public contractor scorecard)
+- `/cm/contractors` + `/cm/contractors/new` — contract entry + management
+- `/cm/intelligence` — budget intelligence with add-allocation modal
+- `/transparency/wards` — party filter + WPI-by-party comparison + councillor per row
+- Migration 0008
 
 ---
 
-## Frontend design system (read before any UI work)
+## 3-tier government hierarchy
 
-1. **Semantic tokens only.** `bg-background`, `text-foreground`, `bg-primary`, `text-muted-foreground`,
-   `border-border`, `bg-card`, `bg-success/warning/destructive`. Tokens → `globals.css` → `tailwind.config.ts`.
-   Never use `brand-*`, `saffron-*`, `slate-950`, or raw hex.
-
-2. **Build from `@dcos/ui`.** 22 components: Button, Card, StatCard, DataTable, PageHeader, Badge,
-   Tabs, Dialog, Alert, EmptyState, Skeleton, Input, Select, Avatar, Toast, etc. Use before writing bespoke markup.
-
-3. **App-shell surfaces** (officer, cm) use `<AppShell>` + `<RouteGuard>` in a `"use client"` layout.
-   Public surfaces (marketing, auth, citizen, transparency) use `MarketingHeader` + `Footer`.
-
-4. **Data via SWR hooks** in `lib/hooks.ts`. Token auto-attached by `apiFetch`. Don't hand-roll `useEffect`+`fetch`.
-
-5. **Auth**: `useAuth()` from `lib/auth/provider`. Real Supabase ES256 when configured, local-JWT HS256 fallback otherwise.
-   Token mirrored to `localStorage.dcos_token` on every auth state change.
-
-6. **i18n**: `useLanguage()` from `lib/i18n.tsx` + auto-generated `lib/translations.generated.ts` (138 strings).
-   `LanguageProvider` wraps marketing/citizen/auth/transparency layouts. **Landing page + footer must be
-   `"use client"` to react to the toggle** — server components can't read language context.
-   To add new strings: add to `translate.mjs` → run `GROQ_API_KEY=... node apps/web/scripts/translate.mjs`.
-
-7. **GIS map**: `components/GisMap.tsx` — MapLibre GL client component, CARTO basemaps (no API key),
-   circle-per-ward colored by severity. Used in `/cm/map` and `/transparency/map`.
-
-8. **Routes**:
-   - `/` → landing (marketing)
-   - `/file` → 3-step complaint form
-   - `/track` → lookup; `/track/[id]` → timeline
-   - `/transparency` → public dashboard
-   - `/officer` → officer console (AppShell)
-   - `/cm` → command center (AppShell)
+| Tier | Route | Roles | Mental model |
+|---|---|---|---|
+| Field Officer | `/officer` | `field_officer` | Does the work on the ground |
+| Nodal / Dept | `/dept` | `dept_admin`, `district_officer` | Assigns, monitors pendency, supervises team |
+| CM Cell | `/cm` | `cm_cell`, `super_admin` | Cross-dept oversight, contractor, budget, root-cause |
 
 ---
 
-## Directory map
+## Frontend design system
 
-```
-jansetu/ (git: dcos/)
-├── apps/
-│   ├── api/                        FastAPI modular monolith
-│   │   ├── app/
-│   │   │   ├── core/
-│   │   │   │   ├── config.py       All env vars (Pydantic Settings)
-│   │   │   │   ├── auth.py         JWT decode: ES256 via JWKS (Supabase) + HS256 local
-│   │   │   │   ├── permissions.py  Role → frozenset[permission] matrix
-│   │   │   │   ├── dependencies.py FastAPI deps: CurrentUser, RlsDbSession, require_permission()
-│   │   │   │   ├── database.py     SQLAlchemy async engine, Base, get_db()
-│   │   │   │   ├── logging.py      structlog JSON setup
-│   │   │   │   ├── middleware.py   RequestIDMiddleware + SecurityHeadersMiddleware + RateLimitMiddleware
-│   │   │   │   ├── notifications.py Idempotent WhatsApp/SMS/push dispatcher + bilingual templates
-│   │   │   │   └── telemetry.py    OTel + Sentry wiring
-│   │   │   ├── main.py             App factory, lifespan, /healthz /readyz
-│   │   │   └── modules/
-│   │   │       ├── identity/       Auth, users, departments, officers, phone-claim
-│   │   │       ├── intake/         Grievance intake; tracking ID format: JS-YYYYMMDD-XXXXXXXX
-│   │   │       ├── ai/             Groq Llama 3.3 70B classify+severity+embed+spam; feedback loop
-│   │   │       ├── routing/        dept/officer assignment, load balancing
-│   │   │       ├── sla/            SLA clocks + escalation ladder (4 levels)
-│   │   │       ├── workforce/      Officer queue, claim, resolve, geo-proof gate, notes, handoff
-│   │   │       ├── citizen/        CSAT, reopen, public stats, notification dispatch
-│   │   │       ├── analytics/      KPIs, hotspots, leaderboard, trend, NL→SQL (Groq), exec brief
-│   │   │       │                   Reads from mv_ward_stats, mv_dept_stats, mv_grievances_daily
-│   │   │       ├── reporting/      CSV exports (grievances, dept scorecard, ward stats)
-│   │   │       ├── integration/    Dept adapter framework (BaseAdapter + RestAdapter)
-│   │   │       └── platform/       OutboxEvent, AuditLog, IdempotencyKey, District, Zone, Ward
-│   │   ├── app/worker.py           Arq: enrich_grievance, assign_grievance, check_sla_breaches,
-│   │   │                           refresh_analytics_views (every 15min), notify_citizen, relay_outbox
-│   │   ├── migrations/versions/    0001→0005 (schema, RLS, AI tables, officer_notes, analytics views)
-│   │   ├── scripts/seed.py         11 districts, 12 zones, 272 wards, 12 depts, 540 grievances
-│   │   ├── tests/                  70 tests — health, auth (anti-escalation), RLS, intake, workforce
-│   │   └── Dockerfile              Multi-stage; CMD uses $PORT env var (Render compatible)
-│   └── web/                        Next.js 15, "JanSetu" brand, Modern GovTech design system
-│       └── src/
-│           ├── app/
-│           │   ├── layout.tsx          Root: Inter + Providers (Auth + Toast + Language)
-│           │   ├── globals.css         Semantic HSL tokens
-│           │   ├── (marketing)/        / → landing ("use client" for i18n)
-│           │   ├── (auth)/             /login, /signup — LanguageProvider wrapped
-│           │   ├── (citizen)/          /file, /track, /my-complaints — LanguageProvider wrapped
-│           │   ├── (transparency)/     /transparency, /departments, /map
-│           │   ├── (officer)/          "use client" layout + AppShell + RouteGuard
-│           │   └── (cm)/               "use client" layout + AppShell + RouteGuard
-│           ├── middleware.ts           Supabase route protection (/officer, /cm, /my-complaints)
-│           ├── components/
-│           │   ├── GisMap.tsx          MapLibre GL heatmap — CARTO dark/light, circle-per-ward
-│           │   ├── providers.tsx       AuthProvider + ToastProvider
-│           │   ├── route-guard.tsx     Client role-gate (localStorage token)
-│           │   └── shell/              AppShell, Sidebar, Topbar, MobileNav,
-│           │                           MarketingHeader ("use client"), Footer ("use client")
-│           ├── scripts/translate.mjs   Auto-translate via Groq: run to regenerate Hindi strings
-│           └── components/chatbot/  chat-bot.tsx — floating widget, client FAQ + API fallback
-│           └── lib/
-│               ├── api.ts              apiFetch + swrFetcher (auto-attaches dcos_token)
-│               ├── hooks.ts            useKpis, useHotspots, useLeaderboard, useTrend,
-│               │                       usePublicStats, useQueue
-│               ├── i18n.tsx            LanguageProvider + useLanguage() hook
-│               ├── translations.generated.ts  138 EN/HI string pairs (auto-generated)
-│               ├── auth/               config (isSupabaseConfigured), types, provider
-│               └── supabase/           client.ts (browser), server.ts (SSR)
-├── packages/
-│   ├── ui/src/                     @dcos/ui — 22 design-system components (Radix-backed)
-│   └── types/src/index.ts          Shared TS: GrievanceStatus, Channel, Priority, etc.
-├── infra/
-│   └── docker-compose.yml          Postgres 16+PostGIS+pgvector, Redis 7, MinIO
-├── vercel.json                     Monorepo config: rootDirectory=apps/web (set via API)
-├── render.env.example              Template for Render env vars
-└── .github/workflows/ci.yml        api-lint → api-test → web-lint → web-build → docker-build
-```
+1. **Global Sovereign tokens.** `bg-primary` (institutional navy), `text-on-surface`, `bg-surface-dim`, `border-outline-variant`, `text-label-caps`, 4px border-radius, zero box-shadow. Source: `globals.css` + `tailwind.config.ts`. Never raw hex.
+
+2. **Build from `@dcos/ui`.** Components: Button, Card, StatCard, DataTable, PageHeader, Badge, StatusBadge, SeverityBadge, Tabs, Dialog, Alert, EmptyState, Skeleton, Input, Select, Avatar, Toast, cn.
+
+3. **App-shell surfaces** (`/officer`, `/cm`, `/dept`) use `<AppShell sections={NAV}>` + `<RouteGuard require="...">` in a `"use client"` layout. Public surfaces use `MarketingHeader` + `Footer`.
+
+4. **Data via SWR hooks** in `lib/hooks.ts`. Token auto-attached by `apiFetch`. Don't hand-roll `useEffect+fetch`.
+
+5. **Auth**: `useAuth()` from `lib/auth/provider`. Real Supabase ES256 in prod; local-JWT HS256 fallback. Demo citizen login: phone `+919999000000`, OTP `000000` — pure localStorage, zero Supabase calls. Token in `localStorage.dcos_token` + `localStorage.dcos_user`.
+
+6. **i18n**: `useLanguage()` from `lib/i18n.tsx` + `lib/translations.generated.ts` (138 strings). `LanguageProvider` wraps marketing/citizen/auth/transparency layouts.
+
+7. **GIS map**: `components/GisMap.tsx` — MapLibre GL client component, CARTO basemaps (no API key), circle-per-ward colored by severity.
+
+8. **Sidebar**: collapsible (80px↔224px), state persisted in `localStorage.sidebar_collapsed`.
+
+---
+
+## Route map (34 routes)
+
+| Route | Surface | Auth |
+|---|---|---|
+| `/` | Landing (marketing) | Public |
+| `/file` | 3-step complaint form (DPDP consent + rights card) | Public |
+| `/track` | Tracking lookup | Public |
+| `/track/[id]` | Timeline + SLA breach alert + escalation links | Public |
+| `/track/[id]/feedback` | CSAT feedback | Public |
+| `/track/[id]/reopen` | Reopen request | Public |
+| `/my-complaints` | Citizen complaint history | Citizen |
+| `/login`, `/signup` | Auth pages | Public |
+| `/privacy` | DPDP privacy policy | Public |
+| `/transparency` | Public stats dashboard | Public |
+| `/transparency/wards` | WPI ranking + councillor data + party filter | Public |
+| `/transparency/departments` | Dept leaderboard | Public |
+| `/transparency/contractors` | Contractor scorecard + CSV | Public |
+| `/transparency/map` | GIS heatmap | Public |
+| `/officer` | Dashboard — queue, scorecard, route plan | field_officer |
+| `/officer/queue` | Full grievance queue | field_officer |
+| `/officer/team` | Team workload view | field_officer |
+| `/officer/grievance/[id]` | Case detail — checklist, proof, history | field_officer |
+| `/dept` | Pendency monitor (aging buckets) | dept_admin |
+| `/dept/queue` | Assignment desk | dept_admin |
+| `/dept/team` | Team workload + reassign | dept_admin |
+| `/dept/triage` | AI category correction | dept_admin |
+| `/cm` | Control Room — pendency, escalation pyramid | cm_cell |
+| `/cm/map` | Ward GIS heatmap | cm_cell |
+| `/cm/hotspots` | Ward hotspot detail | cm_cell |
+| `/cm/departments` | Department analytics | cm_cell |
+| `/cm/contractors` | Contract list + correlation results | cm_cell |
+| `/cm/contractors/new` | Contract entry form | cm_cell |
+| `/cm/intelligence` | Budget intelligence — ROI grades | cm_cell |
+| `/cm/analytics` | AI Chief Secretary (NL→SQL) | cm_cell |
+| `/cm/reports` | Report generation | cm_cell |
+
+---
+
+## Hooks in `lib/hooks.ts`
+
+| Hook | Endpoint | Notes |
+|---|---|---|
+| `useKpis` | `/analytics/kpis` | Real-time KPIs, 30s refresh |
+| `useHotspots` | `/analytics/hotspots` | Ward severity map |
+| `useLeaderboard` | `/analytics/leaderboard` | Dept ranking |
+| `useTrend` | `/analytics/trend` | Daily filed/resolved |
+| `usePublicStats` | `/citizen/public-stats` | No-auth transparency |
+| `useQueue` | `/workforce/queue` | Officer's assigned/in-progress |
+| `useDeptQueue` | `/workforce/dept-queue` | Dept admin queue |
+| `useWorkload` | `/workforce/workload` | Officer availability + load |
+| `useDepartments` | `/identity/departments` | Dept dropdown |
+| `usePendency` | `/analytics/pendency` | Aging buckets |
+| `useEscalationPyramid` | `/analytics/escalation-pyramid` | L0–L3 counts |
+| `useRootCause` | `/analytics/root-cause` | Repeat clusters, staffing gaps |
+| `useAuditSample` | `/analytics/audit-sample` | 5% quality audit |
+| `useEconomicDrag` | `/analytics/economic-drag` | ₹/day cost by category |
+| `useWardIndex` | `/analytics/ward-index` | 272 wards WPI ranked |
+| `usePredictions` | `/analytics/predictions` | Complaint spike forecasts |
+| `useGovernanceScorecard` | `/analytics/governance-scorecard` | City Health Score |
+| `useRoutePlan` | `/workforce/route-plan` | Geo-clustered stops |
+| `useMyScorecard` | `/workforce/my-scorecard` | A–F grade + dept rank |
+| `useContractorScorecard` | `/contracts/scorecard/public` | Public contractor ranking |
+| `useContracts` | `/contracts` | Admin contract list |
+| `useBudgetAllocations` | `/contracts/budget/allocations` | Budget entries |
+| `useBudgetOutcomes` | `/contracts/budget/outcomes` | ROI grades |
+| `useWardReps` | `/contracts/ward-reps` | 272 councillors |
+
+---
+
+## Backend modules (13)
+
+| Module | Prefix | What it does |
+|---|---|---|
+| `identity` | `/identity` | Auth, users, depts, officers, phone-claim |
+| `intake` | `/intake` | Grievance filing; tracking ID `JS-YYYYMMDD-XXXXXXXX`; attachment + hash |
+| `ai` | `/ai` | Groq classify + severity + embed + spam; feedback loop; NL→SQL |
+| `routing` | `/routing` | Dept/officer assignment, load balancing, reassign |
+| `sla` | `/sla` | SLA clocks + 4-level escalation ladder |
+| `workforce` | `/workforce` | Queue, claim, resolve, geo-proof gate, notes, handoff, route-plan, scorecard, checklist |
+| `citizen` | `/citizen` | CSAT, reopen, public stats, notification dispatch |
+| `analytics` | `/analytics` | KPIs, hotspots, leaderboard, trend, pendency, escalation pyramid, root-cause, audit, economic drag, WPI, predictions, scorecard, NL→SQL |
+| `contracts` | `/contracts` | Contract CRUD, correlation engine, public scorecard, budget allocations, budget outcomes, ward reps |
+| `reporting` | `/reporting` | CSV exports (grievances, dept scorecard, ward stats) |
+| `integration` | `/integration` | Dept adapter framework (BaseAdapter + RestAdapter) |
+| `platform` | `/platform` | OutboxEvent, AuditLog, IdempotencyKey, District, Zone, Ward |
+| `chatbot` | `/chatbot` | Floating widget FAQ + Groq AI fallback, bilingual |
+
+---
+
+## Database — migrations
+
+| # | File | What it adds |
+|---|---|---|
+| 0001 | `initial_schema.py` | All core tables: grievances, wards, districts, zones, departments, officers, status_events, outbox_events, attachments, notifications, feedback, escalation_records, RLS types |
+| 0002 | `rls_policies.py` | Row Level Security policies on all scoped tables |
+| 0003 | `ai_tables.py` | ai_classifications, ai_embeddings, ai_spam_flags, idempotency_keys, cluster tables |
+| 0004 | `officer_notes.py` | officer_notes, officer_availability |
+| 0005 | `analytics_views.py` | mv_ward_stats, mv_dept_stats, mv_grievances_daily (materialized views) |
+| 0006 | `ward_names.py` | Updates 272 ward names from "Ward N" to real MCD names |
+| 0007 | `epic2_field_ops.py` | attachments.file_hash, complaint_checklists (23 seeded steps, 6 categories), checklist_completions |
+| 0008 | `epic3_contractor_accountability.py` | contracts, contractor_performance, budget_allocations, ward_representatives + 272 Delhi 2022 MCD councillors seeded |
+
+---
+
+## Database — key tables
+
+| Table | Notes |
+|---|---|
+| `grievances` | Core. `embedding vector(768)`, `location geography(POINT)`. HNSW + GiST + GIN indexes. |
+| `status_events` | Append-only audit log. Source of truth for timeline + accountability. |
+| `outbox_events` | Transactional outbox. SKIP LOCKED relay. Processed by Arq worker. |
+| `complaint_checklists` | Per-category quality steps (seed: 23 rows, 6 categories). |
+| `checklist_completions` | Officer's progress per grievance. Unique constraint: one completion per (grievance, step). |
+| `contracts` | Government contracts with ward_ids[], type, value_lakh, start/end dates, status. |
+| `contractor_performance` | Auto-computed baseline vs post-work complaint rate + spike % + economic waste. |
+| `budget_allocations` | Dept × fiscal_year × period × amount_crore. |
+| `ward_representatives` | One row per ward. 272 Delhi MCD 2022 election councillors seeded. |
+| `mv_ward_stats` | Materialized. Ward-level open/total/SLA counts. Refreshed every 15min. |
+| `mv_dept_stats` | Materialized. Dept resolution rate, CSAT, reopen rate. |
+| `mv_grievances_daily` | Materialized. Daily rollup by dept × category. |
+| `feedback` | CSAT 1–5 after closure. Auto-triggers reopen if score ≤ 2. |
+| `escalation_records` | Every escalation step (4 levels). |
+
+---
+
+## Arq worker jobs
+
+| Job | Trigger | What |
+|---|---|---|
+| `enrich_grievance` | On `grievance.created` outbox event | Groq AI: classify + severity + embed + spam + cluster |
+| `assign_grievance` | On `grievance.enriched` outbox event | Dept/officer routing + SLA clock start |
+| `notify_citizen` | On any of 9 lifecycle events | WhatsApp/SMS status-change notification |
+| `relay_outbox` | Cron every 5s | Dispatches enrich + assign + notify jobs from outbox |
+| `check_sla_breaches` | Cron every 5min | Detects breach, escalates up the 4-level ladder |
+| `refresh_analytics_views` | Cron every 15min | REFRESH MATERIALIZED VIEW for mv_* |
+| `correlate_contractors` | Cron Sunday 02:00 IST (20:30 UTC) | Computes complaint spike for all completed contracts |
 
 ---
 
@@ -179,11 +255,9 @@ jansetu/ (git: dcos/)
 4. **Alembic migrations forward-only.** Never edit a shipped migration.
 5. **Feature flags** in `config.py`: `FEATURE_AI_CLASSIFY`, `FEATURE_WHATSAPP_INTAKE`, `FEATURE_ANALYTICS_NL_QUERY`.
 6. **RLS**: use `RlsDbSession` for scoped reads. Workers bypass via `set_config('app.bypass_rls','true',true)`.
-7. **Tracking IDs**: `JS-YYYYMMDD-XXXXXXXX` (8-char hex suffix). Changed from `DCOS-` in Jun 2026.
-9. **Chatbot**: `FEATURE_CHATBOT=true`
-10. **WhatsApp handler** (`intake/whatsapp.py`): all message logic isolated here. handle_message() is the entry point. Language stored in Redis state. Interactive buttons/lists via send_buttons()/send_list(). File complaint via file_complaint(). Report via get_user_complaints(). (default). FAQ matching is client-side (instant). Non-FAQ → Groq. Feature flag disables the `/chatbot/ask` endpoint.
-8. **AI provider**: Groq (`llama-3.3-70b-versatile`) primary; OpenRouter + Gemini as fallbacks.
-   Set via `AI_PROVIDER` env var. `_make_tracking_id()` in `intake/service.py`.
+7. **Router path ordering**: static paths (e.g. `/scorecard/public`, `/ward-reps`) must be defined **before** `/{id}` parameterised routes or FastAPI captures them first.
+8. **Array server_default**: use `sa.text("'{}'")`  not `"'{}'"` — the latter double-quotes in asyncpg.
+9. **AI provider**: Groq (`llama-3.3-70b-versatile`) primary. `~1.4s` classification time.
 
 ---
 
@@ -193,50 +267,13 @@ jansetu/ (git: dcos/)
 
 **JWT flow:**
 - Supabase project `nggbydarhctzacxzivyw` (ap-southeast-1) — **ES256** via JWKS, cached 1h.
-- App role comes from **`app_metadata.dcos_role`** (admin-only). `user_metadata` is IGNORED for roles
-  (prevents privilege escalation — anti-escalation test in `test_auth.py`).
-- Local dev: HS256 via `JWT_SECRET`, issued by `POST /api/v1/identity/token` (disabled in production).
-- Frontend: token mirrored to `localStorage.dcos_token` via `onAuthStateChange`.
+- Role from `app_metadata.dcos_role` (admin-only write). `user_metadata` is ignored for roles.
+- Local dev: HS256 via `JWT_SECRET`, issued by `POST /api/v1/identity/token` (disabled in prod).
+- Demo citizen: phone `+919999000000`, OTP `000000` — pure `localStorage` bypass, zero Supabase calls.
 
-**Supabase pooler** (production DB connection):
-- Host: `aws-1-ap-southeast-1.pooler.supabase.com` (note: `aws-1`, not `aws-0`)
-- Port: **5432** (session mode — supports prepared statements with asyncpg)
-- Transaction mode (6543) does NOT work with asyncpg prepared statements.
-
----
-
-## DB schema — key tables
-
-| Table | Notes |
-|---|---|
-| `grievances` | Core table. `embedding vector(768)`, `location geography(POINT)`. HNSW + GiST + GIN indexes. |
-| `status_events` | Append-only audit log. Source of truth for timeline + accountability. |
-| `outbox_events` | Transactional outbox. SKIP LOCKED relay. Processed by Arq worker. |
-| `mv_ward_stats` | Materialized view. Ward-level open/total/sla counts. Refreshed every 15min by worker. |
-| `mv_dept_stats` | Materialized view. Dept resolution rate, CSAT, reopen rate. |
-| `mv_grievances_daily` | Materialized view. Daily rollup by dept × category. |
-| `notification_preferences` | Per-user channel opt-in/out (Epic 8). |
-| `feedback` | CSAT 1–5 after closure. |
-| `escalation_records` | Every auto-escalation step (4 levels). |
-
----
-
-## Epics 8–10 + extras reference
-
-**Epic 8 (citizen):** CSAT, reopen, WhatsApp/SMS (no-ops without keys), public-stats endpoint.
-
-**Epic 9 (analytics):** Materialized views, KPI endpoint, hotspots, leaderboard, NL→SQL (Groq),
-executive brief (text), CSV exports. `refresh_analytics_views()` PG function called by worker cron.
-**GIS heatmap:** `components/GisMap.tsx` — MapLibre GL, CARTO basemaps, circle-per-ward.
-
-**Epic 10 (hardening):** SecurityHeadersMiddleware, RateLimitMiddleware (skipped in `local` env),
-IntegrationService + RestAdapter framework. RLS defense-in-depth on all scoped tables.
-
-**i18n (Jun 2026):** `LanguageProvider` + `useLanguage()`. 138 strings EN/HI.
-Script: `GROQ_API_KEY=... node apps/web/scripts/translate.mjs` to regenerate.
-Layouts that need translation must be `"use client"` — server components can't read context.
-
-**Rebrand (Jun 2026):** DCOS → JanSetu. Tracking IDs: `DCOS-` → `JS-`.
+**Supabase pooler:**
+- Host: `aws-1-ap-southeast-1.pooler.supabase.com` (`aws-1`, not `aws-0`)
+- Port: **5432** session mode (transaction mode 6543 breaks asyncpg prepared statements)
 
 ---
 
@@ -244,11 +281,11 @@ Layouts that need translation must be `"use client"` — server components can't
 
 | Pattern | Problem | Fix |
 |---|---|---|
-| `:name::type` | SQLAlchemy parser doesn't replace `:name` before `::type` | Use `CAST(:name AS type)` |
+| `:name::type` | SQLAlchemy doesn't replace `:name` before `::type` | Use `CAST(:name AS type)` |
 | `::vector` | Same + asyncpg binary codec | `CAST(:emb AS vector)` |
 | `::uuid` | Same | `CAST(:id AS uuid)` |
 | `NULL` param type | asyncpg can't infer type of `$N` when value is None | Split into two queries |
-| Param in CASE + SET | asyncpg infers different types (varchar vs text) | Compute in Python, use simple `:status` |
+| Array server_default | `server_default="'{}'"`  → `DEFAULT '''{}'''` | `server_default=sa.text("'{}'")`  |
 
 ---
 
@@ -262,19 +299,19 @@ cd infra && docker compose up -d
 cd apps/api && source .venv/bin/activate
 DATABASE_URL="postgresql+asyncpg://dcos:dcos@localhost:5432/dcos" alembic upgrade head
 DATABASE_URL="postgresql://dcos:dcos@localhost:5432/dcos" python -m scripts.seed
-python main.py                        # → http://localhost:8000/docs
+python main.py    # → http://localhost:8000/docs
 
-# Worker (AI + notifications + analytics refresh)
+# Worker (AI + SLA + notifications + analytics + contractor correlation)
 arq app.worker.WorkerSettings
 
 # Frontend
-cd ../.. && pnpm --filter web dev     # → http://localhost:3000
+cd ../.. && pnpm --filter web dev    # → http://localhost:3000
 ```
 
-**Dashboards empty?** Docker stopped. `docker compose up -d` → restart API.
+**Dashboards empty?** Docker stopped → `cd infra && docker compose up -d` → restart API.
 
 **Prod DB migrations:**
 ```bash
-DATABASE_URL="postgresql://postgres.nggbydarhctzacxzivyw:PASSWORD@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?sslmode=require" \
+DATABASE_URL="postgresql+asyncpg://postgres.nggbydarhctzacxzivyw:PASSWORD@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres?ssl=require" \
   alembic upgrade head
 ```
