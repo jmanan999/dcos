@@ -4,7 +4,6 @@ import Link from "next/link";
 import { ArrowRight, MessageCircle, Mic, Globe, TrendingUp, CheckCircle, Timer, Building2, Database, Map, BarChart3 } from "lucide-react";
 import { usePublicStats } from "@/lib/hooks";
 import { useLanguage } from "@/lib/i18n";
-import { HeroMap } from "@/components/marketing/hero-map";
 
 // Realistic Delhi governance metrics — live data layered on top when available
 const FALLBACK = {
@@ -31,9 +30,9 @@ export default function LandingPage() {
   return (
     <main className="pt-[60px] bg-[#FAFAFA]">
 
-      {/* ── HERO — IC Bold split: left type, right live Delhi ward map ─── */}
+      {/* ── HERO — IC Bold split: left type, right live data ─── */}
       <section className="border-b-2 border-[#080808]">
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_480px] min-h-[calc(100vh-60px)]">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] min-h-[calc(100vh-60px)]">
 
           {/* Left — headline + CTAs */}
           <div className="flex flex-col justify-center px-16 py-20 border-r-0 lg:border-r-2 lg:border-[#080808]">
@@ -92,56 +91,66 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Right — live Delhi ward heatmap */}
-          <div className="hidden lg:block border-t-0 border-[#080808] relative overflow-hidden" style={{ minHeight: "calc(100vh - 60px)" }}>
-            <HeroMap />
-          </div>
-        </div>
-      </section>
+          {/* Right — live stats panel */}
+          <div className="flex flex-col border-t-2 lg:border-t-0 border-[#080808] divide-y-2 divide-[#080808] bg-white">
+            {/* Header */}
+            <div className="px-8 py-5 bg-[#080808]">
+              <p className="label-caps text-[#E8920A] mb-1">{t("landing.metrics_label")}</p>
+              <p className="text-white font-grotesk font-black text-lg tracking-tight">{t("landing.metrics_title")}</p>
+            </div>
 
-      {/* ── LIVE METRICS — horizontal strip replacing old right panel stats ─── */}
-      <section className="border-b-2 border-[#080808] bg-white">
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x-2 divide-y-2 sm:divide-y-0 divide-[#080808] border-t-2 border-[#080808]">
-          <div className="px-8 py-8 group hover:bg-[#FFF8EE] transition-colors">
-            <p className="label-caps text-[#6B7280] mb-3 flex items-center gap-2">
-              <TrendingUp className="h-3.5 w-3.5" />
-              {t("landing.stat_total")}
-            </p>
-            <p className="font-grotesk font-black text-[#080808] tracking-[-0.03em] tabular-nums leading-none text-4xl sm:text-5xl">
-              {(data?.total_filed ?? FALLBACK.total_filed).toLocaleString("en-IN")}
-            </p>
-            <p className="text-xs text-[#6B7280] mt-2">{t("landing.trend_lastmonth")}</p>
-          </div>
-          <div className="px-8 py-8 group hover:bg-[#FFF8EE] transition-colors">
-            <p className="label-caps text-[#6B7280] mb-3 flex items-center gap-2">
-              <CheckCircle className="h-3.5 w-3.5" />
-              {t("landing.stat_resolution")}
-            </p>
-            <p className="font-grotesk font-black text-[#E8920A] tracking-[-0.03em] tabular-nums leading-none text-4xl sm:text-5xl">
-              {resolveRate}%
-            </p>
-            <p className="text-xs text-[#6B7280] mt-2">{t("landing.trend_target")}</p>
-          </div>
-          <div className="px-8 py-8 group hover:bg-[#FFF8EE] transition-colors">
-            <p className="label-caps text-[#6B7280] mb-3 flex items-center gap-2">
-              <Timer className="h-3.5 w-3.5" />
-              {t("landing.stat_avg_days")}
-            </p>
-            <p className="font-grotesk font-black text-[#080808] tracking-[-0.03em] tabular-nums leading-none text-4xl sm:text-5xl">
-              {avgDays ?? FALLBACK.avgDays}
-              <span className="text-[#6B7280] text-2xl">d</span>
-            </p>
-            <p className="text-xs text-[#6B7280] mt-2">{t("landing.trend_efficiency")}</p>
-          </div>
-          <div className="px-8 py-8 group hover:bg-[#FFF8EE] transition-colors">
-            <p className="label-caps text-[#6B7280] mb-3 flex items-center gap-2">
-              <Building2 className="h-3.5 w-3.5" />
-              {t("landing.stat_depts")}
-            </p>
-            <p className="font-grotesk font-black text-[#080808] tracking-[-0.03em] tabular-nums leading-none text-4xl sm:text-5xl">
-              {String(data?.by_department?.length ?? FALLBACK.depts)}
-            </p>
-            <p className="text-xs text-[#6B7280] mt-2">{t("landing.trend_coverage")}</p>
+            {/* Stat 1 */}
+            <div className="px-8 py-8 group hover:bg-[#FFF8EE] transition-colors">
+              <p className="label-caps text-[#6B7280] mb-3 flex items-center gap-2">
+                <TrendingUp className="h-3.5 w-3.5" />
+                {t("landing.stat_total")}
+              </p>
+              <p className="font-grotesk font-black text-[#080808] tracking-[-0.03em] tabular-nums leading-none"
+                 style={{ fontSize: "clamp(36px, 5vw, 56px)" }}>
+                {(data?.total_filed ?? FALLBACK.total_filed).toLocaleString("en-IN")}
+              </p>
+              <p className="text-xs text-[#6B7280] mt-2">{t("landing.trend_lastmonth")}</p>
+            </div>
+
+            {/* Stat 2 */}
+            <div className="px-8 py-8 group hover:bg-[#FFF8EE] transition-colors">
+              <p className="label-caps text-[#6B7280] mb-3 flex items-center gap-2">
+                <CheckCircle className="h-3.5 w-3.5" />
+                {t("landing.stat_resolution")}
+              </p>
+              <p className="font-grotesk font-black text-[#E8920A] tracking-[-0.03em] tabular-nums leading-none"
+                 style={{ fontSize: "clamp(36px, 5vw, 56px)" }}>
+                {resolveRate}%
+              </p>
+              <p className="text-xs text-[#6B7280] mt-2">{t("landing.trend_target")}</p>
+            </div>
+
+            {/* Stat 3 */}
+            <div className="px-8 py-8 group hover:bg-[#FFF8EE] transition-colors">
+              <p className="label-caps text-[#6B7280] mb-3 flex items-center gap-2">
+                <Timer className="h-3.5 w-3.5" />
+                {t("landing.stat_avg_days")}
+              </p>
+              <p className="font-grotesk font-black text-[#080808] tracking-[-0.03em] tabular-nums leading-none"
+                 style={{ fontSize: "clamp(36px, 5vw, 56px)" }}>
+                {avgDays ?? FALLBACK.avgDays}
+                <span className="text-[#6B7280] font-grotesk font-black" style={{ fontSize: "clamp(18px, 2.5vw, 28px)" }}>d</span>
+              </p>
+              <p className="text-xs text-[#6B7280] mt-2">{t("landing.trend_efficiency")}</p>
+            </div>
+
+            {/* Stat 4 */}
+            <div className="px-8 py-8 group hover:bg-[#FFF8EE] transition-colors flex-1">
+              <p className="label-caps text-[#6B7280] mb-3 flex items-center gap-2">
+                <Building2 className="h-3.5 w-3.5" />
+                {t("landing.stat_depts")}
+              </p>
+              <p className="font-grotesk font-black text-[#080808] tracking-[-0.03em] tabular-nums leading-none"
+                 style={{ fontSize: "clamp(36px, 5vw, 56px)" }}>
+                {String(data?.by_department?.length ?? FALLBACK.depts)}
+              </p>
+              <p className="text-xs text-[#6B7280] mt-2">{t("landing.trend_coverage")}</p>
+            </div>
           </div>
         </div>
       </section>

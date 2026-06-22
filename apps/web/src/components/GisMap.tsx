@@ -207,7 +207,7 @@ export function GisMap({ wards, theme = "dark", height = "h-full", className = "
   return (
     <div
       ref={containerRef}
-      className={`relative w-full overflow-hidden ${height} ${className}`}
+      className={`relative w-full overflow-hidden rounded-xl ${height} ${className}`}
     />
   );
 }
