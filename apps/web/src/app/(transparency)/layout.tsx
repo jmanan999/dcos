@@ -20,22 +20,22 @@ function TransparencyHeader() {
   ];
 
   return (
-    <div className="border-b-2 border-[#080808] bg-white">
+    <div className="border-b-2 border-[#1A6645] bg-white">
       <div className="max-w-[1280px] mx-auto px-16">
         <div className="flex flex-col gap-0 pt-8">
           <div className="mb-6">
             <div className="flex items-center gap-3 mb-2">
               {/* Amber accent bar */}
               <div className="w-1 h-7 bg-[#E8920A]" />
-              <h1 className="text-2xl font-black tracking-tight text-[#080808] font-grotesk">
+              <h1 className="text-2xl font-black tracking-tight text-[#0F2B1F] font-grotesk">
                 {t("transparency.title")}
               </h1>
             </div>
-            <p className="ml-4 text-sm text-[#6B7280] leading-relaxed">{t("transparency.subtitle")}</p>
+            <p className="ml-4 text-sm text-[#4D7A63] leading-relaxed">{t("transparency.subtitle")}</p>
           </div>
 
           {/* Tab navigation — IC Bold underline style */}
-          <nav className="flex gap-0 border-t border-[#E5E7EB]">
+          <nav className="flex gap-0 border-t border-[#C8E0D4]">
             {TABS.map((tab) => {
               const active = pathname === tab.href || (tab.href !== "/transparency" && pathname.startsWith(tab.href));
               return (
@@ -45,8 +45,8 @@ function TransparencyHeader() {
                   className={cn(
                     "px-5 py-3 label-caps border-b-2 -mb-px transition-colors",
                     active
-                      ? "text-[#080808] border-[#E8920A]"
-                      : "text-[#6B7280] border-transparent hover:text-[#080808] hover:border-[#E5E7EB]"
+                      ? "text-[#0F2B1F] border-[#E8920A]"
+                      : "text-[#4D7A63] border-transparent hover:text-[#0F2B1F] hover:border-[#C8E0D4]"
                   )}
                 >
                   {tab.label}
@@ -63,7 +63,7 @@ function TransparencyHeader() {
 export default function TransparencyLayout({ children }: { children: React.ReactNode }) {
   return (
     <LanguageProvider>
-      <div className="flex min-h-screen flex-col bg-[#FAFAFA]">
+      <div className="flex min-h-screen flex-col bg-[#F8FAF9]">
         <MarketingHeader />
         <main className="flex-1 pt-[60px]">
           <TransparencyHeader />

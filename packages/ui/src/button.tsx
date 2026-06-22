@@ -7,10 +7,10 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   loading?: boolean;
 }
 
-/* IC Bold: sharp corners, no shadow, bold typography */
+/* Viridian: sharp corners, forest green primary, amber accent */
 const variants = {
   primary:
-    "bg-foreground text-background hover:bg-foreground/85 focus-visible:ring-ring",
+    "bg-primary text-primary-foreground hover:bg-primary-hover focus-visible:ring-ring",
   amber:
     "bg-accent text-accent-foreground hover:bg-accent-hover focus-visible:ring-ring",
   secondary:

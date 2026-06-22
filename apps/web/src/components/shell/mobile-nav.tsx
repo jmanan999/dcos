@@ -25,13 +25,13 @@ export function MobileNav({ sections, brandTitle }: { sections: NavSection[]; br
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-[#080808]/70"
+            className="absolute inset-0 bg-[#0D2318]/70"
             onClick={() => setOpen(false)}
           />
           {/* Drawer */}
-          <div className="absolute left-0 top-0 h-full w-72 bg-[#080808] border-r border-[#1f1f1f] animate-fade-in flex flex-col">
+          <div className="absolute left-0 top-0 h-full w-72 bg-[#0D2318] border-r border-[#163D2A] animate-fade-in flex flex-col">
             {/* Brand */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f1f1f]">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#163D2A]">
               <div className="flex items-center gap-3">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/logo-icon.png" alt="JanSetu" className="h-8 w-8 object-contain" />
@@ -71,7 +71,7 @@ export function MobileNav({ sections, brandTitle }: { sections: NavSection[]; br
               })}
             </nav>
 
-            <div className="px-5 pb-5 border-t border-[#1f1f1f] pt-3">
+            <div className="px-5 pb-5 border-t border-[#163D2A] pt-3">
               <p className="text-[10px] text-white/20 uppercase tracking-[0.12em] font-grotesk">v1 · NCT Delhi</p>
             </div>
           </div>

@@ -50,7 +50,7 @@ function LoginInner() {
 
   return (
     <div className="space-y-7">
-      <div className="space-y-2 pb-2 border-b-2 border-[#080808]">
+      <div className="space-y-2 pb-2 border-b-2 border-[#1A6645]">
         <h1 className="text-2xl font-black tracking-tight text-foreground font-grotesk">{t("login.welcome")}</h1>
         <p className="text-sm text-muted-foreground">{t("login.subtitle")}</p>
       </div>
@@ -93,7 +93,7 @@ function LoginInner() {
 
       <p className="text-center text-sm text-muted-foreground">
         {t("login.new_citizen")}{" "}
-        <Link href="/signup" className="font-bold text-[#E8920A] hover:underline">
+        <Link href="/signup" className="font-bold text-[#1A6645] hover:underline">
           {t("login.create_account")}
         </Link>
       </p>
@@ -149,7 +149,7 @@ function CitizenLogin({
   return (
     <div className="space-y-4 pt-2">
       {/* Demo hint — always visible so judges/reviewers can log in instantly */}
-      <div className="border border-[#E8920A] bg-[#FFF8EE] px-3 py-2.5 text-xs text-[#E8920A]">
+      <div className="border border-[#1A6645] bg-[#EEF7F2] px-3 py-2.5 text-xs text-[#1A6645]">
         <span className="font-black font-grotesk">Demo:</span> Phone pre-filled · OTP is{" "}
         <span className="font-mono font-black tracking-widest">{DEMO_OTP}</span>
       </div>

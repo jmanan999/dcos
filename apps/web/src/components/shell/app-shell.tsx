@@ -49,18 +49,18 @@ export function AppShell({
 
   return (
     <LanguageProvider>
-    <div className="flex min-h-screen bg-[#FAFAFA]">
+    <div className="flex min-h-screen bg-[#F8FAF9]">
 
       {/* ── Sidebar — IC Bold: jet black, amber active ───────── */}
       <aside
         className={cn(
-          "hidden lg:flex fixed left-0 top-0 h-full flex-col bg-[#080808] z-50",
-          "transition-[width] duration-200 ease-in-out border-r border-[#1f1f1f]",
+          "hidden lg:flex fixed left-0 top-0 h-full flex-col bg-[#0D2318] z-50",
+          "transition-[width] duration-200 ease-in-out border-r border-[#163D2A]",
           expanded ? "w-56" : "w-[68px]"
         )}
       >
         {/* Logo */}
-        <div className="flex h-14 shrink-0 items-center border-b border-[#1f1f1f] overflow-hidden">
+        <div className="flex h-14 shrink-0 items-center border-b border-[#163D2A] overflow-hidden">
           <div className={cn(
             "flex items-center gap-3 transition-all duration-200",
             expanded ? "px-4" : "justify-center w-full"
@@ -101,7 +101,7 @@ export function AppShell({
                   <span className="text-[13px] font-semibold truncate">{item.label}</span>
                 )}
                 {!expanded && (
-                  <span className="pointer-events-none absolute left-full ml-2 whitespace-nowrap border border-[#1f1f1f] bg-[#080808] px-3 py-1.5 text-[11px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity z-50 tracking-wide">
+                  <span className="pointer-events-none absolute left-full ml-2 whitespace-nowrap border border-[#163D2A] bg-[#0D2318] px-3 py-1.5 text-[11px] font-bold text-white opacity-0 group-hover:opacity-100 transition-opacity z-50 tracking-wide">
                     {item.label}
                   </span>
                 )}
@@ -111,7 +111,7 @@ export function AppShell({
         </nav>
 
         {/* Footer */}
-        <div className="shrink-0 border-t border-[#1f1f1f] py-2">
+        <div className="shrink-0 border-t border-[#163D2A] py-2">
           {expanded && (
             <div className="px-4 pb-2">
               <p className="text-[10px] text-white/20 uppercase tracking-[0.12em] font-grotesk">v1 · NCT Delhi</p>

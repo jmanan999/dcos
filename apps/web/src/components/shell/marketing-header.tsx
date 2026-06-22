@@ -19,13 +19,13 @@ export function MarketingHeader() {
   ];
 
   return (
-    <nav className="fixed top-0 w-full h-[60px] bg-[#FAFAFA] border-b-2 border-[#080808] z-50 flex items-center justify-between px-16">
+    <nav className="fixed top-0 w-full h-[60px] bg-[#F8FAF9] border-b-2 border-[#1A6645] z-50 flex items-center justify-between px-16">
       {/* Left: wordmark */}
       <div className="flex items-center gap-12">
         <Link href="/" className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-icon.png" alt="JanSetu" className="h-9 w-9 object-contain" />
-          <span className="text-[18px] font-black text-[#080808] tracking-tight font-grotesk leading-none">
+          <span className="text-[18px] font-black text-[#0F2B1F] tracking-tight font-grotesk leading-none">
             JanSetu
           </span>
         </Link>
@@ -38,8 +38,8 @@ export function MarketingHeader() {
               href={l.href}
               className={
                 pathname.startsWith(l.href)
-                  ? "label-caps text-[#080808] border-b-2 border-[#E8920A] pb-0.5"
-                  : "label-caps text-[#6B7280] hover:text-[#080808] transition-colors pb-0.5"
+                  ? "label-caps text-[#0F2B1F] border-b-2 border-[#E8920A] pb-0.5"
+                  : "label-caps text-[#4D7A63] hover:text-[#0F2B1F] transition-colors pb-0.5"
               }
             >
               {l.label}
@@ -53,7 +53,7 @@ export function MarketingHeader() {
         {/* Language toggle */}
         <button
           onClick={() => setLang(lang === "en" ? "hi" : "en")}
-          className="label-caps text-[#6B7280] hover:text-[#080808] transition-colors border border-[#E5E7EB] px-3 py-1.5 hover:border-[#080808]"
+          className="label-caps text-[#4D7A63] hover:text-[#0F2B1F] transition-colors border border-[#C8E0D4] px-3 py-1.5 hover:border-[#1A6645]"
         >
           {lang === "en" ? "हिंदी" : "English"}
         </button>
@@ -67,7 +67,7 @@ export function MarketingHeader() {
 
       {/* Mobile hamburger */}
       <button
-        className="md:hidden text-[#080808]"
+        className="md:hidden text-[#0F2B1F]"
         onClick={() => setOpen(!open)}
         aria-label="Menu"
       >
@@ -95,7 +95,7 @@ export function MarketingHeader() {
               {lang === "en" ? "हिंदी" : "English"}
             </button>
             <Link href="/login" onClick={() => setOpen(false)} className="ml-auto">
-              <button className="bg-[#E8920A] text-[#080808] px-5 py-2 label-caps font-black">
+              <button className="bg-[#E8920A] text-[#0F2B1F] px-5 py-2 label-caps font-black">
                 Sign In
               </button>
             </Link>

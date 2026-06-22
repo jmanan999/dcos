@@ -26,7 +26,7 @@ export function Topbar({ title, leading }: { title?: string; leading?: React.Rea
   };
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b-2 border-[#080808] bg-card px-6">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b-2 border-[#1A6645] bg-card px-6">
       {leading}
 
       {/* Page title */}

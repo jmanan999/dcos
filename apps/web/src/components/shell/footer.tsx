@@ -37,13 +37,13 @@ export function Footer() {
   ];
 
   return (
-    <footer className="bg-[#080808] border-t-2 border-[#1f1f1f] py-14">
+    <footer className="bg-[#0D2318] border-t-2 border-[#163D2A] py-14">
       <div className="max-w-[1280px] mx-auto px-16">
-        <div className="grid gap-10 md:grid-cols-4 pb-10 border-b border-[#1f1f1f]">
+        <div className="grid gap-10 md:grid-cols-4 pb-10 border-b border-[#163D2A]">
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2.5 mb-4">
-              <span className="flex h-7 w-7 items-center justify-center bg-[#E8920A] text-[#080808] text-[10px] font-black font-grotesk">
+              <span className="flex h-7 w-7 items-center justify-center bg-[#E8920A] text-[#0F2B1F] text-[10px] font-black font-grotesk">
                 JS
               </span>
               <p className="text-sm font-black text-white font-grotesk tracking-tight">JanSetu Delhi</p>

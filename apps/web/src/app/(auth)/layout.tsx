@@ -8,7 +8,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="grid min-h-screen lg:grid-cols-2">
 
         {/* Brand panel — IC Bold: black bg, amber accent, giant type */}
-        <div className="relative hidden flex-col justify-between overflow-hidden bg-[#080808] p-14 text-white lg:flex border-r-2 border-[#1f1f1f]">
+        <div className="relative hidden flex-col justify-between overflow-hidden bg-[#0D2318] p-14 text-white lg:flex border-r-2 border-[#163D2A]">
           {/* Subtle grid */}
           <div className="absolute inset-0 bg-ic-grid opacity-[0.4]" />
 
@@ -51,7 +51,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         {/* Form panel */}
-        <div className="flex items-center justify-center bg-[#FAFAFA] px-6 py-12">
+        <div className="flex items-center justify-center bg-[#F8FAF9] px-6 py-12">
           <div className="w-full max-w-sm">{children}</div>
         </div>
 
