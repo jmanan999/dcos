@@ -138,14 +138,12 @@ class CitizenService:
 
     async def get_public_stats(self) -> PublicKPISnapshot:
         """Return anonymized aggregated stats for the public transparency dashboard."""
-        import logging
-        log = logging.getLogger(__name__)
-
         # ── totals ───────────────────────────────────────────────────────────────
         total_filed = total_resolved = total_open = 0
         avg_hours: float | None = None
         try:
-            r = await self._db.execute(text("""
+            r = await self._db.execute(
+                text("""
                 SELECT
                     COUNT(*) AS total_filed,
                     COUNT(*) FILTER (WHERE status IN ('RESOLVED','VERIFIED','CLOSED')) AS total_resolved,
@@ -155,7 +153,8 @@ class CitizenService:
                         FILTER (WHERE closed_at IS NOT NULL), 2
                     ) AS avg_resolution_hours
                 FROM grievances
-            """))
+            """)
+            )
             t = r.fetchone()
             if t:
                 total_filed = int(t[0] or 0)
@@ -168,12 +167,14 @@ class CitizenService:
         # ── by_category ──────────────────────────────────────────────────────────
         categories: list[CategoryStat] = []
         try:
-            r = await self._db.execute(text("""
+            r = await self._db.execute(
+                text("""
                 SELECT category, COUNT(*) AS cnt
                 FROM grievances
                 WHERE category IS NOT NULL
                 GROUP BY category ORDER BY cnt DESC LIMIT 10
-            """))
+            """)
+            )
             categories = [CategoryStat(category=row[0], count=int(row[1])) for row in r.fetchall()]
         except Exception as exc:
             log.error("public_stats category query failed: %s", exc)
@@ -181,14 +182,16 @@ class CitizenService:
         # ── by_department ────────────────────────────────────────────────────────
         departments: list[DeptStat] = []
         try:
-            r = await self._db.execute(text("""
+            r = await self._db.execute(
+                text("""
                 SELECT COALESCE(d.name, 'Other') AS dept_name,
                        COUNT(*) AS total,
                        COUNT(*) FILTER (WHERE g.status IN ('RESOLVED','VERIFIED','CLOSED')) AS resolved
                 FROM grievances g
                 LEFT JOIN departments d ON d.id = g.department_id
                 GROUP BY 1 ORDER BY total DESC LIMIT 10
-            """))
+            """)
+            )
             departments = [
                 DeptStat(
                     department=row[0],
@@ -204,7 +207,8 @@ class CitizenService:
         # ── hotspots ─────────────────────────────────────────────────────────────
         hotspots: list[HotspotPoint] = []
         try:
-            r = await self._db.execute(text("""
+            r = await self._db.execute(
+                text("""
                 SELECT w.name,
                        w.centroid_lat,
                        w.centroid_lng,
@@ -217,7 +221,8 @@ class CitizenService:
                 GROUP BY w.id, w.name, w.centroid_lat, w.centroid_lng
                 HAVING COUNT(*) > 0
                 ORDER BY open_count DESC LIMIT 50
-            """))
+            """)
+            )
             hotspots = [
                 HotspotPoint(
                     ward_name=row[0],

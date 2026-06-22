@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 
+import structlog
 from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +15,8 @@ from app.modules.citizen.schemas import (
     ReopenRequest,
 )
 from app.modules.citizen.service import CitizenService
+
+log = structlog.get_logger()
 
 router = APIRouter(prefix="/citizen", tags=["Citizen"])
 
@@ -65,11 +68,9 @@ async def reopen_grievance(
 @router.get("/public-stats", response_model=PublicKPISnapshot)
 async def public_stats(db: AsyncSession = Depends(get_db)) -> PublicKPISnapshot:
     """Anonymized, real-time stats for the public transparency dashboard. No auth required."""
-    import logging
-    log = logging.getLogger(__name__)
     try:
         await db.execute(text("SELECT set_config('app.bypass_rls', 'on', true)"))
     except Exception as exc:
-        log.warning("bypass_rls set_config failed (non-fatal): %s", exc)
+        log.warning("bypass_rls_failed", error=str(exc))
     svc = CitizenService(db)
     return await svc.get_public_stats()
