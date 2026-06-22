@@ -847,31 +847,31 @@ Rules:
     # TERI transport loss estimates. Conservative figures — real impact is higher.
 
     ECONOMIC_COST: dict[str, float] = {
-        "Pothole / Road Damage":     2_400,
-        "Road Repair Required":      2_400,
-        "Flyover / Bridge Damage":  12_000,
-        "Garbage Not Collected":     1_200,
-        "Stray Animal Menace":         800,
-        "Illegal Construction":      1_500,
-        "Waterlogging / Flooding":   5_200,
-        "Park Not Maintained":         400,
-        "No Water Supply":           4_200,
-        "Low Water Pressure":        2_100,
-        "Sewage Overflow":           6_800,
-        "Pipe Leakage / Burst":      3_100,
-        "Power Outage":             18_000,
-        "Low Voltage":               4_500,
-        "Traffic Signal Fault":      8_500,
-        "Bus Not Available on Route":1_100,
-        "Bus Delay":                   550,
-        "Industrial Air Pollution":  3_200,
-        "Construction Dust":         1_800,
-        "Metro Safety Concern":      2_200,
-        "Medicine Not Available":    7_500,
-        "Doctor Absent":             5_000,
-        "Noise Pollution":             600,
-        "Streetlight Not Working":   3_100,
-        "Encroachment":              2_000,
+        "Pothole / Road Damage": 2_400,
+        "Road Repair Required": 2_400,
+        "Flyover / Bridge Damage": 12_000,
+        "Garbage Not Collected": 1_200,
+        "Stray Animal Menace": 800,
+        "Illegal Construction": 1_500,
+        "Waterlogging / Flooding": 5_200,
+        "Park Not Maintained": 400,
+        "No Water Supply": 4_200,
+        "Low Water Pressure": 2_100,
+        "Sewage Overflow": 6_800,
+        "Pipe Leakage / Burst": 3_100,
+        "Power Outage": 18_000,
+        "Low Voltage": 4_500,
+        "Traffic Signal Fault": 8_500,
+        "Bus Not Available on Route": 1_100,
+        "Bus Delay": 550,
+        "Industrial Air Pollution": 3_200,
+        "Construction Dust": 1_800,
+        "Metro Safety Concern": 2_200,
+        "Medicine Not Available": 7_500,
+        "Doctor Absent": 5_000,
+        "Noise Pollution": 600,
+        "Streetlight Not Working": 3_100,
+        "Encroachment": 2_000,
     }
     DEFAULT_ECONOMIC_COST: float = 1_500
 
@@ -1013,17 +1013,19 @@ Rules:
             confidence = max(0.0, 100.0 - reopen_rate * 3)
 
             wpi = round(
-                resolution_rate * 0.35
-                + sla_rate * 0.25
-                + speed_score * 0.20
-                + confidence * 0.20,
+                resolution_rate * 0.35 + sla_rate * 0.25 + speed_score * 0.20 + confidence * 0.20,
                 1,
             )
             grade = (
-                "A" if wpi >= 80 else
-                "B" if wpi >= 65 else
-                "C" if wpi >= 50 else
-                "D" if wpi >= 35 else "F"
+                "A"
+                if wpi >= 80
+                else "B"
+                if wpi >= 65
+                else "C"
+                if wpi >= 50
+                else "D"
+                if wpi >= 35
+                else "F"
             )
 
             drag = open_cnt * self.DEFAULT_ECONOMIC_COST
@@ -1110,10 +1112,9 @@ Rules:
 
         # Seasonal monsoon risk (June-September → drainage/waterlogging spikes)
         from datetime import UTC, datetime
+
         current_month = datetime.now(UTC).month
-        monsoon_risk = 85 if 6 <= current_month <= 9 else (
-            60 if current_month in (5, 10) else 20
-        )
+        monsoon_risk = 85 if 6 <= current_month <= 9 else (60 if current_month in (5, 10) else 20)
 
         for r in rows:
             growth = float(r[4] or 0)
@@ -1209,9 +1210,7 @@ Rules:
             total_waste += waste_lakh
 
             risk = round(
-                (100 - resolution_rate) * 0.40
-                + breach_rate * 0.35
-                + (reopen_rate or 0) * 0.25,
+                (100 - resolution_rate) * 0.40 + breach_rate * 0.35 + (reopen_rate or 0) * 0.25,
                 1,
             )
             flag = "RED" if risk > 60 else "AMBER" if risk > 30 else "GREEN"
@@ -1254,6 +1253,7 @@ Rules:
         Every number is actionable. No vanity metrics.
         """
         from datetime import UTC, datetime
+
         kpis = await self.get_kpis()
         drag = await self.get_economic_drag()
         ward_idx = await self.get_ward_index()
@@ -1261,18 +1261,21 @@ Rules:
         contractors = await self.get_contractor_intelligence()
 
         # City health = avg of resolution rate, SLA compliance, economic efficiency
-        resolution_rate = (
-            (kpis.total_resolved / kpis.total_filed * 100) if kpis.total_filed else 0
-        )
+        resolution_rate = (kpis.total_resolved / kpis.total_filed * 100) if kpis.total_filed else 0
         sla_ok_rate = 100 - (
             (kpis.sla_breaches_active / kpis.total_open * 100) if kpis.total_open else 0
         )
         city_health = round((resolution_rate * 0.5 + sla_ok_rate * 0.5), 1)
         grade = (
-            "A" if city_health >= 80 else
-            "B" if city_health >= 65 else
-            "C" if city_health >= 50 else
-            "D" if city_health >= 35 else "F"
+            "A"
+            if city_health >= 80
+            else "B"
+            if city_health >= 65
+            else "C"
+            if city_health >= 50
+            else "D"
+            if city_health >= 35
+            else "F"
         )
 
         # Top economic drains
@@ -1328,7 +1331,7 @@ Rules:
         if drag.trend_vs_last_week_pct > 10:
             actions.append(
                 f"Economic drag up {drag.trend_vs_last_week_pct:.0f}% vs last week "
-                f"(₹{drag.total_daily_drag_inr/100_000:.1f}L/day). Immediate SLA review needed."
+                f"(₹{drag.total_daily_drag_inr / 100_000:.1f}L/day). Immediate SLA review needed."
             )
         if ward_idx.wards_in_crisis > 0:
             actions.append(
@@ -1347,7 +1350,9 @@ Rules:
                 f"Recommend procurement audit."
             )
         if not actions:
-            actions.append("City governance within acceptable parameters. Focus on WPI improvement in bottom-10 wards.")
+            actions.append(
+                "City governance within acceptable parameters. Focus on WPI improvement in bottom-10 wards."
+            )
 
         return GovernanceScorecard(
             date=datetime.now(UTC).strftime("%d %B %Y"),

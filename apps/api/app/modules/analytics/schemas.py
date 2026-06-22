@@ -203,16 +203,16 @@ class EconomicDragItem(BaseModel):
     category: str
     open_count: int
     avg_days_open: float
-    daily_cost_per_complaint: float   # ₹/complaint/day (research-backed)
-    total_daily_drag: float           # ₹/day for this category
-    total_monthly_projection: float   # ₹/month at current rate
+    daily_cost_per_complaint: float  # ₹/complaint/day (research-backed)
+    total_daily_drag: float  # ₹/day for this category
+    total_monthly_projection: float  # ₹/month at current rate
 
 
 class EconomicDragReport(BaseModel):
-    total_daily_drag_inr: float       # headline number
+    total_daily_drag_inr: float  # headline number
     total_monthly_projection_inr: float
     total_annual_projection_inr: float
-    trend_vs_last_week_pct: float     # +ve = getting worse
+    trend_vs_last_week_pct: float  # +ve = getting worse
     by_category: list[EconomicDragItem]
     top_drain_category: str
     top_drain_daily_inr: float
@@ -221,17 +221,17 @@ class EconomicDragReport(BaseModel):
 class WardIntelligence(BaseModel):
     ward_name: str
     district_name: str | None
-    wpi: float                        # 0-100, higher = better governance
-    wpi_grade: str                    # A/B/C/D/F
-    wpi_rank: int                     # 1 = best ward in Delhi
+    wpi: float  # 0-100, higher = better governance
+    wpi_grade: str  # A/B/C/D/F
+    wpi_rank: int  # 1 = best ward in Delhi
     total_complaints: int
     open_complaints: int
-    resolution_rate: float            # %
-    sla_compliance_rate: float        # % resolved within SLA
+    resolution_rate: float  # %
+    sla_compliance_rate: float  # % resolved within SLA
     avg_resolution_hours: float
-    reopen_rate: float                # % closures that reopen = false closures
+    reopen_rate: float  # % closures that reopen = false closures
     economic_drag_daily_inr: float
-    wpi_change_30d: float             # +ve = improving
+    wpi_change_30d: float  # +ve = improving
 
 
 class WardIndexReport(BaseModel):
@@ -241,7 +241,7 @@ class WardIndexReport(BaseModel):
     top_5: list[str]
     bottom_5: list[str]
     total_economic_drag_daily: float
-    wards_in_crisis: int              # WPI < 30
+    wards_in_crisis: int  # WPI < 30
 
 
 class ContractRecord(BaseModel):
@@ -249,11 +249,11 @@ class ContractRecord(BaseModel):
     contractor_name: str
     department: str
     ward_names: list[str]
-    contract_type: str                # road/drainage/electrical/water/building
+    contract_type: str  # road/drainage/electrical/water/building
     value_lakh: float
     start_date: str
     end_date: str
-    status: str                       # active/completed/terminated
+    status: str  # active/completed/terminated
 
 
 class ContractorProfile(BaseModel):
@@ -261,11 +261,11 @@ class ContractorProfile(BaseModel):
     total_contracts: int
     total_value_lakh: float
     avg_post_completion_complaint_spike_pct: float
-    repeat_repair_rate: float         # % of work needing re-do within 6 months
-    estimated_waste_lakh: float       # economic cost attributed to their failures
-    risk_score: float                 # 0-100, higher = more risk
-    risk_flag: str                    # GREEN/AMBER/RED
-    flagged_contracts: list[str]      # contracts with high complaint correlation
+    repeat_repair_rate: float  # % of work needing re-do within 6 months
+    estimated_waste_lakh: float  # economic cost attributed to their failures
+    risk_score: float  # 0-100, higher = more risk
+    risk_flag: str  # GREEN/AMBER/RED
+    flagged_contracts: list[str]  # contracts with high complaint correlation
 
 
 class ContractorIntelligenceReport(BaseModel):
@@ -278,15 +278,15 @@ class ContractorIntelligenceReport(BaseModel):
 class PredictiveAlert(BaseModel):
     ward_name: str
     district_name: str | None
-    alert_type: str                   # "complaint_spike" | "sla_crisis" | "seasonal"
+    alert_type: str  # "complaint_spike" | "sla_crisis" | "seasonal"
     category: str
-    predicted_spike_pct: int          # expected % increase in next 30 days
-    confidence_pct: int               # model confidence
+    predicted_spike_pct: int  # expected % increase in next 30 days
+    confidence_pct: int  # model confidence
     days_until_peak: int
-    estimated_complaints: int         # predicted volume
+    estimated_complaints: int  # predicted volume
     economic_impact_if_ignored_lakh: float
     recommended_action: str
-    urgency: str                      # CRITICAL/HIGH/MEDIUM
+    urgency: str  # CRITICAL/HIGH/MEDIUM
 
 
 class PredictiveReport(BaseModel):
@@ -294,22 +294,23 @@ class PredictiveReport(BaseModel):
     total_wards_at_risk: int
     highest_risk_category: str
     total_economic_risk_lakh: float
-    monsoon_risk_score: int           # 0-100 (based on drainage/waterlogging patterns)
+    monsoon_risk_score: int  # 0-100 (based on drainage/waterlogging patterns)
     pre_emptive_budget_recommendation_lakh: float
 
 
 class GovernanceScorecard(BaseModel):
     """The CM's morning brief — one page, everything actionable."""
+
     date: str
-    city_health_score: float          # 0-100 composite
+    city_health_score: float  # 0-100 composite
     city_health_grade: str
     daily_economic_drag_inr: float
     daily_economic_drag_vs_last_week_pct: float
     # Top actions
-    top_5_economic_drains: list[dict]   # category → ₹/day
-    top_5_worst_wards: list[dict]       # ward → WPI
+    top_5_economic_drains: list[dict]  # category → ₹/day
+    top_5_worst_wards: list[dict]  # ward → WPI
     top_5_contractor_risks: list[dict]  # contractor → waste estimate
-    top_5_predictive_alerts: list[dict] # ward → risk
+    top_5_predictive_alerts: list[dict]  # ward → risk
     # Week comparison
     wpi_improving_wards: int
     wpi_declining_wards: int
