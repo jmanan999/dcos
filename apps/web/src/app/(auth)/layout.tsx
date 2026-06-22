@@ -29,7 +29,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               45<span className="text-white/20 font-black" style={{ fontSize: "clamp(32px, 4vw, 48px)" }}>s</span>
             </div>
             <h2 className="max-w-md font-grotesk font-black text-white leading-tight text-2xl tracking-tight">
-              JanSetu — People's Bridge to the Government of Delhi.
+              JanSetu &mdash; People&apos;s Bridge to the Government of Delhi.
             </h2>
             <ul className="space-y-3 text-sm text-white/50">
               {[

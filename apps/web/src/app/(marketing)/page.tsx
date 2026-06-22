@@ -38,7 +38,7 @@ export default function LandingPage() {
             {/* Giant headline */}
             <h1 className="font-grotesk font-black text-[#080808] leading-none tracking-[-0.03em] mb-6"
                 style={{ fontSize: "clamp(40px, 6vw, 72px)" }}>
-              Delhi's grievances.
+              Delhi&apos;s grievances.
               <br />
               <span className="text-[#E8920A]">Resolved.</span>
               <br />
@@ -247,7 +247,7 @@ export default function LandingPage() {
                   { href: "/transparency",            icon: Database, label: t("landing.open_data") },
                   { href: "/transparency/map",         icon: Map,      label: t("landing.ward_map") },
                   { href: "/transparency/departments", icon: BarChart3, label: t("landing.audit") },
-                ].map((l, i) => {
+                ].map((l) => {
                   const Icon = l.icon;
                   return (
                     <Link key={l.href} href={l.href}
