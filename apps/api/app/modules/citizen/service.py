@@ -167,10 +167,10 @@ class CitizenService:
 
         by_dept = await self._db.execute(
             text("""
-            SELECT d.name, COUNT(*) AS total,
+            SELECT COALESCE(d.name, 'Other'), COUNT(*) AS total,
                    COUNT(*) FILTER (WHERE g.status IN ('RESOLVED','VERIFIED','CLOSED')) AS resolved
             FROM grievances g
-            JOIN departments d ON d.id = g.department_id
+            LEFT JOIN departments d ON d.id = g.department_id
             GROUP BY d.name
             ORDER BY total DESC
             LIMIT 10

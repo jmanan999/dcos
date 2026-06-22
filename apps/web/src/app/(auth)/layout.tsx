@@ -13,9 +13,8 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="absolute inset-0 bg-ic-grid opacity-[0.4]" />
 
           <Link href="/" className="relative flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center bg-[#E8920A] text-[#080808] text-[11px] font-black font-grotesk select-none">
-              JS
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-icon.png" alt="JanSetu" className="h-10 w-10 object-contain" />
             <div className="leading-none">
               <p className="text-sm font-black text-white font-grotesk tracking-tight">JanSetu</p>
               <p className="text-[10px] uppercase tracking-[0.12em] text-white/35 font-grotesk">Delhi Grievance Portal</p>

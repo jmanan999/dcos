@@ -26,8 +26,13 @@ export const metadata: Metadata = {
     "JanSetu — File, track, and resolve civic grievances for Delhi. " +
     "Aapki shikayat, sarkar tak pahunche.",
   keywords: ["JanSetu", "Delhi", "grievance", "civic", "shikayat", "sarkar", "jansetu", "जनसेतु"],
-  manifest: "/manifest.json",
-  icons: { icon: "/favicon.ico", apple: "/apple-touch-icon.png" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "48x48" },
+      { url: "/logo-icon.png", sizes: "any" },
+    ],
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {

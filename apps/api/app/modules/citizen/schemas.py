@@ -50,8 +50,8 @@ class DeptStat(BaseModel):
 
 class HotspotPoint(BaseModel):
     ward_name: str
-    lat: float
-    lng: float
+    lat: float | None = None
+    lng: float | None = None
     open_count: int
     total_count: int
 

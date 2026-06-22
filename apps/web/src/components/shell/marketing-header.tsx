@@ -23,10 +23,8 @@ export function MarketingHeader() {
       {/* Left: wordmark */}
       <div className="flex items-center gap-12">
         <Link href="/" className="flex items-center gap-2.5">
-          {/* Amber mark */}
-          <span className="flex h-7 w-7 items-center justify-center bg-[#E8920A] text-[#080808] text-[10px] font-black font-grotesk">
-            JS
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-icon.png" alt="JanSetu" className="h-9 w-9 object-contain" />
           <span className="text-[18px] font-black text-[#080808] tracking-tight font-grotesk leading-none">
             JanSetu
           </span>

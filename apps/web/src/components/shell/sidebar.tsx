@@ -46,10 +46,8 @@ export function Sidebar({ sections }: { sections: NavSection[] }) {
           "flex items-center gap-3 transition-all duration-200",
           expanded ? "px-4" : "justify-center w-full"
         )}>
-          {/* IC Bold mark: amber square with black "JS" */}
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center bg-[#E8920A] text-[#080808] text-[11px] font-black select-none tracking-tight font-grotesk">
-            JS
-          </span>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-icon.png" alt="JanSetu" className="h-8 w-8 shrink-0 object-contain" />
           {expanded && (
             <div className="leading-none min-w-0">
               <p className="text-sm font-black text-white truncate font-grotesk tracking-tight">JanSetu</p>

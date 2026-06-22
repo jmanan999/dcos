@@ -33,9 +33,8 @@ export function MobileNav({ sections, brandTitle }: { sections: NavSection[]; br
             {/* Brand */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-[#1f1f1f]">
               <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center bg-[#E8920A] text-[#080808] text-[10px] font-black font-grotesk">
-                  JS
-                </span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo-icon.png" alt="JanSetu" className="h-8 w-8 object-contain" />
                 <span className="text-sm font-black text-white font-grotesk tracking-tight">{brandTitle}</span>
               </div>
               <button
