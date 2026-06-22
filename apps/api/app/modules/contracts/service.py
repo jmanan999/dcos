@@ -15,9 +15,9 @@ from app.modules.contracts.schemas import (
     BudgetOutcomeReport,
     BudgetOutcomeRow,
     ContractCreate,
-    ContractPerformanceRead,
     ContractorScorecardReport,
     ContractorScorecardRow,
+    ContractPerformanceRead,
     ContractProject,
     ContractRead,
     ContractUpdate,
@@ -181,7 +181,7 @@ class ContractsService:
         if not row or row[5] != "completed" or not row[4]:
             return None
 
-        ward_ids, contract_type, value_lakh, start_date, end_date = (
+        ward_ids, contract_type, _, start_date, end_date = (
             row[0],
             row[1],
             float(row[2]),

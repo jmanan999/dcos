@@ -305,7 +305,7 @@ Rules:
 
             result = await self._db.execute(text(sql))
             cols = list(result.keys())
-            rows = [dict(zip(cols, r)) for r in result.fetchall()]
+            rows = [dict(zip(cols, r, strict=False)) for r in result.fetchall()]
             return NLQueryResponse(question=req.question, sql=sql, results=rows)
 
         except Exception as exc:
@@ -1416,14 +1416,13 @@ Rules:
         **{m: "Post-Monsoon" for m in (10, 11)},
     }
 
-    async def get_enhanced_predictions(self) -> "EnhancedPredictiveReport":
+    async def get_enhanced_predictions(self) -> EnhancedPredictiveReport:
         from app.modules.analytics.schemas import (
             EnhancedPredictiveAlert,
             EnhancedPredictiveReport,
         )
 
         current_month = datetime.now(UTC).month
-        base_seasonal = self._SEASONAL.get(current_month, 1.0)
         next_month = (current_month % 12) + 1
         next_seasonal = self._SEASONAL.get(next_month, 1.0)
 
@@ -1556,7 +1555,7 @@ Rules:
 
     # ── E4.2: Officer Burnout Scoring ─────────────────────────────────────────
 
-    async def compute_burnout_scores(self) -> "BurnoutReport":
+    async def compute_burnout_scores(self) -> BurnoutReport:
         from app.modules.analytics.schemas import BurnoutReport, OfficerBurnoutScore
 
         rows = (
@@ -1618,7 +1617,7 @@ Rules:
         dept_load: dict[str, int] = {}
 
         for r in rows:
-            officer_id, name, dept, dept_id = str(r[0]), r[1], r[2], r[3]
+            officer_id, name, dept, _ = str(r[0]), r[1], r[2], r[3]
             open_cases, breach_rate = int(r[4] or 0), float(r[5] or 0)
             avg_csat = float(r[6]) if r[6] is not None else None
             csat_decline = float(r[7]) if r[7] is not None else None
@@ -1688,7 +1687,7 @@ Rules:
 
     # ── E4.4: Ward Early Warning System ──────────────────────────────────────
 
-    async def get_early_warning(self) -> "EarlyWarningReport":
+    async def get_early_warning(self) -> EarlyWarningReport:
         from app.modules.analytics.schemas import (
             EarlyWarningReport,
             WardEarlyWarning,
@@ -1819,7 +1818,7 @@ Rules:
 
     # ── E4.3: Policy Simulator ────────────────────────────────────────────────
 
-    async def simulate_policy(self, request: "SimulationRequest") -> "SimulationResult":
+    async def simulate_policy(self, request: SimulationRequest) -> SimulationResult:
         from app.modules.analytics.schemas import (
             SimulationDeptResult,
             SimulationResult,
@@ -1927,7 +1926,7 @@ Rules:
 
     # ── E4.5: Pre-emptive Alert Segmentation ─────────────────────────────────
 
-    async def get_preemptive_at_risk_wards(self) -> "PreemptiveAlertReport":
+    async def get_preemptive_at_risk_wards(self) -> PreemptiveAlertReport:
         from app.modules.analytics.schemas import (
             PreemptiveAlertReport,
             PreemptiveAlertWard,
