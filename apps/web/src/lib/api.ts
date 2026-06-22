@@ -1,6 +1,8 @@
 import { TOKEN_STORAGE_KEY } from "./auth/config";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+// In production: relative path → Vercel edge proxies to Render (no CORS).
+// In local dev: NEXT_PUBLIC_API_URL=http://localhost:8000 hits local API directly.
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 /** Read the local-JWT token from storage (browser only). */
 function storedToken(): string | null {
