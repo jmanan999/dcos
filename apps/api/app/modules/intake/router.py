@@ -114,18 +114,25 @@ async def upload_attachment(
     if file.content_type in ("image/jpeg", "image/png", "image/webp"):
         exif_lat, exif_lng = _extract_exif_gps(contents)
 
+    # E2.5 — MD5 hash for duplicate proof detection
+    file_hash = hashlib.md5(contents).hexdigest()  # noqa: S324 (dedup, not security)
+
     svc = IntakeService(session)
-    att = await svc.add_attachment(
-        grievance_id=grievance_id,
-        url=url,
-        file_type=type_map.get(file.content_type or "", "document"),
-        file_size=len(contents),
-        exif_lat=exif_lat,
-        exif_lng=exif_lng,
-        uploaded_by_id=user.user_id if user else None,
-        is_proof=is_proof,
-        proof_type=proof_type,
-    )
+    try:
+        att = await svc.add_attachment(
+            grievance_id=grievance_id,
+            url=url,
+            file_type=type_map.get(file.content_type or "", "document"),
+            file_size=len(contents),
+            exif_lat=exif_lat,
+            exif_lng=exif_lng,
+            uploaded_by_id=user.user_id if user else None,
+            is_proof=is_proof,
+            proof_type=proof_type,
+            file_hash=file_hash,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
     return AttachmentRead.model_validate(att)
 
 

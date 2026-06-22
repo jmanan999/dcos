@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -55,3 +55,40 @@ class AssignmentHistory(Base):
     )
     unassigned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ComplaintChecklist(Base):
+    """Per-category quality checklist steps an officer must complete before resolving (E2.4)."""
+
+    __tablename__ = "complaint_checklists"
+    __table_args__ = (Index("ix_checklists_category", "category"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    category: Mapped[str] = mapped_column(String(100), nullable=False)
+    step_order: Mapped[int] = mapped_column(Integer, nullable=False)
+    step_label: Mapped[str] = mapped_column(String(200), nullable=False)
+    step_label_hi: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    requires_photo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class ChecklistCompletion(Base):
+    """An officer's completion of a single checklist step for a grievance (E2.4)."""
+
+    __tablename__ = "checklist_completions"
+    __table_args__ = (Index("ix_checklist_completions_grievance", "grievance_id"),)
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    grievance_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("grievances.id", ondelete="CASCADE"), nullable=False
+    )
+    checklist_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("complaint_checklists.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    officer_id: Mapped[str] = mapped_column(String(80), nullable=False)
+    note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

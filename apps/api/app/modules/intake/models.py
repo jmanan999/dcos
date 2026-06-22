@@ -248,4 +248,6 @@ class Attachment(Base):
     is_proof: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     proof_type: Mapped[str | None] = mapped_column(String(10), nullable=True)
     uploaded_by_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    # MD5 hash for duplicate proof detection (E2.5)
+    file_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

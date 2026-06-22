@@ -8,13 +8,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.core.dependencies import CurrentUser, RlsDbSession, require_permission
 from app.core.permissions import P
 from app.modules.workforce.schemas import (
+    ChecklistCompleteRequest,
+    ChecklistStatus,
     ClosureRequest,
     EscalateRequest,
+    FullCaseFile,
     GrievanceSummary,
     OfficerNoteCreate,
     OfficerNoteRead,
+    OfficerScorecard,
     ProofVerificationResult,
     RequestInfoRequest,
+    RoutePlan,
     WorkloadSummary,
 )
 from app.modules.workforce.service import WorkforceService
@@ -246,3 +251,105 @@ async def dept_workload(
         raise HTTPException(status_code=400, detail="department_id required")
     svc = WorkforceService(session)
     return await svc.get_workload(target)
+
+
+# ── E2.1: Route optimization ──────────────────────────────────────────────────
+
+
+@router.get("/route-plan", response_model=RoutePlan)
+async def route_plan(
+    user: CurrentUser,
+    session: RlsDbSession,
+) -> RoutePlan:
+    """Geo-clustered field route for the current officer's open complaints."""
+    from sqlalchemy import text
+
+    await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+    officer_row = (
+        await session.execute(
+            text("SELECT id FROM officers WHERE user_id = :uid LIMIT 1"),
+            {"uid": user.user_id},
+        )
+    ).fetchone()
+    if not officer_row:
+        return RoutePlan(
+            clusters=[],
+            total_stops=0,
+            unclustered=0,
+            naive_minutes=0,
+            optimised_minutes=0,
+            minutes_saved=0,
+        )
+    svc = WorkforceService(session)
+    return await svc.get_route_plan(uuid.UUID(str(officer_row[0])))
+
+
+# ── E2.2: Officer scorecard ───────────────────────────────────────────────────
+
+
+@router.get("/my-scorecard", response_model=OfficerScorecard)
+async def my_scorecard(
+    user: CurrentUser,
+    session: RlsDbSession,
+) -> OfficerScorecard:
+    """The current officer's personal performance scorecard + department rank."""
+    from sqlalchemy import text
+
+    await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+    svc = WorkforceService(session)
+    try:
+        return await svc.get_my_scorecard(user.user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+# ── E2.3: Full case file ──────────────────────────────────────────────────────
+
+
+@router.get("/grievances/{grievance_id}/full-case", response_model=FullCaseFile)
+async def full_case(
+    grievance_id: uuid.UUID,
+    user: CurrentUser,
+    session: RlsDbSession,
+) -> FullCaseFile:
+    """Complete grievance history — for handoff context and audit."""
+    from sqlalchemy import text
+
+    await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+    svc = WorkforceService(session)
+    try:
+        return await svc.get_full_case(grievance_id)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+# ── E2.4: Quality checklists ──────────────────────────────────────────────────
+
+
+@router.get("/grievances/{grievance_id}/checklist", response_model=ChecklistStatus | None)
+async def get_checklist(
+    grievance_id: uuid.UUID,
+    user: CurrentUser,
+    session: RlsDbSession,
+) -> ChecklistStatus | None:
+    """Quality checklist for this grievance's category + completion state."""
+    from sqlalchemy import text
+
+    await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+    svc = WorkforceService(session)
+    return await svc.get_checklist(grievance_id)
+
+
+@router.post("/grievances/{grievance_id}/checklist")
+async def complete_checklist(
+    grievance_id: uuid.UUID,
+    body: ChecklistCompleteRequest,
+    user: CurrentUser,
+    session: RlsDbSession,
+) -> dict:
+    """Mark a checklist step complete."""
+    from sqlalchemy import text
+
+    await session.execute(text("SELECT set_config('app.bypass_rls', 'true', true)"))
+    svc = WorkforceService(session)
+    return await svc.complete_checklist_item(grievance_id, body.checklist_id, user, body.note)

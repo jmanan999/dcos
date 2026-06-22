@@ -162,6 +162,69 @@ export const useWorkload = (deptId?: string) =>
     { refreshInterval: 30_000 }
   );
 
+// ── Epic 2: Field Operations Intelligence ─────────────────────────────────────
+
+export interface RouteStop {
+  id: string;
+  tracking_id: string;
+  category: string | null;
+  latitude: number;
+  longitude: number;
+  is_sla_breached: boolean;
+  priority: string;
+}
+export interface RouteCluster {
+  label: string;
+  ward_name: string | null;
+  stops: RouteStop[];
+  estimated_minutes: number;
+  google_maps_url: string;
+}
+export interface RoutePlan {
+  clusters: RouteCluster[];
+  total_stops: number;
+  unclustered: number;
+  naive_minutes: number;
+  optimised_minutes: number;
+  minutes_saved: number;
+}
+export const useRoutePlan = () =>
+  useSWR<RoutePlan>("/workforce/route-plan", swrFetcher, { refreshInterval: 60_000 });
+
+export interface OfficerScorecard {
+  officer_id: string;
+  officer_name: string | null;
+  open_cases: number;
+  resolved_7d: number;
+  resolved_30d: number;
+  avg_resolution_hours: number | null;
+  sla_breaches: number;
+  false_closure_rate: number;
+  avg_csat: number | null;
+  dept_rank: number;
+  dept_total_officers: number;
+  performance_grade: string;
+}
+export const useMyScorecard = () =>
+  useSWR<OfficerScorecard>("/workforce/my-scorecard", swrFetcher, { refreshInterval: 60_000 });
+
+export interface ChecklistStep {
+  id: string;
+  step_order: number;
+  step_label: string;
+  step_label_hi: string | null;
+  requires_photo: boolean;
+  completed: boolean;
+  completed_note: string | null;
+}
+export interface ChecklistStatus {
+  category: string;
+  steps: ChecklistStep[];
+  total: number;
+  completed: number;
+  all_complete: boolean;
+}
+
 // ── Control-room operations analytics ─────────────────────────────────────────
 
 export interface PendencyBucket {

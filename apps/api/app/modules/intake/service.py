@@ -352,7 +352,29 @@ class IntakeService:
         uploaded_by_id: str | None = None,
         is_proof: bool = False,
         proof_type: str | None = None,
+        file_hash: str | None = None,
     ) -> Attachment:
+        # E2.5 — reject duplicate proof photos (same MD5 reused from another case)
+        if is_proof and file_hash:
+            dup = (
+                await self._s.execute(
+                    text("""
+                        SELECT g.tracking_id
+                        FROM attachments a
+                        JOIN grievances g ON g.id = a.grievance_id
+                        WHERE a.file_hash = :h AND a.is_proof = true
+                          AND a.grievance_id != :gid
+                        LIMIT 1
+                    """),
+                    {"h": file_hash, "gid": str(grievance_id)},
+                )
+            ).fetchone()
+            if dup:
+                raise ValueError(
+                    f"This exact image was already used as proof on complaint {dup[0]}. "
+                    "Each proof photo must be taken fresh at the site."
+                )
+
         att = Attachment(
             grievance_id=grievance_id,
             url=url,
@@ -363,6 +385,7 @@ class IntakeService:
             is_proof=is_proof,
             proof_type=proof_type,
             uploaded_by_id=uploaded_by_id,
+            file_hash=file_hash,
         )
         self._s.add(att)
         await self._s.flush()

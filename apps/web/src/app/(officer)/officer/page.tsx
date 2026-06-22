@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { TrendingUp, AlertTriangle, CheckCircle2, ArrowRight } from "lucide-react";
-import { StatusBadge, SeverityBadge, Skeleton, EmptyState } from "@dcos/ui";
-import { useQueue } from "@/lib/hooks";
+import { TrendingUp, AlertTriangle, CheckCircle2, ArrowRight, Navigation, MapPin, Award } from "lucide-react";
+import { StatusBadge, SeverityBadge, Skeleton, EmptyState, cn } from "@dcos/ui";
+import { useQueue, useRoutePlan, useMyScorecard } from "@/lib/hooks";
+
+function gradeColor(g: string) {
+  return g === "A" ? "text-success" : g === "B" ? "text-primary" :
+         g === "C" ? "text-warning" : "text-destructive";
+}
 
 export default function OfficerDashboard() {
   const { data: queue, isLoading } = useQueue();
+  const { data: route } = useRoutePlan();
+  const { data: scorecard } = useMyScorecard();
 
   const assigned   = queue?.filter((g) => g.status === "ASSIGNED").length ?? 0;
   const inProgress = queue?.filter((g) => g.status === "IN_PROGRESS").length ?? 0;
@@ -59,6 +66,114 @@ export default function OfficerDashboard() {
           </div>
         </div>
       </section>
+
+      {/* Scorecard + Route Plan row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+
+        {/* E2.2 — My Performance Scorecard */}
+        <section className="bg-white border border-outline-variant p-5 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Award className="h-4 w-4 text-primary" />
+            <h2 className="text-label-caps text-on-surface-variant">My Performance</h2>
+          </div>
+          {scorecard ? (
+            <>
+              <div className="flex items-end justify-between">
+                <div>
+                  <span className={cn("text-5xl font-black", gradeColor(scorecard.performance_grade))}>
+                    {scorecard.performance_grade}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <p className="text-2xl font-bold text-on-surface tabular-nums">
+                    #{scorecard.dept_rank}
+                  </p>
+                  <p className="text-label-caps text-on-surface-variant">
+                    of {scorecard.dept_total_officers} officers
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 pt-2 border-t border-outline-variant">
+                <div>
+                  <p className="text-label-caps text-on-surface-variant">Resolved 30d</p>
+                  <p className="text-lg font-bold text-success tabular-nums">{scorecard.resolved_30d}</p>
+                </div>
+                <div>
+                  <p className="text-label-caps text-on-surface-variant">Avg Hours</p>
+                  <p className="text-lg font-bold text-on-surface tabular-nums">
+                    {scorecard.avg_resolution_hours != null ? `${Math.round(scorecard.avg_resolution_hours)}h` : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-label-caps text-on-surface-variant">CSAT</p>
+                  <p className="text-lg font-bold text-on-surface tabular-nums">
+                    {scorecard.avg_csat != null ? `${scorecard.avg_csat}/5` : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-label-caps text-on-surface-variant">False Closures</p>
+                  <p className={cn("text-lg font-bold tabular-nums", scorecard.false_closure_rate > 15 ? "text-destructive" : "text-on-surface")}>
+                    {scorecard.false_closure_rate}%
+                  </p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <Skeleton className="h-32" />
+          )}
+        </section>
+
+        {/* E2.1 — Smart Route Plan */}
+        <section className="lg:col-span-2 bg-white border border-outline-variant p-5 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Navigation className="h-4 w-4 text-primary" />
+              <h2 className="text-label-caps text-on-surface-variant">Today&apos;s Optimised Route</h2>
+            </div>
+            {route && route.minutes_saved > 0 && (
+              <span className="text-label-caps text-success">
+                Saves ~{Math.round(route.minutes_saved / 60 * 10) / 10}h vs separate trips
+              </span>
+            )}
+          </div>
+          {route && route.clusters.length > 0 ? (
+            <div className="space-y-2">
+              {route.clusters.slice(0, 4).map((cluster, i) => (
+                <a
+                  key={i}
+                  href={cluster.google_maps_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-between border border-outline-variant px-3 py-2.5 hover:border-primary transition-colors group"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <MapPin className="h-4 w-4 text-primary shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-on-surface truncate">
+                        {cluster.label}
+                      </p>
+                      <p className="text-label-caps text-on-surface-variant">
+                        {cluster.stops.length} stop{cluster.stops.length !== 1 ? "s" : ""} ·
+                        ~{cluster.estimated_minutes} min
+                        {cluster.stops.some((s) => s.is_sla_breached) && (
+                          <span className="text-destructive"> · has breached</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-label-caps text-primary group-hover:underline shrink-0 ml-2">
+                    Open Maps →
+                  </span>
+                </a>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-8 text-sm text-on-surface-variant">
+              No located complaints to route. Your queue is clear or complaints lack GPS.
+            </div>
+          )}
+        </section>
+      </div>
 
       {/* Main row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
